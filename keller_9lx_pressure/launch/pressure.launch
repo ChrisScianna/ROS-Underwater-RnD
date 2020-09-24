@@ -1,0 +1,13 @@
+<launch>
+	<arg name="portName" default="/dev/ttyUSB2"/>
+	<arg name="baudRate" default="9600"/>
+	<arg name="logging" default="True"/>
+	<node name="pressure_sensor" pkg="keller_9lx_pressure" type="keller_9lx_pressure_main" output="screen">
+		<param name="port" value="$(arg portName)"/>
+		<param name="baudRate" value="$(arg baudRate)"/>
+		<param name="logging" value="$(arg logging)"/>
+		<param name="rate" value="100"/>
+		<param name="lower_pressure_bound" value="0"/>
+		<param name="upper_pressure_bound" value="100000"/>
+	</node>
+</launch>

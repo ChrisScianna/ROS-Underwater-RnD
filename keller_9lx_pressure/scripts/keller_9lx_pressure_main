@@ -1,0 +1,237 @@
+#!/usr/bin/env python
+'''
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2020, QinetiQ, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of QinetiQ nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+'''
+
+# Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+
+import rospy
+from sensor_msgs.msg import FluidPressure
+from sensor_msgs.msg import Temperature
+import std_msgs
+import time
+import serial
+import numpy as np
+import sys
+
+import diagnostic_tools
+import diagnostic_updater
+from health_monitor.msg import ReportFault
+
+
+NODE_VERSION = "2.0x"
+rospy.set_param('/version_numbers/pressure_sensor', NODE_VERSION)
+versionInfo = "Starting Pressure Sensor Version: [%s]" % NODE_VERSION
+rospy.loginfo(versionInfo)
+
+
+#topicName = rospy.get_param("topic",'/pressure_sensor/Pressure')
+
+
+# code 73: Request Data
+# code 73 setup [DevAddress, 73, Channel*,Check Sum H, Check Sum L]
+#****Channels:(1:Pressure Sensor 1, 2:Pressure Sensor 2, 3:Additional Temp Sensor, 4:Temp Sensor 1, 5:Temp Sensor 2)
+code73Pressure = [250, 73, 1, 161, 167]
+code73Temp = [250, 73, 4, 162, 103]
+# code 48: Initialise
+# code 48 setup [DevAddress, 48, Check Sum H, Check Sum L]
+code48 = [250, 48, 4, 67]
+
+
+def talker():
+    rospy.init_node('pressure_sensor', anonymous=True)
+    sensorPort = rospy.get_param('~port', "/dev/ttyUSB0")
+    sensorBaudRate = int(rospy.get_param("~baudRate", 9600))
+    rate = float(rospy.get_param("~rate", '1'))
+    logFlag = bool(rospy.get_param("~logging", True))
+    lowerPressureBound = rospy.get_param('~lower_pressure_bound', 0.)
+    upperPressureBound = rospy.get_param('~upper_pressure_bound', 100e3)
+    updater = diagnostic_updater.Updater()
+    updater.setHardwareID('pressure_sensor')
+
+    def pressure_within_range(pressure):
+        if lowerPressureBound < pressure and pressure < upperPressureBound:
+            return diagnostic_tools.Diagnostic.OK
+        return (
+            diagnostic_tools.Diagnostic.ERROR,
+            '{} Pa outside [{} Pa, {} Pa] range'.format(
+                pressure, lowerPressureBound, upperPressureBound,
+            ),
+            ReportFault.PRESSURE_THRESHOLD_REACHED
+        )
+
+    pressureCheck = diagnostic_tools.HealthCheck(
+        name='Pressure within range', test_fn=pressure_within_range
+    )
+    updater.add(pressureCheck)
+
+    pubP = diagnostic_tools.DiagnosedPublisher(
+        "/pressure_sensor/pressure", FluidPressure, queue_size=1
+    )
+    updater.add(
+        pubP.add_check(diagnostic_tools.PeriodicMessageStatus(
+            config=diagnostic_tools.PeriodicMessageStatus.configure(
+                min_acceptable_period=(1.0 / rate) / 2.0,  # in seconds
+                max_acceptable_period=(1.0 / rate) * 2.0,  # in seconds
+                abnormal_diagnostic=diagnostic_tools.Diagnostic(diagnostic_tools.Diagnostic.ERROR,
+                                                                code=ReportFault.PRESSURE_DATA_STALE)
+            )
+        ))
+    )
+    updater.add(
+        pubP.add_check(diagnostic_tools.MessageStagnationCheck(
+            equal_op=(lambda a, b: a.fluid_pressure == b.fluid_pressure),
+            config=diagnostic_tools.MessageStagnationCheck.configure(
+                stagnation_diagnostic=diagnostic_tools.Diagnostic(diagnostic_tools.Diagnostic.ERROR,
+                                                                  code=ReportFault.PRESSURE_DATA_STAGNATED)
+            )
+        ))
+    )
+
+    pubT = rospy.Publisher(
+        "~temperature", Temperature, queue_size=1
+    )
+    # hz	# configure the serial connections (the parameters differs on the device you are connecting to)
+    rate = rospy.Rate(rate)
+    print(sensorPort)
+    print(str(sensorBaudRate))
+    ser = serial.Serial(
+        port=sensorPort,
+        baudrate=sensorBaudRate,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS
+    )
+    ser.isOpen()
+    message = bytearray(code48)
+    ser.write(message)
+    while ser.inWaiting() < 14:
+        time.sleep(0.1)
+        print("waiting Start Up")
+        if rospy.is_shutdown():
+            print('shutdown')
+            sys.exit()
+    while ser.inWaiting() > 0:
+        ser.read(1)
+    pressureData = np.zeros(9, dtype=int)
+    temperatureData = np.zeros(9, dtype=int)
+    while not rospy.is_shutdown():
+        message = bytearray(code73Pressure)
+        ser.write(message)
+        while ser.inWaiting() < 14:
+            time.sleep(0.001)
+            #print("waiting Pressure")
+            if rospy.is_shutdown():
+                print('shutdown')
+                sys.exit()
+        i = 0
+        while ser.inWaiting() > 0:
+            data = ser.read(1)
+            if i > 4:
+                pressureData[i-5] = int(ord(data))
+            i = i+1
+        # comment out here
+        message = bytearray(code73Temp)
+        ser.write(message)
+        while ser.inWaiting() < 14:
+            time.sleep(0.001)
+            #print("waiting Temp")
+            if rospy.is_shutdown():
+                print('shutdown')
+                sys.exit()
+        i = 0
+        while ser.inWaiting() > 0:
+            data = ser.read(1)
+            if i > 4:
+                temperatureData[i-5] = int(ord(data))
+            i = i+1
+        sign = temperatureData[2] >> 7
+        extraBit = temperatureData[3] >> 7
+        exponent = ((temperatureData[2]-128*sign) << 1) | extraBit
+        mantis = (temperatureData[3]-(128*extraBit)
+                  ) << 16 | (temperatureData[4] << 8) | temperatureData[5]
+        tempC = ((-1)**sign)*(1.0+int(mantis)/8388608.0)*(2**(int(exponent)-127))
+        tempF = tempC*9/5+32
+        if logFlag:
+            print(tempF)
+        # tempF=0
+        sign = pressureData[2] >> 7
+        extraBit = pressureData[3] >> 7
+        exponent = ((pressureData[2]-128*sign) << 1) | extraBit
+        mantis = (pressureData[3]-(128*extraBit)) << 16 | (pressureData[4] << 8) | pressureData[5]
+        pressureBar = ((-1)**sign)*(1.0+int(mantis)/8388608.0)*(2**(int(exponent)-127))
+        pressureAbsoluteBar = pressureBar+1.01325
+        pressurePascal = pressureAbsoluteBar*100000
+        if logFlag:
+            print(pressureBar)
+        pressureCheck.test(pressurePascal)
+        h = std_msgs.msg.Header()
+        h.stamp = rospy.Time.now()
+        h.frame_id = "external pressure"
+        valueP = FluidPressure(header=h, fluid_pressure=pressurePascal, variance=0)
+        pubP.publish(valueP)
+        h.frame_id = "external temperature"
+        valueT = Temperature(header=h, temperature=tempC, variance=0)
+        pubT.publish(valueT)
+        updater.update()
+        rate.sleep()
+
+
+if __name__ == '__main__':
+    try:
+        talker()
+    except rospy.ROSInterruptException:
+        pass
+
+# Open serial connection to sensor
+#	baudrate=9600
+#	parity=none
+#	stopbits=1
+#	bytesize=8
+#	stopbits=1
+#	bytesize=8
+# On start up initialize
+#	code 48 setup [DevAddress, 48, Check Sum H, Check Sum L] ex:[250,48,4,67]
+#	single unit device adress is 250
+#	read data response. Should start [250,48,...]
+# Requesting data
+#	code 73: Request Data
+#	code 73 setup [DevAddress, 73, Channel*,Check Sum H, Check Sum L]
+#	****Channels:(1:Pressure Sensor 1, 2:Pressure Sensor 2, 3:Additional Temp Sensor, 4:Temp Sensor 1, 5:Temp Sensor 2)
+#	ex: Pressure Request: 	[250,73,1,161,167]
+#	ex: Temperature Request:[250,73,4,162,103]
+# Processing Data
+#	returned message will be in the form [DevAddress,73,B3,B2,B1,B0,Stat,Check Sum H, Check Sum L]
+#	The most significant bit of B3 is the sign
+#	The 7 least significant of B3 concatinated with the most significant of B2 is the exponent and the remaining 23 bits of B2,B1,B0 make up the Mantis
+#	To convert to decimal for the following equation is used:
