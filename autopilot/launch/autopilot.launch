@@ -1,0 +1,57 @@
+<launch>
+
+<!-- autopilot -->
+<node pkg="autopilot" type="autopilot_node" name="autopilot_node" output="screen">
+  
+    <param name="speed_control_enabled" type="boolean" value="false" />
+    <param name="allow_reverse_thruster_autopilot" type="boolean" value="false" />
+    <param name="thruster_enabled" type="boolean" value="true" />
+    <param name="rpm_per_knot" type="double" value="100.0"/>
+	
+    <param name="max_allowed_thruster_rpm" type="double" value="500.0" />
+    <param name="control_loop_rate" type="int" value="10" />
+    <param name="minimalspeed" type="double" value="1.0" />
+
+    <param name="imu_roll_offset" type="double" value="0.0" />
+    <param name="imu_pitch_offset" type="double" value="0.0" />
+    <param name="imu_yaw_offset" type="double" value="0.0" />
+
+    <param name="desired_roll" type="double" value="0.0" />
+    <param name="desired_pitch" type="double" value="0.0" />
+    <param name="desired_yaw" type="double" value="0.0" />
+
+    <param name="depth_control_enabled" type="boolean" value="false" />
+    <param name="desired_depth" type="double" value="0.0" />
+    <param name="fixed_rudder" type="boolean" value="true" />
+    <param name="desired_rudder" type="double" value="0.0" />
+
+    <param name="roll_p" type="double" value="1.0" />
+    <param name="roll_i" type="double" value="0.0" />
+    <param name="roll_imax" type="double" value="20.0" />
+    <param name="roll_imin" type="double" value="-20.0" />
+    <param name="roll_d" type="double" value="0.0" />
+
+    <param name="pitch_p" type="double" value="1.0" />
+    <param name="pitch_i" type="double" value="0.0" />
+    <param name="pitch_imax" type="double" value="20.0" />
+    <param name="pitch_imin" type="double" value="-20.0" />
+    <param name="pitch_d" type="double" value="0.0" />
+
+    <param name="yaw_p" type="double" value="1.0" />
+    <param name="yaw_i" type="double" value="0.0" />
+    <param name="yaw_imax" type="double" value="20.0" />
+    <param name="yaw_imin" type="double" value="-20.0" />
+    <param name="yaw_d" type="double" value="0.0" />
+
+    <param name="max_depth_command" type="double" value="10.0" />
+    <param name="depth_p" type="double" value="1.0" />
+    <param name="depth_i" type="double" value="0.0" />
+    <param name="depth_imax" type="double" value="20.0" />
+    <param name="depth_imin" type="double" value="-20.0" />
+    <param name="depth_d" type="double" value="0.0" />
+
+    <param name="max_ctrl_plane_angle" value="10.0" />
+
+  </node>
+
+</launch>
