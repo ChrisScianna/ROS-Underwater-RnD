@@ -1,0 +1,22 @@
+<launch>
+
+  <arg name="rpmRate" default="0.1"/>
+  <arg name="tempRate" default="0.5"/>
+  <arg name="setRPMTimeout" default="0.5"/>
+  <arg name="canNodeId1" default="0x07"/>
+  <arg name="canNodeId2" default="0x08"/>
+  <arg name="motorTemperatureThreshold" default="50.0"/>
+  <arg name="maxAllowedMotorRPM" default="0.0"/>
+
+  <node name="thruster_control_node" pkg="thruster_control" type="thruster_control_node" output="screen">
+    <param name="report_rpm_rate" type="double" value="$(arg rpmRate)" />
+    <param name="report_motor_temperature_rate" type="double" value="$(arg tempRate)" />
+    <param name="set_rpm_timeout_seconds" type="double" value="$(arg setRPMTimeout)" />
+  	<param name="current_logging_enabled" type="boolean" value="true" />
+    <param name="can_node_id_1" type="string" value="$(arg canNodeId1)" />
+    <param name="can_node_id_2" type="string" value="$(arg canNodeId2)" />
+    <param name="motor_temperature_threshold" type="double" value="$(arg motorTemperatureThreshold)" />
+    <param name="max_allowed_motor_rpm" type="double" value="$(arg maxAllowedMotorRPM)" />
+  </node>
+
+</launch>

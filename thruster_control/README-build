@@ -1,0 +1,1 @@
+This ROS node depends on the CANFestival library. The CanFestival Library needs to be built before compiling this ROS node with catkin. The environment variable CANFESTIVALHOME needs to be set to the directory of where the CanFestival library is installed in the build environment.

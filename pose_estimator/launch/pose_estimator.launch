@@ -1,0 +1,16 @@
+<launch>
+	<arg name="maxDepth" default="100.0"/>
+	<arg name="maxRollAng" default="3.14159265358979323846"/>
+	<arg name="maxPitchAng" default="3.14159265358979323846"/>
+	<arg name="maxYauAng" default="6.283185307"/>
+	
+	<!-- pose_estimator -->
+	<node pkg="pose_estimator" type="pose_estimator_node" name="pose_estimator_node" output="screen">
+		<param name="rate" type="double" value="100.0"/>
+		<param name="saltwater_flag" type="bool" value="false"/>
+		<param name="max_depth" type="double" value="$(arg maxDepth)"/>
+		<param name="max_roll_ang" type="double" value="$(arg maxRollAng)"/>
+		<param name="max_pitch_ang" type="double" value="$(arg maxPitchAng)"/>
+		<param name="max_yau_ang" type="double" value="$(arg maxYauAng)"/>
+	</node>
+</launch>

@@ -1,0 +1,68 @@
+<launch>
+
+<!-- autopilot -->
+	<!-- mission manager -->
+	<node pkg="mission_manager" type="mission_manager_node" name="mission_manager_node" output="screen">
+		<param name="mission_path" type="string" value="/home/dev/missions"/>
+		<param name="schema_path" type="string" value="/home/pod-devel/ros/mission_manager/missions/mission.xsd"/>
+		<param name="behavior_dir" type="string" value="/home/pod-devel/ros/mission_manager/lib"/>
+		<param name="disable_abort" type="boolean" value="true"/>
+		<param name="attitude_servo_roll_tol" type="double" value="1.0"/>
+		<param name="attitude_servo_pitch_tol" type="double" value="1.0"/>
+		<param name="attitude_servo_yaw_tol" type="double" value="1.0"/>
+		<param name="low_battery_pack_voltage" type="double" value="30.0"/>
+		<param name="low_battery_cell_voltage" type="double" value="3.0"/>
+	</node>
+
+  <node pkg="mission_manager_test" type="mission_manager_test_node" name="mission_manager_test_node" output="screen">
+ 
+    <param name="max_thruster_acceleration" type="double" value="1.0" />
+    <param name="control_loop_rate" type="int" value="25" />
+    <param name="minimalspeed" type="double" value="3.0" />
+
+    <param name="imu_roll_offset" type="double" value="0.0" />
+    <param name="imu_pitch_offset" type="double" value="0.0" />
+    <param name="imu_yaw_offset" type="double" value="0.0" />
+    <param name="desired_roll" type="double" value="0.0" />
+    <param name="desired_pitch" type="double" value="0.0" />
+    <param name="desired_yaw" type="double" value="-30.0" />
+    <param name="depth_control_enabled" type="boolean" value="true" />
+    <param name="desired_depth" type="double" value="30.0" />
+    <param name="desired_altitude" type="double" value="1000.0" />
+    <param name="roll_p" type="double" value="2.0" />
+    <param name="roll_i" type="double" value="0.0" />
+    <param name="roll_imax" type="double" value="20.0" />
+    <param name="roll_imin" type="double" value="-20.0" />
+    <param name="roll_d" type="double" value="1.5" />
+    <param name="pitch_p" type="double" value="4.0" />
+    <param name="pitch_i" type="double" value="0.0" />
+    <param name="pitch_imax" type="double" value="20.0" />
+    <param name="pitch_imin" type="double" value="-20.0" />
+    <param name="pitch_d" type="double" value="2.0" />
+    <param name="yaw_p" type="double" value="4.0" />
+    <param name="yaw_i" type="double" value="0.0" />
+    <param name="yaw_imax" type="double" value="20.0" />
+    <param name="yaw_imin" type="double" value="-20.0" />
+    <param name="yaw_d" type="double" value="2.0" />
+    <param name="depth_p" type="double" value="-1.0" />
+    <param name="depth_i" type="double" value="0.0" />
+    <param name="depth_imax" type="double" value="20.0" />
+    <param name="depth_imin" type="double" value="-20.0" />
+    <param name="depth_d" type="double" value="0.0" />
+
+    <param name="altitude_p" type="double" value="-1.0" />
+    <param name="altitude_i" type="double" value="0.0" />
+    <param name="altitude_imax" type="double" value="20.0" />
+    <param name="altitude_imin" type="double" value="-20.0" />
+    <param name="altitude_d" type="double" value="0.0" />
+
+    <param name="speed_p" type="double" value="1.0" />
+    <param name="speed_i" type="double" value="0.0" />
+    <param name="speed_imax" type="double" value="20.0" />
+    <param name="speed_imin" type="double" value="-20.0" />
+    <param name="speed_d" type="double" value="0.0" />
+
+    <param name="max_ctrl_plane_angle" value="20.0" />
+  </node>
+
+</launch>

@@ -1,0 +1,5 @@
+<launch>
+	<node name="payload_manager" pkg="payload_manager" type="payloadManagerMain.py" output="screen">
+	</node>
+</launch>
+
