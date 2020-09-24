@@ -1,0 +1,14 @@
+<launch>
+  <arg name="batteryCheckPeriod" default="1.0"/>
+  <arg name="minBatteryTotalCurrent" default="1"/>
+  <arg name="minBatteryCellVoltage" default="1"/>
+  <arg name="maxBatteryTemperature" default="1.65"/>
+
+  <node name="battery_monitor_node" pkg="battery_monitor" type="battery_monitor_node" output="screen">
+    <param name="battery_check_period" type="double" value="$(arg batteryCheckPeriod)"/>
+    <param name="min_battery_total_current" type="double" value="$(arg minBatteryTotalCurrent)"/>
+    <param name="min_battery_cell_voltage" type="double" value="$(arg minBatteryCellVoltage)"/>
+    <param name="max_battery_temperature" type="double" value="$(arg maxBatteryTemperature)"/>
+  </node>
+
+</launch>
