@@ -44,7 +44,7 @@
 #include "sensor_msgs/NavSatFix.h"
 #include "tf/transform_datatypes.h"
 #include "thruster_control/ReportRPM.h"
-
+#include <cmath>
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
@@ -82,6 +82,8 @@ class PoseEstimatorNode  //: public LogBase
   bool running, data_valid;
   // Vars holding runtime params
   double pub_rate;
+  double min_rate;
+  double max_rate;
 
   double maxDepth;
   double maxRollAng;
@@ -142,8 +144,15 @@ class PoseEstimatorNode  //: public LogBase
     diagnosticsUpdater.setHardwareID("pose_estimator");
 
     ros::NodeHandle pose_node_handle(node_handle, "pose");
+
+    min_rate = pub_rate / 2;
+    max_rate = pub_rate * 2;
+    double poseDataSteadyBand = 0.0;
     // Get runtime parameters
     private_node_handle.getParam("rate", pub_rate);
+    private_node_handle.getParam("min_rate", min_rate);
+    private_node_handle.getParam("max_rate", max_rate);
+    private_node_handle.getParam("pose_data_steady_band", poseDataSteadyBand);
     private_node_handle.getParam("saltwater_flag", saltwater_flag);
     private_node_handle.getParam("max_depth", maxDepth);
     private_node_handle.getParam("max_roll_ang", maxRollAng);
@@ -166,21 +175,24 @@ class PoseEstimatorNode  //: public LogBase
 
     diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                          .min_acceptable_period((1.0 / pub_rate) / 2)
-                          .max_acceptable_period((1.0 / pub_rate) * 2)
+                          .min_acceptable_period(1.0 / min_rate)
+                          .max_acceptable_period(1.0 / max_rate)
                           .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR,
                                                 health_monitor::ReportFault::POSE_DATA_STALE})));
 
     // we verify that depth, RPY angles are equal.
     diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::MessageStagnationCheck>(
         "stagnation check",
-        [](const pose_estimator::CorrectedData &a, const pose_estimator::CorrectedData &b) {
-          return ((a.depth == b.depth) && (a.rpy_ang.x == b.rpy_ang.x) &&
-                  (a.rpy_ang.y == b.rpy_ang.y) && (a.rpy_ang.z == b.rpy_ang.z));
+        [poseDataSteadyBand](const pose_estimator::CorrectedData &a,
+                            const pose_estimator::CorrectedData &b) {
+          return (std::fabs((a.depth - b.depth) < poseDataSteadyBand) &&
+                  std::fabs((a.rpy_ang.x - b.rpy_ang.x) < poseDataSteadyBand) &&
+                  std::fabs((a.rpy_ang.y - b.rpy_ang.y) < poseDataSteadyBand) &&
+                  std::fabs((a.rpy_ang.z - b.rpy_ang.z) < poseDataSteadyBand));
         },
         diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
             {diagnostic_tools::Diagnostic::ERROR,
-             health_monitor::ReportFault::BATTERY_INFO_STAGNATED})));
+             health_monitor::ReportFault::POSE_DATA_STAGNATED})));
 
     // Report if message data is out of range
     depthCheck = diagnostic_tools::create_health_check<double>(

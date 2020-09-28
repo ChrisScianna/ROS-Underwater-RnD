@@ -73,8 +73,6 @@
 
 #include <fin_control/ReportAngle.h>
 
-#include <fin_control/ReportAngle.h>
-
 #include "dynamixel_workbench_msgs/DynamixelCommand.h"
 
 #include "dynamixel_workbench_msgs/GetDynamixelInfo.h"
@@ -147,6 +145,8 @@ class FinControl
   double ctrlFinScaleFactor;
 
   double reportAngleRate;
+  double minReportAngleRate;
+  double maxReportAngleRate;
 
   double maxCtrlPlaneSwing;
 

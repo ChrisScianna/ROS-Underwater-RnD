@@ -42,6 +42,7 @@
 #define _BATTERY_MONITOR_H_
 
 #include <ros/ros.h>
+#include <cmath>
 
 #include <battery_monitor/ReportBatteryInfo.h>
 #include <battery_monitor/ReportLeakDetected.h>
