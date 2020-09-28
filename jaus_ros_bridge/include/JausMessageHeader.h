@@ -68,7 +68,7 @@ enum JausCommandID {
 
   // Center of gravity
   // JAUS_COMMAND_ReportBatteryPosition = 0x6A01, //TODO - need to be decided.
-  JAUS_COMMAND_ReportBatteryLeakDetected = 0x6A02,  // TODO - need to be decided.
+  JAUS_COMMAND_ReportFaultID = 0x6A02,  // TODO - need to be decided.
   JAUS_COMMAND_ReportBatteryInfo = 0x6A08,          // TODO - need to be decided.
   // JAUS_COMMAND_SetBatteryPosition = 0x6A04,   //TODO - need to be decided.
 

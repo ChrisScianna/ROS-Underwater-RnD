@@ -41,53 +41,22 @@
 
 #include <battery_monitor/ReportBatteryInfo.h>
 #include <battery_monitor/ReportLeakDetected.h>
+#include <health_monitor/ReportFault.h>
 
 struct BatteryInfoData {
-  bool batteryPackAConnected;
-  bool batteryPackBConnected;
-  float batteryPacksTotalCurrent;
-
-  float batteryPackCell1;
-  float batteryPackCell2;
-  float batteryPackCell3;
-  float batteryPackCell4;
-  float batteryPackCell5;
-  float batteryPackCell6;
-  float batteryPackCell7;
-  float batteryPackCell8;
-  float batteryPackCell9;
-  float batteryPackCell10;
-
-  // Not used for now
-  // float batteryPackBCell1;
-  // float batteryPackBCell2;
-  // float batteryPackBCell3;
-  // float batteryPackBCell4;
-  // float batteryPackBCell5;
-  // float batteryPackBCell6;
-  // float batteryPackBCell7;
-  // float batteryPackBCell8;
-  // float batteryPackBCell9;
-  // float batteryPackBCell10;
-
-  unsigned short batteryCell1Thermocouple;
-  unsigned short batteryCell2Thermocouple;
-  unsigned short batteryCell3Thermocouple;
-  unsigned short batteryCell4Thermocouple;
-  unsigned short batteryCell5Thermocouple;
-  unsigned short batteryCell6Thermocouple;
-  unsigned short batteryCell7Thermocouple;
-  unsigned short batteryCell8Thermocouple;
-
-  unsigned short systemThermocouple1;
+    float batteryPacksTotalCurrent;
+    float batteryVoltage;
+    unsigned short systemThermocouple1;
 };
 
 class ReportBatteryInfo : public JausMessageOut {
  private:
   uint8_t* Int16ToByteArray(int16_t inVal);
-  ros::Subscriber _subscriber_reportLeakDetected;
+  ros::Subscriber _subscriber_reportFaultID;
   ros::Subscriber _subscriber_reportBatteryInfo;
-  bool _leakDetected;
+
+  uint64_t _fault_id;
+  //bool _leakDetected;
 
   string _batterypack;
 
@@ -101,12 +70,12 @@ class ReportBatteryInfo : public JausMessageOut {
 
   void SetBatteryPack(string batterypack) { _batterypack = batterypack; }
 
-  void handleReportLeakDetected(const battery_monitor::ReportLeakDetected::ConstPtr& msg);
+  void handleReportFaultID(const health_monitor::ReportFault::ConstPtr& msg);
   void handleReportBatteryInfo(const battery_monitor::ReportBatteryInfo::ConstPtr& msg);
 
   virtual DataInfo GetPackedMessage(void* data){};
   virtual void Reset();
-  DataInfo GetPackedMessageForLeak(bool leak);
+  DataInfo GetPackedMessageForFaultID(uint64_t faults);
   DataInfo GetPackedMessageForBatteryInfo(void* data);
 };
 
