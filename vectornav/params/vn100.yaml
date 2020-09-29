@@ -1,5 +1,5 @@
 # Defined in udev rules, change according to your system. Typically /dev/ttyUSB0
-serial_port: /dev/ttyUSB0
+serial_port: /dev/ttyUSB2
 
 # Acceptable baud rates : 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600
 # Datasheet states 128000 works but from experiments it does not.
@@ -7,11 +7,13 @@ serial_baud: 115200
 
 # Acceptable data rates in Hz: 1, 2, 4, 5, 10, 20, 25, 40, 50, 100, 200
 # Baud rate must be able to handle the data rate
-async_output_rate: 40
+async_output_rate: 25
 
 # Device IMU Rate as set by the manufacturer (800Hz unless specified otherwise)
 # This value is used to set the serial data packet rate
 fixed_imu_rate: 800
+min_imu_rate: 400
+max_imu_rate: 1600
 
 # Frame id to publish data in
 frame_id: imu_link
@@ -41,3 +43,6 @@ angular_vel_covariance: [0.01,  0.0,   0.0,
 orientation_covariance: [0.01,  0.0,   0.0,
                             0.0,   0.01,  0.0,
                             0.0,   0.0,   0.01]
+
+# the minimum absolute tolerance in the orientation of the stagnation check
+orientation_steady_band: 0.0

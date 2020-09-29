@@ -19,13 +19,17 @@
   <build_depend>nav_msgs</build_depend>
   <build_depend>tf2</build_depend>
   <build_depend>tf2_geometry_msgs</build_depend>
-
+  <build_depend>diagnostic_tools</build_depend>
+  <build_depend>diagnostic_updater</build_depend>
+  <build_depend>health_monitor</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
   <run_depend>tf2</run_depend>
   <run_depend>tf2_geometry_msgs</run_depend>
-
+  <run_depend>diagnostic_tools</run_depend>
+  <run_depend>diagnostic_updater</run_depend>
+  <run_depend>health_monitor</run_depend>
 
   <!-- Maintainer Note:
       The vnccpplib directory is from http://www.vectornav.com/support/downloads
