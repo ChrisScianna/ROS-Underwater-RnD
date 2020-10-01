@@ -147,7 +147,6 @@ add_executable(${NODE_APP_NAME}
    src/fin_control.cpp
    src/fin_control_main.cpp
 )
-add_executable(fin_tst test_apps/fin_tst.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -158,13 +157,9 @@ add_executable(fin_tst test_apps/fin_tst.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(fin_tst ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${NODE_APP_NAME}
-   ${catkin_LIBRARIES}
-)
-target_link_libraries(fin_tst
    ${catkin_LIBRARIES}
 )
 
