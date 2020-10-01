@@ -12,6 +12,8 @@ async_output_rate: 25
 # Device IMU Rate as set by the manufacturer (800Hz unless specified otherwise)
 # This value is used to set the serial data packet rate
 fixed_imu_rate: 800
+min_imu_rate: 400
+max_imu_rate: 1600
 
 # Frame id to publish data in
 frame_id: imu_link
@@ -41,3 +43,6 @@ angular_vel_covariance: [0.01,  0.0,   0.0,
 orientation_covariance: [0.01,  0.0,   0.0,
                             0.0,   0.01,  0.0,
                             0.0,   0.0,   0.01]
+
+# the minimum absolute tolerance in the orientation of the stagnation check
+orientation_steady_band: 0.0

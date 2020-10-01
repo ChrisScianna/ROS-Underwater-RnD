@@ -40,7 +40,7 @@
 #include "std_srvs/Empty.h"
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
+#include <cmath>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
@@ -335,6 +335,10 @@ int run(int argc, char *argv[])
 
     // Sensor IMURATE (800Hz by default, used to configure device)
     int SensorImuRate;
+    int minImuRate;
+    int maxImuRate;
+
+    double orientationSteadyBand = 0.0;
 
     // Load all params
     pn.param<std::string>("frame_id", frame_id, "vectornav");
@@ -344,32 +348,31 @@ int run(int argc, char *argv[])
     pn.param<std::string>("serial_port", SensorPort, "/dev/ttyUSB0");
     pn.param<int>("serial_baud", SensorBaudrate, 115200);
     pn.param<int>("fixed_imu_rate", SensorImuRate, 800);
-
+    minImuRate = SensorImuRate / 2;
+    maxImuRate = SensorImuRate * 2;
+    pn.param<int>("min_imu_rate", minImuRate);
+    pn.param<int>("max_imu_rate", maxImuRate);
+    pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
     //The minimal rate is the same as sensor imu rate.
-    diagnosticsUpdater.add(
-        pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
-            "rate check",
-            diagnostic_tools::PeriodicMessageStatusParams{}
-                .min_acceptable_period((1.0 / SensorImuRate) / 2.0)
-                .max_acceptable_period((1.0 / SensorImuRate) * 2.0)
-                .abnormal_diagnostic({
-                    diagnostic_tools::Diagnostic::ERROR,
-                    health_monitor::ReportFault::AHRS_DATA_STALE})));
+    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
+        "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
+                          .min_acceptable_period(1.0 / minImuRate)
+                          .max_acceptable_period(1.0 / maxImuRate)
+                          .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR,
+                                                health_monitor::ReportFault::AHRS_DATA_STALE})));
 
-    diagnosticsUpdater.add(
-        pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
-            "stagnation check",
-            [](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
-                return ((a.orientation.x == b.orientation.x) &&
-                        (a.orientation.y == b.orientation.y) &&
-                        (a.orientation.z == b.orientation.z) &&
-                        (a.orientation.w == b.orientation.w));
-            },
-            diagnostic_tools::MessageStagnationCheckParams{}
-                .stagnation_diagnostic({
-                    diagnostic_tools::Diagnostic::ERROR,
-                    health_monitor::ReportFault::AHRS_DATA_STAGNATED})));
+    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
+        "stagnation check",
+        [orientationSteadyBand](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
+          return (std::fabs((a.orientation.x - b.orientation.x < orientationSteadyBand)) &&
+                  std::fabs((a.orientation.y - b.orientation.y < orientationSteadyBand)) &&
+                  std::fabs((a.orientation.z - b.orientation.z < orientationSteadyBand)) &&
+                  std::fabs((a.orientation.w - b.orientation.w < orientationSteadyBand)));
+        },
+        diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
+            {diagnostic_tools::Diagnostic::ERROR,
+             health_monitor::ReportFault::AHRS_DATA_STAGNATED})));
 
     //Call to set covariances
     if(pn.getParam("linear_accel_covariance",rpc_temp))
