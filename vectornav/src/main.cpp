@@ -310,7 +310,7 @@ void BinaryAsyncMessageReceived(void* userData, Packet& p, size_t index)
     }
 }
 
-void run(int argc, char *argv[])
+int run(int argc, char *argv[])
 {
 
     // ROS node init
@@ -503,8 +503,9 @@ void run(int argc, char *argv[])
     vs.disconnect();
     ros::Duration(0.5).sleep();
 
+    return(0);
 }
 
 int main (int argc, char *argv[]){
-    run(argc,argv);
+    return run(argc,argv) ;
 }

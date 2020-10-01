@@ -43,7 +43,7 @@ import time
 import serial
 import numpy as np
 import sys
-
+import math
 import diagnostic_tools
 import diagnostic_updater
 from health_monitor.msg import ReportFault
@@ -73,9 +73,12 @@ def talker():
     sensorPort = rospy.get_param('~port', "/dev/ttyUSB0")
     sensorBaudRate = int(rospy.get_param("~baudRate", 9600))
     rate = float(rospy.get_param("~rate", '1'))
+    min_rate = float(rospy.get_param("~min_rate", rate / 2))
+    max_rate = float(rospy.get_param("~max_rate", rate * 2))
     logFlag = bool(rospy.get_param("~logging", True))
     lowerPressureBound = rospy.get_param('~lower_pressure_bound', 0.)
     upperPressureBound = rospy.get_param('~upper_pressure_bound', 100e3)
+    pressureDataSteadyBand = float(rospy.get_param('~pressure_data_steady_band', 0.0))
     updater = diagnostic_updater.Updater()
     updater.setHardwareID('pressure_sensor')
 
@@ -101,8 +104,8 @@ def talker():
     updater.add(
         pubP.add_check(diagnostic_tools.PeriodicMessageStatus(
             config=diagnostic_tools.PeriodicMessageStatus.configure(
-                min_acceptable_period=(1.0 / rate) / 2.0,  # in seconds
-                max_acceptable_period=(1.0 / rate) * 2.0,  # in seconds
+                min_acceptable_period=(1.0 / min_rate),  # in seconds
+                max_acceptable_period=(1.0 / max_rate),  # in seconds
                 abnormal_diagnostic=diagnostic_tools.Diagnostic(diagnostic_tools.Diagnostic.ERROR,
                                                                 code=ReportFault.PRESSURE_DATA_STALE)
             )
@@ -110,7 +113,8 @@ def talker():
     )
     updater.add(
         pubP.add_check(diagnostic_tools.MessageStagnationCheck(
-            equal_op=(lambda a, b: a.fluid_pressure == b.fluid_pressure),
+            equal_op=(lambda a, b: math.isclose(
+                a.fluid_pressure, b.fluid_pressure, abs_tol=pressureDataSteadyBand)),
             config=diagnostic_tools.MessageStagnationCheck.configure(
                 stagnation_diagnostic=diagnostic_tools.Diagnostic(diagnostic_tools.Diagnostic.ERROR,
                                                                   code=ReportFault.PRESSURE_DATA_STAGNATED)

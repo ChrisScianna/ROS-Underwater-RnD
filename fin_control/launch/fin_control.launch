@@ -1,8 +1,10 @@
 <launch>
   <arg name="portName" default="/dev/ttyUSB0"/>
   <arg name="baudRate" default="3000000"/>
-  <arg name="reportAngleRate" default="0.04"/>
   <arg name="maxCtrlPlaneSwing" default="0.349"/>
+  <arg name="reportAngleRate" default="0.04"/>
+  <arg name="minReportAngleRate" default="0.02"/>
+  <arg name="maxReportAngleRate" default="0.08"/>
   <node pkg="fin_control" type="fin_control_node" name="fin_control" output="screen">
     <param name="port" type="string" value="$(arg portName)" />
     <param name="baud" type="int" value="$(arg baudRate)" />
@@ -10,7 +12,9 @@
     <param name="ctrl_fin_offset" type="double" value="90.0" />
     <param name="ctrl_fin_scale_factor" type="double" value="-1.0" />
     <param name="current_logging_enabled" type="boolean" value="true" />
-    <param name="report_angle_rate" type="double" value="$(arg reportAngleRate)" />
     <param name="max_ctrl_plane_swing" type="double" value="$(arg maxCtrlPlaneSwing)" />
+    <param name="report_angle_rate" type="double" value="$(arg reportAngleRate)" />
+    <param name="min_report_angle_rate" type="double" value="$(arg minReportAngleRate)" />
+    <param name="max_report_angle_rate" type="double" value="$(arg maxReportAngleRate)" />
   </node>
 </launch> 

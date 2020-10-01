@@ -48,7 +48,7 @@
 #include "std_msgs/Header.h"
 
 #include <ros/ros.h>
-
+#include <cmath>
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
@@ -82,7 +82,11 @@ class ThrusterControl {
   ros::Time lastSetRPMCommandTime;
 
   double reportRPMRate;
+  double minReportRPMRate;
+  double maxReportRPMRate;
   double reportMotorTemperatureRate;
+  double minReportMotorTemperatureRate;
+  double maxReportMotorTemperatureRate;
   bool currentLoggingEnabled;
   double motorTemperatureThreshold;
   double maxAllowedMotorRPM;

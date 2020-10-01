@@ -51,9 +51,29 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
     : nodeHandle(nodeHandle), diagnosticsUpdater(nodeHandle) {
   diagnosticsUpdater.setHardwareID("battery");
 
-  double batteryCheckPeriod = 1.0;
+  double minBatteryInfoCheckPeriod = 0.5;
+  nodeHandle.getParam("~/min_battery_info_check_period", minBatteryInfoCheckPeriod);
+  ROS_INFO("Minimun Battery Info Check Period:[%lf]", minBatteryInfoCheckPeriod);
+
+  double maxBatteryInfoCheckPeriod = 2.0;
+  nodeHandle.getParam("~/max_battery_info_check_period", maxBatteryInfoCheckPeriod);
+  ROS_INFO("Maximun Battery Info Check Period:[%lf]", maxBatteryInfoCheckPeriod);
+
+  double minBatteryLeakCheckPeriod = 0.5;
+  nodeHandle.getParam("~/min_battery_leak_check_period", minBatteryLeakCheckPeriod);
+  ROS_INFO("Minimun Battery Leak Check Period:[%lf]", minBatteryLeakCheckPeriod);
+
+  double maxBatteryLeakCheckPeriod = 2.0;
+  nodeHandle.getParam("~/max_battery_check_period", maxBatteryLeakCheckPeriod);
+  ROS_INFO("Maximun Battery Check Period:[%lf]", maxBatteryLeakCheckPeriod);
+
+  double batteryCheckPeriod = (maxBatteryInfoCheckPeriod + minBatteryInfoCheckPeriod) / 2.0;
   nodeHandle.getParam("~/battery_check_period", batteryCheckPeriod);
   ROS_INFO("Battery Check Period:[%lf]", batteryCheckPeriod);
+
+  double batteryTotalCurrentSteadyBand = 0.0;
+  nodeHandle.getParam("~/battery_total_current_steady_band", batteryTotalCurrentSteadyBand);
+  ROS_INFO("Epsilon value for stagnation compare values:[%lf]", batteryTotalCurrentSteadyBand);
 
   double minBatteryTotalCurrent = 5000;  // in mA
   nodeHandle.getParam("~/min_battery_total_current", minBatteryTotalCurrent);
@@ -75,17 +95,18 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
       publisher_reportBatteryInfo.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check",
           diagnostic_tools::PeriodicMessageStatusParams{}
-              .min_acceptable_period(batteryCheckPeriod / 2)
-              .max_acceptable_period(batteryCheckPeriod * 2)
+              .min_acceptable_period(minBatteryInfoCheckPeriod)
+              .max_acceptable_period(maxBatteryInfoCheckPeriod)
               .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
                                     health_monitor::ReportFault::BATTERY_INFO_STALE})));
 
   diagnosticsUpdater.add(
       publisher_reportBatteryInfo.add_check<diagnostic_tools::MessageStagnationCheck>(
           "stagnation check",
-          [](const battery_monitor::ReportBatteryInfo &a,
-             const battery_monitor::ReportBatteryInfo &b) {
-            return a.batteryPacksTotalCurrent == b.batteryPacksTotalCurrent;
+          [batteryTotalCurrentSteadyBand](const battery_monitor::ReportBatteryInfo &a,
+                                          const battery_monitor::ReportBatteryInfo &b) {
+            return (std::fabs(a.batteryPacksTotalCurrent - b.batteryPacksTotalCurrent) <
+                    batteryTotalCurrentSteadyBand);
           },
           diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
               {diagnostic_tools::Diagnostic::WARN,
@@ -148,8 +169,8 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
       publisher_reportLeakDetected.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check",
           diagnostic_tools::PeriodicMessageStatusParams{}
-              .min_acceptable_period(batteryCheckPeriod / 2)
-              .max_acceptable_period(batteryCheckPeriod * 2)
+              .min_acceptable_period(minBatteryLeakCheckPeriod)
+              .max_acceptable_period(maxBatteryLeakCheckPeriod)
               .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
                                     health_monitor::ReportFault::BATTERY_INFO_STALE})));
 
@@ -158,7 +179,7 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (leak_detected) {
           return {Diagnostic::WARN, "Battery leak detected",
-                  health_monitor::ReportFault::LEAK_DETECTED};
+                  health_monitor::ReportFault::BATTERY_LEAK_DETECTED};
         }
         return {Diagnostic::OK, "No leaks detected"};
       });

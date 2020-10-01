@@ -70,8 +70,9 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   servos_on = false;
   const char *log;
   currentLoggingEnabled = false;
-
   reportAngleRate = 0.04;
+  minReportAngleRate = 0.02;
+  maxReportAngleRate = 0.08;
 
   ros::NodeHandle nh;
 
@@ -99,6 +100,9 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   if (currentLoggingEnabled) ROS_INFO("FIN CURRENT LOGGING ENABLED");
 
   nh.getParam("/fin_control/report_angle_rate", reportAngleRate);
+  nh.getParam("/fin_control/min_report_angle_rate", minReportAngleRate);
+  nh.getParam("/fin_control/max_report_angle_rate", maxReportAngleRate);
+
   nh.getParam("/fin_control/max_ctrl_plane_swing", maxCtrlPlaneSwing);
 
   ROS_INFO("fin control constructor enter");
@@ -115,8 +119,8 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
 
   diagnosticsUpdater.add(publisher_reportAngle.add_check<diagnostic_tools::PeriodicMessageStatus>(
       "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                        .min_acceptable_period(reportAngleRate / 2)
-                        .max_acceptable_period(reportAngleRate * 2)
+                        .min_acceptable_period(minReportAngleRate)
+                        .max_acceptable_period(maxReportAngleRate)
                         .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
                                               health_monitor::ReportFault::BATTERY_INFO_STALE})));
 
@@ -388,7 +392,8 @@ void FinControl::workerFunc() {
   while (fincontrolEnabled) {
     reportAngles();
     // sleep to maintain 25Hz update period
-    usleep(40000);  // if changing this number update durations above.
+    // if changing this number update durations above.
+    usleep(static_cast<int>(reportAngleRate * 1e6));
   }
 }
 void FinControl::Start() {

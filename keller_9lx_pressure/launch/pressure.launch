@@ -7,7 +7,10 @@
 		<param name="baudRate" value="$(arg baudRate)"/>
 		<param name="logging" value="$(arg logging)"/>
 		<param name="rate" value="100"/>
+		<param name="min_rate" value="50"/>
+		<param name="max_rate" value="200"/>
 		<param name="lower_pressure_bound" value="0"/>
 		<param name="upper_pressure_bound" value="100000"/>
+		<param name="pressure_data_steady_band" value="0.0"/>
 	</node>
 </launch>
