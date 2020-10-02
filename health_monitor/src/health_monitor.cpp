@@ -59,7 +59,7 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
                                                  &HealthMonitor::handle_ClearFault, this);
     subscriber_diagnostics = nodeHandle.subscribe("/diagnostics", 1,
                                                   &HealthMonitor::handle_diagnostics, this);
-    subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/State", 1,
+    subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/state", 1,
                                                    &HealthMonitor::handle_rosmonFaults, this);
 
     publisher_reportFault = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
