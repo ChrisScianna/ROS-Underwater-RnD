@@ -59,7 +59,7 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
                                                  &HealthMonitor::handle_ClearFault, this);
     subscriber_diagnostics = nodeHandle.subscribe("/diagnostics", 1,
                                                   &HealthMonitor::handle_diagnostics, this);
-    subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/State", 1,
+    subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/state", 1,
                                                    &HealthMonitor::handle_rosmonFaults, this);
 
     publisher_reportFault = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
@@ -79,7 +79,8 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
     diagnosticsUpdater.add(publisher_reportFault.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
                           .min_acceptable_period(minReportFaultRate)
-                          .max_acceptable_period(maxReportFaultRate)));
+                          .max_acceptable_period(maxReportFaultRate)
+                          .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR, 1})));
 }
 
 HealthMonitor::~HealthMonitor()
