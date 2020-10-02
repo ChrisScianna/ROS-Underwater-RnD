@@ -79,8 +79,7 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
     diagnosticsUpdater.add(publisher_reportFault.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
                           .min_acceptable_period(minReportFaultRate)
-                          .max_acceptable_period(maxReportFaultRate)
-                          .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR, 1})));
+                          .max_acceptable_period(maxReportFaultRate)));
 }
 
 HealthMonitor::~HealthMonitor()

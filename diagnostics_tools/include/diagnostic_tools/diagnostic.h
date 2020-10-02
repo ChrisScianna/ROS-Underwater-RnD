@@ -51,7 +51,7 @@ class Diagnostic {
 
   Diagnostic& description(const char* format, ...);
 
-  bool has_code() const { return code_ == 0; }
+  bool has_code() const { return code_ != 0; }
 
   uint64_t code() const {
     if (code_ == 0) {
