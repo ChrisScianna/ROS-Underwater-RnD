@@ -1,5 +1,3 @@
 <launch>
-	<node name="log_toggle" pkg="log_toggle" type="log_toggle.py" output="screen">
-	</node>
+  <node name="log_toggle" pkg="log_toggle" type="log_toggle" output="screen"/>
 </launch>
-
