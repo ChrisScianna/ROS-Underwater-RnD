@@ -82,7 +82,7 @@ private:
         {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
         {"mission_manager", health_monitor::ReportFault::MISSION_NODE_DIED},
         {"pose_estimator", health_monitor::ReportFault::POSE_NODE_DIED},
-        {"thruster", health_monitor::ReportFault::THRUSTER_NODE_DIED},
+        {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
         {"autopilot", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
         {"battery_monitor", health_monitor::ReportFault::BATTERY_NODE_DIED},
         {"jaus_node_bridge", health_monitor::ReportFault::JAUS_NODE_DIED}};
