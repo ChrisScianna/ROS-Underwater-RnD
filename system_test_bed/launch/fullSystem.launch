@@ -1,0 +1,43 @@
+<launch>
+  <include file="$(find fin_control)/launch/fin_control.launch">
+    <arg name="portName" value="/dev/ttyUSB0"/>
+    <arg name="baudRate" value="3000000"/>
+  </include>
+  
+  <include file="$(find vectornav)/launch/vectornav.launch"/>
+  
+  <include file="$(find keller_9lx_pressure)/launch/pressure.launch">
+    <arg name="portName" value="/dev/ttyUSB1"/>
+    <arg name="baudRate" value="9600"/>
+    <arg name="logging" value="False"/>
+  </include>
+  
+  <include file="$(find mission_manager)/launch/mission_manager.launch">
+    <!--Go to mission_manager.launch for params-->
+  </include>
+  
+  <include file="$(find pose_estimator)/launch/pose_estimator.launch">
+    <!--Go to pose_estimator.launch for params-->
+  </include>
+  
+  <include file="$(find thruster_control)/launch/thruster_control.launch">
+    <arg name="rpmRate" value="0.1"/>
+    <arg name="tempRate" value="0.5"/>
+  </include>
+        
+  <include file="$(find autopilot)/launch/autopilot.launch">
+     <!--Go to autopilot.launch for params-->
+  </include>
+  
+  <include file="$(find jaus_ros_bridge)/launch/jaus_ros_bridge.launch">
+    <arg name="ip" value="192.168.36.112"/>
+    <arg name="port" value="2250"/>
+  </include>
+
+  <include file="$(find log_toggle)/launch/log_toggle.launch"/>
+
+  <include file="$(find payload_manager)/launch/payload_manager.launch"/>
+
+  <include file="$(find health_monitor)/launch/health_monitor.launch"/>
+
+</launch> 

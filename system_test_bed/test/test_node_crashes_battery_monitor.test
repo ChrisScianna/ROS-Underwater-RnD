@@ -1,0 +1,6 @@
+<launch>
+  <node name="rosmon" pkg="rosmon_core" type="rosmon" args="--disable-ui system_test_bed fullSystem.launch --name=rosmon" output="screen">
+	</node>
+  <test test-name="test_node_crashes" pkg="system_test_bed" type="test_node_crashes.py" args="thruster_control_node">
+  </test>
+</launch>
