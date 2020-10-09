@@ -242,7 +242,6 @@ void FinControl::reportAngle(uint8_t id) {
     finAngleCheck.test(message.angle_in_radians);
 
     publisher_reportAngle.publish(message);
-    diagnosticsUpdater.update();
     // ROS_INFO("reportAngle published. Angle is: %d", message.angle_in_radians);
   } else
     ROS_ERROR("Could not get servo angle for ID %d %s", message.ID, log);
@@ -385,6 +384,7 @@ void FinControl::handle_EnableReportAngles(const fin_control::EnableReportAngles
 void FinControl::workerFunc() {
   while (fincontrolEnabled) {
     reportAngles();
+    diagnosticsUpdater.update();
     // sleep to maintain 25Hz update period
     // if changing this number update durations above.
     usleep(static_cast<int>(reportAngleRate * 1e6));
