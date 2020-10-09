@@ -83,8 +83,6 @@
 
 #include <diagnostic_updater/diagnostic_updater.h>
 
-#include <diagnostic_tools/diagnosed_publisher.h>
-
 #include <diagnostic_tools/health_check.h>
 
 #include <health_monitor/ReportFault.h>
@@ -164,7 +162,7 @@ class FinControl
 
   ros::Subscriber subscriber_enableReportAngles;
 
-  diagnostic_tools::DiagnosedPublisher<fin_control::ReportAngle> publisher_reportAngle;
+  ros::Publisher publisher_reportAngle;
 
   DynamixelWorkbench myWorkBench;
 
