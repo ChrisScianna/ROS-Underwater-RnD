@@ -9,6 +9,8 @@
 #include <mutex>
 #include <string>
 
+#include <boost/make_unique.hpp>
+
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 
