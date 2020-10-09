@@ -52,39 +52,39 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
   diagnosticsUpdater.setHardwareID("battery");
 
   double minBatteryInfoCheckPeriod = 0.5;
-  nodeHandle.getParam("~/min_battery_info_check_period", minBatteryInfoCheckPeriod);
+  nodeHandle.getParam("/battery_monitor/min_battery_info_check_period", minBatteryInfoCheckPeriod);
   ROS_INFO("Minimun Battery Info Check Period:[%lf]", minBatteryInfoCheckPeriod);
 
   double maxBatteryInfoCheckPeriod = 2.0;
-  nodeHandle.getParam("~/max_battery_info_check_period", maxBatteryInfoCheckPeriod);
+  nodeHandle.getParam("/battery_monitor/max_battery_info_check_period", maxBatteryInfoCheckPeriod);
   ROS_INFO("Maximun Battery Info Check Period:[%lf]", maxBatteryInfoCheckPeriod);
 
   double minBatteryLeakCheckPeriod = 0.5;
-  nodeHandle.getParam("~/min_battery_leak_check_period", minBatteryLeakCheckPeriod);
+  nodeHandle.getParam("/battery_monitor/min_battery_leak_check_period", minBatteryLeakCheckPeriod);
   ROS_INFO("Minimun Battery Leak Check Period:[%lf]", minBatteryLeakCheckPeriod);
 
   double maxBatteryLeakCheckPeriod = 2.0;
-  nodeHandle.getParam("~/max_battery_check_period", maxBatteryLeakCheckPeriod);
+  nodeHandle.getParam("/battery_monitor/max_battery_check_period", maxBatteryLeakCheckPeriod);
   ROS_INFO("Maximun Battery Check Period:[%lf]", maxBatteryLeakCheckPeriod);
 
   double batteryCheckPeriod = (maxBatteryInfoCheckPeriod + minBatteryInfoCheckPeriod) / 2.0;
-  nodeHandle.getParam("~/battery_check_period", batteryCheckPeriod);
+  nodeHandle.getParam("/battery_monitor/battery_check_period", batteryCheckPeriod);
   ROS_INFO("Battery Check Period:[%lf]", batteryCheckPeriod);
 
   double batteryTotalCurrentSteadyBand = 0.0;
-  nodeHandle.getParam("~/battery_total_current_steady_band", batteryTotalCurrentSteadyBand);
+  nodeHandle.getParam("/battery_monitor/battery_total_current_steady_band", batteryTotalCurrentSteadyBand);
   ROS_INFO("Epsilon value for stagnation compare values:[%lf]", batteryTotalCurrentSteadyBand);
 
   double minBatteryTotalCurrent = 5000;  // in mA
-  nodeHandle.getParam("~/min_battery_total_current", minBatteryTotalCurrent);
+  nodeHandle.getParam("/battery_monitor/min_battery_total_current", minBatteryTotalCurrent);
   ROS_INFO("Minimum Battery Total Current:[%lf]", minBatteryTotalCurrent);
 
   double minBatteryCellVoltage = 30;  // in V
-  nodeHandle.getParam("~/min_battery_cell_voltage", minBatteryCellVoltage);
+  nodeHandle.getParam("/battery_monitor/min_battery_cell_voltage", minBatteryCellVoltage);
   ROS_INFO("Minimum Battery Cell Voltage:[%lf]", minBatteryCellVoltage);
 
   double maxBatteryTemperature = 50;  // in Celsius degrees
-  nodeHandle.getParam("~/max_battery_temperature", maxBatteryTemperature);
+  nodeHandle.getParam("/battery_monitor/max_battery_temperature", maxBatteryTemperature);
   ROS_INFO("Maximum Battery Temperature:[%lf]", maxBatteryTemperature);
 
   publisher_reportBatteryInfo =
