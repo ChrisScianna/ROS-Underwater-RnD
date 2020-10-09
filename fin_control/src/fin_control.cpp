@@ -114,24 +114,18 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   subscriber_enableReportAngles = nodeHandle.subscribe(
       "/fin_control/enable_report_angles", 10, &FinControl::handle_EnableReportAngles, this);
 
-  publisher_reportAngle = diagnostic_tools::create_publisher<fin_control::ReportAngle>(
-      nodeHandle, "/fin_control/report_angle", 1);
-
-  diagnosticsUpdater.add(publisher_reportAngle.add_check<diagnostic_tools::PeriodicMessageStatus>(
-      "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                        .min_acceptable_period(minReportAngleRate)
-                        .max_acceptable_period(maxReportAngleRate)
-                        .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
-                                              health_monitor::ReportFault::BATTERY_INFO_STALE})));
+  publisher_reportAngle =
+      nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
 
   finAngleCheck = diagnostic_tools::create_health_check<double>(
       "Fin swing within range", [this](double angle) -> diagnostic_tools::Diagnostic {
         using diagnostic_tools::Diagnostic;
         if (std::abs(angle) > maxCtrlPlaneSwing)
         {
-          return Diagnostic{Diagnostic::WARN, health_monitor::ReportFault::FIN_DATA_THRESHOLD_REACHED}
-              .description("Fin angle above maximum swing value: |%f rad| > %f rad",
-                           angle, maxCtrlPlaneSwing);
+          using health_monitor::ReportFault;
+          Diagnostic diagnostic{Diagnostic::WARN, ReportFault::FIN_DATA_THRESHOLD_REACHED};
+          return diagnostic.description(
+              "Fin angle above maximum swing value: |%f rad| > %f rad", angle, maxCtrlPlaneSwing);
         }
         return Diagnostic::OK;
       });
