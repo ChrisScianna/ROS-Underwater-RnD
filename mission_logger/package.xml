@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>log_toggle</name>
+  <name>mission_logger</name>
   <version>0.0.0</version>
-  <description>The log_toggle package</description>
+  <description>The mission_logger package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
