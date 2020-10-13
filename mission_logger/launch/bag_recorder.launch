@@ -1,0 +1,3 @@
+<launch>
+  <node name="mission_bag_recorder" pkg="mission_logger" type="mission_bag_recorder" output="screen"/>
+</launch>
