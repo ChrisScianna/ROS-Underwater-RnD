@@ -1,0 +1,3 @@
+<launch>
+  <node name="text_logger" pkg="mission_logger" type="text_logger" output="screen"/>
+</launch>

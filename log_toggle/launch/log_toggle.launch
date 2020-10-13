@@ -1,3 +1,0 @@
-<launch>
-  <node name="log_toggle" pkg="log_toggle" type="log_toggle" output="screen"/>
-</launch>

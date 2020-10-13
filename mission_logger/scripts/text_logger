@@ -73,7 +73,7 @@ def stopLogging(data):
 
 
 def listener():
-    rospy.init_node('log_toggle', anonymous=True)
+    rospy.init_node('text_logger', anonymous=True)
     rospy.Subscriber("/mngr/report_mission_execute_state", ReportExecuteMissionState, stopLogging)
     #rospy.Subscriber("/mngr/execute_mission", ExecuteMission, startLogging)
     rospy.spin()
