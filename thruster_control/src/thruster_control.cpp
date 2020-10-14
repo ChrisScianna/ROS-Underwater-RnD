@@ -142,7 +142,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   motorRPMCheck = diagnostic_tools::create_health_check<double>(
       "Motor RPM check", [this](double rpms) -> diagnostic_tools::Diagnostic {
         using diagnostic_tools::Diagnostic;
-        if (std::abs(rpms) < maxAllowedMotorRPM) {
+        if (std::abs(rpms) > maxAllowedMotorRPM) {
           return Diagnostic{Diagnostic::WARN,
                             health_monitor::ReportFault::THRUSTER_RPM_THRESHOLD_REACHED}
               .description("Absolute RPMs above threshold: |%f| > %f", rpms, maxAllowedMotorRPM);
@@ -154,10 +154,13 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   motorTemperatureCheck = diagnostic_tools::create_health_check<double>(
       "Motor temperature check", [this](double temperature) -> diagnostic_tools::Diagnostic {
         using diagnostic_tools::Diagnostic;
-        if (temperature > motorTemperatureThreshold) {
-          return Diagnostic{Diagnostic::ERROR}.description(
-              "Temperature above threshold: %f degC > %f degC",
-              temperature, motorTemperatureThreshold);
+        if (temperature > motorTemperatureThreshold)
+        {
+          return Diagnostic{Diagnostic::ERROR,
+                            health_monitor::ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED}
+              .description(
+                  "Temperature above threshold: %f degC > %f degC",
+                  temperature, motorTemperatureThreshold);
         }
         return Diagnostic::OK;
       });
