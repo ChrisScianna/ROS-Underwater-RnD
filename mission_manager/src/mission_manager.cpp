@@ -394,10 +394,13 @@ class MissionManagerNode {
     }
   }
 
-  void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg) {
-    ROS_WARN("Fault Detected [%d] aborting mission", msg->fault_id);
-
-    abortMission(m_current_mission_id);
+  void reportFaultCallback(const health_monitor::ReportFault::ConstPtr &msg)
+  {
+    if (msg->fault_id != 0)
+    {
+      ROS_WARN_STREAM("Fault Detected [" << msg->fault_id << "] aborting mission");
+      abortMission(m_current_mission_id);
+    }
   }
 
   bool endsWith(const std::string& str, const char* suffix) {
