@@ -87,12 +87,12 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       motorTemperatureThreshold);
   nodeHandle.getParam("/thruster_control_node/motor_temperature_steady_band",
                       motorTemperatureSteadyBand);
-  ROS_INFO("report_rpm_rate set to %lf", reportRPMRate);
-  ROS_INFO("report_motor_temperatuere_rate set to %lf", reportMotorTemperatureRate);
-  ROS_INFO("set_rpm_timeout_seconds set to %lf", setRPMTimeout);
-  ROS_INFO("current_logging_enabled set to %s", currentLoggingEnabled ? "true" : "false");
-  ROS_INFO("CAN Node 1 Id = %s", canNodeId1);
-  ROS_INFO("CAN Node 2 Id = %s", canNodeId2);
+  ROS_INFO_STREAM("report_rpm_rate set to " << reportRPMRate);
+  ROS_INFO_STREAM("report_motor_temperatuere_rate set to " << reportMotorTemperatureRate);
+  ROS_INFO_STREAM("set_rpm_timeout_seconds set to " << setRPMTimeout);
+  ROS_INFO_STREAM("current_logging_enabled set to " << std::boolalpha << currentLoggingEnabled);
+  ROS_INFO_STREAM("CAN Node 1 Id = " << canNodeId1);
+  ROS_INFO_STREAM("CAN Node 2 Id = " << canNodeId2);
 
   subscriber_setRPM =
       nodeHandle.subscribe("/thruster_control/set_rpm", 1, &ThrusterControl::handle_SetRPM, this);

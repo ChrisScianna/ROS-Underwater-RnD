@@ -173,7 +173,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
 
   */
   if (!myWorkBench.initBulkWrite(&log)) {
-    ROS_ERROR("Could not init bulk write [%d]");
+    ROS_ERROR("Could not init bulk write");
     return;
   }
 
