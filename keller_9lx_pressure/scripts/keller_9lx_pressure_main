@@ -35,10 +35,10 @@
 
 # Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-import math
+from Queue import Queue, Empty
+
 import serial
 import serial.threaded
-from Queue import Queue, Empty
 
 import diagnostic_tools
 import diagnostic_updater
@@ -50,6 +50,9 @@ from sensor_msgs.msg import Temperature
 
 
 def bytes_to_float(input_bytes):
+    """
+    Reinterpret 4 bytes as a 32 bit IEEE 754 floating point number.
+    """
     assert len(input_bytes) == 4
     sign = input_bytes[0] >> 7
     extra_bit = input_bytes[1] >> 7
@@ -59,20 +62,31 @@ def bytes_to_float(input_bytes):
     return ((-1)**sign) * (1.0 + int(mantissa) / 8388608.0) * (2**(exponent - 127))
 
 
-class TimeoutError(Exception):
+class ConnectionTimeoutError(Exception):
+    """
+    Raised on send/receive timeout over current connection.
+    """
     pass
 
 
 class ConnectionLostError(Exception):
+    """
+    Raised when current connection is lost.
+    """
     pass
 
 
 class Keller9lxPressureSensorProtocol(serial.threaded.Protocol):
+    """
+    Serial protocol for Keller 9Lx pressure sensors.
+    See https://www.kelleramerica.com/manuals-and-software/manuals/4ld_9ld_protocol_e.pdf.
+    """
 
     def __init__(self, *args, **kwargs):
         super(Keller9lxPressureSensorProtocol, self).__init__(*args, **kwargs)
         self.__receive_buffer = bytearray()
         self.__receive_queue = Queue()
+        self.__transport = None
 
     def connection_made(self, transport):
         rospy.loginfo('Pressure sensor connected')
@@ -87,6 +101,9 @@ class Keller9lxPressureSensorProtocol(serial.threaded.Protocol):
             self.__receive_buffer = self.__receive_buffer[14:]
 
     def send_receive_raw(self, request, timeout=None):
+        """
+        Send a raw request and wait for a raw response, up to given timeout seconds.
+        """
         if not self.__transport.alive:
             raise ConnectionLostError()
         self.__transport.write(request)
@@ -94,7 +111,7 @@ class Keller9lxPressureSensorProtocol(serial.threaded.Protocol):
         try:
             response = self.__receive_queue.get(timeout=timeout)
         except Empty:
-            raise TimeoutError
+            raise ConnectionTimeoutError()
         if not response:
             self.__receive_queue.put(None)  # unblock one, if any
             raise ConnectionLostError()
@@ -104,12 +121,17 @@ class Keller9lxPressureSensorProtocol(serial.threaded.Protocol):
 
     def connection_lost(self, exception):
         if exception:
-            rospy.logerror('Lost connection due to %s', str(exception))
+            rospy.logerr('Lost connection due to %s', str(exception))
         self.__receive_queue.put(None)  # unblock one, if any
         rospy.loginfo('Pressure sensor disconnected')
 
 
 class Keller9lxPressureSensorDriverNode(object):
+    """
+    Driver ROS node for Keller 9Lx pressure sensors.
+
+    Re-publishes pressure and temperature readings.
+    """
 
     VERSION = "3.0x"
 
@@ -154,10 +176,13 @@ class Keller9lxPressureSensorDriverNode(object):
         lower_pressure_bound = rospy.get_param('~lower_pressure_bound', 0.)
         upper_pressure_bound = rospy.get_param('~upper_pressure_bound', 100e3)
 
-        def is_pressure_within_range(self, pressure):
-            ok = lower_pressure_bound <= pressure
-            ok = ok and pressure <= upper_pressure_bound
-            if not ok:
+        def is_pressure_within_range(pressure):
+            """
+            Check if pressure in Pascals is within configured range.
+            """
+            within_range = lower_pressure_bound <= pressure
+            within_range = within_range and pressure <= upper_pressure_bound
+            if not within_range:
                 return (
                     diagnostic_tools.Diagnostic.ERROR,
                     '{} Pa outside [{} Pa, {} Pa] range'.format(
@@ -201,20 +226,31 @@ class Keller9lxPressureSensorDriverNode(object):
         )
         pressure_steady_band = rospy.get_param(
             '~pressure_data_steady_band', 0.0)
+
+        def equal_pressure(first, second):
+            """
+            Check if two fluid pressure messages are equal.
+            """
+            pressure_delta = first.fluid_pressure - second.fluid_pressure
+            return pressure_delta < pressure_steady_band
+
         check = self.__pressure_pub.add_check(
             diagnostic_tools.MessageStagnationCheck(
-                equal_op=(lambda a, b: math.isclose(
-                    a.fluid_pressure, b.fluid_pressure,
-                    abs_tol=pressure_steady_band)),
+                equal_op=equal_pressure,
                 config=check_configuration
             )
         )
         self.__diagnostics_updater.add(check)
 
-    MAX_RECONNECTION_ATTEMPS = 5
+    MAX_RECONNECTION_ATTEMPTS = 5
     RECONNECTION_CLEARING_PERIOD = 10  # in seconds
 
     def spin(self):
+        """
+        Spin driver indefinetely.
+
+        May attempt reconnections.
+        """
         reconnection_attempts = 0
         time_of_last_reconnection = None
         while True:
@@ -228,11 +264,11 @@ class Keller9lxPressureSensorDriverNode(object):
                 )
                 with port:
                     transport = serial.threaded.ReaderThread(
-                        port, Keller9lxSerialProtocol()
+                        port, Keller9lxPressureSensorProtocol()
                     )
                     with transport:
                         self.loop(transport)
-            except (TimeoutError, ConnectionLostError):
+            except (ConnectionTimeoutError, ConnectionLostError):
                 now = rospy.get_time()
                 if time_of_last_reconnection:
                     time_between_reconnections = now - time_of_last_reconnection
@@ -244,6 +280,9 @@ class Keller9lxPressureSensorDriverNode(object):
                 time_of_last_reconnection = now
 
     def loop(self, transport):
+        """
+        Main driver loop.
+        """
         rospy.loginfo('Initializing pressure sensor')
         transport.protocol.send_receive_raw(
             request=self.FUNCTION48_REQUEST, timeout=10
@@ -261,10 +300,10 @@ class Keller9lxPressureSensorDriverNode(object):
             temperature_in_celsius = bytes_to_float(response[2:6])
             temperature_in_fahrenheit = temperature_in_celsius * 9 / 5 + 32
             rospy.logdebug('Temperature is %d F', temperature_in_fahrenheit)
-            message = Temperature()
-            message.header.stamp = rospy.Time.now()
-            message.temperature = temperature_in_celsius
-            self.__temperature_pub.publish(message)
+            temperature_message = Temperature()
+            temperature_message.header.stamp = rospy.Time.now()
+            temperature_message.temperature = temperature_in_celsius
+            self.__temperature_pub.publish(temperature_message)
 
             rospy.logdebug('Reading pressure from pressure sensor')
             response = transport.protocol.send_receive_raw(
@@ -276,22 +315,26 @@ class Keller9lxPressureSensorDriverNode(object):
             pressure_in_pascals = pressure_in_absolute_bars * 100000
             rospy.logdebug('Pressure is %d bar', pressure_in_bars)
             self.__pressure_range_check.test(pressure_in_pascals)
-            message = FluidPressure()
-            message.header.stamp = rospy.Time.now()
-            message.fluid_pressure = pressure_in_pascals
-            self.__pressure_pub.publish(message)
+            pressure_message = FluidPressure()
+            pressure_message.header.stamp = rospy.Time.now()
+            pressure_message.fluid_pressure = pressure_in_pascals
+            self.__pressure_pub.publish(pressure_message)
 
             self.__diagnostics_updater.update()
             rate.sleep()
 
-
-if __name__ == '__main__':
-    node = Keller9lxPressureSensorDriverNode()
+def main():
+    """
+    Main driver application.
+    """
+    driver_node = Keller9lxPressureSensorDriverNode()
     try:
-        node.spin()
+        driver_node.spin()
     except rospy.ROSInterruptException:
         pass
 
+if __name__ == '__main__':
+    main()
 
 # Open serial connection to sensor
 #	baudrate=9600
@@ -307,11 +350,17 @@ if __name__ == '__main__':
 # Requesting data
 #	code 73: Request Data
 #	code 73 setup [DevAddress, 73, Channel*,Check Sum H, Check Sum L]
-#	****Channels:(1:Pressure Sensor 1, 2:Pressure Sensor 2, 3:Additional Temp Sensor, 4:Temp Sensor 1, 5:Temp Sensor 2)
+#	****Channels:
+#     1:Pressure Sensor 1,
+#     2:Pressure Sensor 2,
+#     3:Additional Temp Sensor,
+#     4:Temp Sensor 1,
+#     5:Temp Sensor 2)
 #	ex: Pressure Request: 	[250,73,1,161,167]
 #	ex: Temperature Request:[250,73,4,162,103]
 # Processing Data
 #	returned message will be in the form [DevAddress,73,B3,B2,B1,B0,Stat,Check Sum H, Check Sum L]
 #	The most significant bit of B3 is the sign
-#	The 7 least significant of B3 concatinated with the most significant of B2 is the exponent and the remaining 23 bits of B2,B1,B0 make up the Mantis
+#	The 7 least significant of B3 concatinated with the most significant of B2 is the exponent
+#   and the remaining 23 bits of B2,B1,B0 make up the Mantis
 #	To convert to decimal for the following equation is used:
