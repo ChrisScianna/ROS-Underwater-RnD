@@ -7,14 +7,11 @@
     <param name="allow_reverse_thruster_autopilot" type="boolean" value="false" />
     <param name="thruster_enabled" type="boolean" value="true" />
     <param name="rpm_per_knot" type="double" value="100.0"/>
-	
+    <param name="desired_speed" type="double" value="0.0" />
+
     <param name="max_allowed_thruster_rpm" type="double" value="500.0" />
     <param name="control_loop_rate" type="int" value="10" />
-    <param name="minimalspeed" type="double" value="1.0" />
-
-    <param name="imu_roll_offset" type="double" value="0.0" />
-    <param name="imu_pitch_offset" type="double" value="0.0" />
-    <param name="imu_yaw_offset" type="double" value="0.0" />
+    <param name="minimal_vehicle_speed" type="double" value="2.0" />
 
     <param name="desired_roll" type="double" value="0.0" />
     <param name="desired_pitch" type="double" value="0.0" />

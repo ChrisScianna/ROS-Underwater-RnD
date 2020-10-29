@@ -69,8 +69,6 @@
 
 #define NODE_VERSION "2.02x"
 
-#define MIN_VEHICLE_SPEED 2.0  // knots
-
 class AutoPilotNode {
  public:
   AutoPilotNode(ros::NodeHandle& node_handle);
@@ -146,10 +144,6 @@ class AutoPilotNode {
 
   boost::mutex m_mutex;
 
-  double imuRollOffset;
-  double imuPitchOffset;
-  double imuYawOffset;
-
   double currentRoll;
   double currentPitch;
   double currentYaw;
@@ -217,7 +211,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle) {
   mmTimeout = 3.0 * mgr_report_hb_rate;
 
   nh.param<int>("/autopilot_node/control_loop_rate", control_loop_rate, 25);  // Hz
-  nh.param<double>("/autopilot_node/minimalspeed", minimalspeed, 1.0);        // knots
+  nh.param<double>("/autopilot_node/minimal_vehicle_speed", minimalspeed, 2.0); // knots
   nh.param<double>("/autopilot_node/rpm_per_knot", rpmPerKnot, 100.0);        // rpm
   nh.param<bool>("/autopilot_node/speed_control_enabled", speedControlEnabled, false);
 
@@ -252,10 +246,6 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle) {
   pitch_pid_controller.initPid(pitch_pgain, pitch_igain, pitch_dgain, pitch_imax, pitch_imin);
   yaw_pid_controller.initPid(yaw_pgain, yaw_igain, yaw_dgain, yaw_imax, yaw_imin);
   depth_pid_controller.initPid(depth_pgain, depth_igain, depth_dgain, depth_imax, depth_imin);
-
-  nh.param<double>("/autopilot_node/imu_roll_offset", imuRollOffset, 0.0);
-  nh.param<double>("/autopilot_node/imu_pitch_offset", imuPitchOffset, 0.0);
-  nh.param<double>("/autopilot_node/imu_yaw_offset", imuYawOffset, 0.0);
 
   nh.param<double>("/autopilot_node/desired_roll", desiredRoll, 0.0);
   nh.param<double>("/autopilot_node/desired_pitch", desiredPitch, 0.0);
@@ -553,10 +543,10 @@ void AutoPilotNode::workerFunc() {
 
       // SPEED
       setrpm.commanded_rpms = desiredSpeed * rpmPerKnot;
-      if (fabs(setrpm.commanded_rpms) < (rpmPerKnot * MIN_VEHICLE_SPEED) &&
-          fabs(desiredSpeed) >= MIN_VEHICLE_SPEED)
+      if (fabs(setrpm.commanded_rpms) < (rpmPerKnot * minimalspeed) &&
+          fabs(desiredSpeed) >= minimalspeed)
         setrpm.commanded_rpms =
-            (fabs(setrpm.commanded_rpms) / setrpm.commanded_rpms) * rpmPerKnot * MIN_VEHICLE_SPEED;
+            (fabs(setrpm.commanded_rpms) / setrpm.commanded_rpms) * rpmPerKnot * minimalspeed;
       else if (fabs(setrpm.commanded_rpms) > thruster_control::SetRPM::MAX_RPM)
         setrpm.commanded_rpms = (fabs(setrpm.commanded_rpms) / setrpm.commanded_rpms) *
                                 thruster_control::SetRPM::MAX_RPM;
