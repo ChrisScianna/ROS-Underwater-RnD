@@ -52,10 +52,6 @@
 #include "fin_control/SetAngles.h"
 
 #include <autopilot/AutoPilotInControl.h>
-#include <autopilot/DesiredPitch.h>
-#include <autopilot/DesiredRoll.h>
-#include <autopilot/DesiredYaw.h>
-#include <autopilot/GetCurrentBehaviors.h>
 
 #include "pid.h"
 #include "sensor_msgs/Imu.h"
