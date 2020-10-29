@@ -40,17 +40,6 @@
  */
 
 #include "fin_control.h"
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <sys/select.h>
-#include <string>
-#include "ros/ros.h"
-#include "std_msgs/Header.h"
-#include "std_msgs/String.h"
-
-using namespace std;
 
 namespace qna {
 namespace robot {
@@ -62,7 +51,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   reportAnglesEnabled = true;
 
   fincontrolEnabled = false;
-  string serial_dev = "/dev/ttyUSB0";
+  std::string serial_dev = "/dev/ttyUSB0";
   int serial_baud = 57600;
   maxCtrlFinSwing = 10.0;
   ctrlFinOffet = 0;
@@ -71,8 +60,8 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   const char *log;
   currentLoggingEnabled = false;
   reportAngleRate = 0.04;
-  minReportAngleRate = 0.02;
-  maxReportAngleRate = 0.08;
+  minReportAngleRate = reportAngleRate / 2.0;
+  maxReportAngleRate = reportAngleRate * 2.0;
 
   ros::NodeHandle nh;
 
@@ -120,21 +109,19 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   finAngleCheck = diagnostic_tools::create_health_check<double>(
       "Fin swing within range", [this](double angle) -> diagnostic_tools::Diagnostic {
         using diagnostic_tools::Diagnostic;
-        if (std::abs(angle) > maxCtrlPlaneSwing)
-        {
+        if (std::abs(angle) > maxCtrlPlaneSwing) {
           using health_monitor::ReportFault;
           Diagnostic diagnostic{Diagnostic::WARN, ReportFault::FIN_DATA_THRESHOLD_REACHED};
-          return diagnostic.description(
-              "Fin angle above maximum swing value: |%f rad| > %f rad", angle, maxCtrlPlaneSwing);
+          return diagnostic.description("Fin angle above maximum swing value: |%f rad| > %f rad",
+                                        angle, maxCtrlPlaneSwing);
         }
         return Diagnostic::OK;
       });
   diagnosticsUpdater.add(finAngleCheck);
 
-  // DynamixelWorkbench myWorkBench;
-
-  if (myWorkBench.begin(serial_dev.c_str(), serial_baud, &log))
+  if (myWorkBench.begin(serial_dev.c_str(), serial_baud, &log)){
     ROS_INFO("Dynamixel Workbench intialized");
+  }
   else {
     ROS_ERROR("Dynamixel Workbench failed init %s", log);
     return;
@@ -150,30 +137,18 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
     ROS_ERROR("Servo scan failed! %s", log);
     return;
   }
-  for (int x = 0; x < num_of_ids; x++)  // power on all servos
-  {
+  // power on all servos
+  for (int x = 0; x < num_of_ids; x++) {
     if (!myWorkBench.torqueOn(ids[x], &log)) {
       ROS_ERROR("Could not set torque on fin sevro [%d] %s", ids[x], log);
       return;
-    } else
+    } else{
       servos_on = true;
+    }
   }
 
-  /*ROS_INFO("execise begin");
-      for(int x = 0; x < 10; x++)
-      {
-       myWorkBench.goalPosition(1,(float)0.0,NULL);
-      reportAngle();
-      sleep(2);
-       myWorkBench.goalPosition(1,(float)(1.57),NULL);
-      reportAngle();
-      sleep(2);
-      }
-  ROS_INFO("execise end");
-
-  */
   if (!myWorkBench.initBulkWrite(&log)) {
-    ROS_ERROR("Could not init bulk write");
+    ROS_ERROR("Could not init bulk write %s", log);
     return;
   }
 
@@ -187,8 +162,8 @@ FinControl::~FinControl() {
 
   if (servos_on) {
     ROS_INFO("Turning off fin servos");
-    for (int x = 0; x < num_of_ids; x++)  // power on all servos
-    {
+    // power off all servos
+    for (int x = 0; x < num_of_ids; x++){
       if (!myWorkBench.torqueOff(ids[x], &log))
         ROS_ERROR("Could not turn off torque on fin sevro [%d] %s", ids[x], log);
     }
@@ -206,19 +181,8 @@ void FinControl::reportAngles() {
 
   boost::mutex::scoped_lock lock(m_mutex);
 
-  for (int x = 0; x < num_of_ids; x++)  // power on all servos
-  {
+  for (int x = 0; x < num_of_ids; x++){
     reportAngle(ids[x]);
-    //    message.ID = ids[x];
-    //    if(myWorkBench.getRadian(ids[x],&message.angle_in_radians,&log))// get from dynamixel
-    //    {
-    //      message.angle_in_radians =
-    //      (float)(round(((message.angle_in_radians/ctrlFinScaleFactor)-degreesToRadians(ctrlFinOffet))*100.0)/100.0);
-    //      publisher_reportAngle.publish(message);
-    // ROS_INFO("reportAngle published. Angle is: %d", message.angle_in_radians);
-    //    }
-    //    else
-    //      ROS_ERROR("Could not get servo angle for ID %d %s",message.ID,log);
   }
 }
 void FinControl::reportAngle(uint8_t id) {
@@ -231,20 +195,18 @@ void FinControl::reportAngle(uint8_t id) {
   message.angle_in_radians = 0;
 
   message.ID = id;
-  if (myWorkBench.getRadian(id, &message.angle_in_radians, &log))  // get from dynamixel
-  {
-    //     message.angle_in_radians =
-    //     ((message.angle_in_radians/ctrlFinScaleFactor)-degreesToRadians(ctrlFinOffet));
-    message.angle_in_radians = (float)(round(((message.angle_in_radians / ctrlFinScaleFactor) -
+  // get from dynamixel
+  if (myWorkBench.getRadian(id, &message.angle_in_radians, &log)){
+    message.angle_in_radians = static_cast<float>(round(((message.angle_in_radians / ctrlFinScaleFactor) -
                                               degreesToRadians(ctrlFinOffet)) *
                                              100.0) /
                                        100.0);
     finAngleCheck.test(message.angle_in_radians);
 
     publisher_reportAngle.publish(message);
-    // ROS_INFO("reportAngle published. Angle is: %d", message.angle_in_radians);
-  } else
+  } else{
     ROS_ERROR("Could not get servo angle for ID %d %s", message.ID, log);
+  }
 }
 float FinControl::radiansToDegrees(float radians) { return (radians * (180.0 / M_PI)); }
 
@@ -278,7 +240,7 @@ void FinControl::handle_SetAngles(const fin_control::SetAngles::ConstPtr &msg) {
   boost::mutex::scoped_lock lock(m_mutex);
 
   if (!myWorkBench.initBulkWrite(&log)) {
-    ROS_ERROR("Could not init bulk write [%d]");
+    ROS_ERROR("Could not init bulk write %s", log);
     return;
   }
 
@@ -362,22 +324,18 @@ void FinControl::handle_SetAngle(const fin_control::SetAngle::ConstPtr &msg) {
       ctrlFinScaleFactor * (msg->angle_in_radians + degreesToRadians(ctrlFinOffet));
 
   // Call dynamixel service
-  // ROS_INFO("Got fin angle command [%f]", msg->angle_in_radians);
 
   boost::mutex::scoped_lock lock(m_mutex);
 
   if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
     ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
-  // reportAngle(msg->ID);   //read actual position and publish new angle
 }
 
 void FinControl::handle_EnableReportAngles(const fin_control::EnableReportAngles::ConstPtr &msg) {
   if (msg->enable_report_angles) {
     reportAnglesEnabled = true;
-    //   ROS_INFO("Enabling report fin angles");
   } else {
     reportAnglesEnabled = false;
-    //   ROS_INFO("Disabling report fin angles");
   }
 }
 

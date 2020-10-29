@@ -34,140 +34,87 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-
 /*
-
  * fin_control.h
-
  */
 
 #ifndef _FIN_CONTROL_H_
-
 #define _FIN_CONTROL_H_
 
 #define NUM_FINS 4
-
 #define NODE_VERSION "1.8x"
 
-#include <std_msgs/String.h>
-
-#include <std_msgs/UInt16.h>
-
-#include <std_msgs/UInt8.h>
-
-#include "std_msgs/Header.h"
-
-#include <boost/thread/mutex.hpp>
-
-#include <boost/thread.hpp>
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/select.h>
+#include <string>
 
 #include <ros/ros.h>
 
-#include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
-
-#include <fin_control/EnableReportAngles.h>
-
-#include <fin_control/SetAngles.h>
-
-#include <fin_control/SetAngle.h>
-
-#include <fin_control/ReportAngle.h>
-
-#include "dynamixel_workbench_msgs/DynamixelCommand.h"
-
-#include "dynamixel_workbench_msgs/GetDynamixelInfo.h"
-
-#include "dynamixel_workbench_msgs/DynamixelInfo.h"
-
-//#include "dynamixel_workbench_toolbox/include/dynamixel_workbench_toolbox/dynamixel_workbench.h"
-
-#include <diagnostic_updater/diagnostic_updater.h>
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include <diagnostic_tools/health_check.h>
-
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
+#include <fin_control/EnableReportAngles.h>
+#include <fin_control/ReportAngle.h>
+#include <fin_control/SetAngle.h>
+#include <fin_control/SetAngles.h>
 #include <health_monitor/ReportFault.h>
 
-namespace qna
+#include "dynamixel_workbench_msgs/DynamixelCommand.h"
+#include "dynamixel_workbench_msgs/DynamixelInfo.h"
+#include "dynamixel_workbench_msgs/GetDynamixelInfo.h"
+#include "dynamixel_workbench_toolbox/dynamixel_workbench.h"
 
-{
-
-namespace robot
-
-{
-
-class FinControl
-
-{
+namespace qna {
+namespace robot {
+class FinControl {
  public:
   FinControl(ros::NodeHandle& nodeHandle);
-
   virtual ~FinControl();
-
   ros::Timer reportAngleTimer;
-
   void reportAngleSendTimeout(const ros::TimerEvent& timer);
-
   void reportAngles();
-
   void reportAngle(uint8_t id);
 
  private:
-  // ROS Service Client
-
-  // ros::ServiceClient dynamixel_info_client_;
-
   boost::shared_ptr<boost::thread> m_thread;
 
   bool fincontrolEnabled;
-
   bool servos_on;
-
   bool reportAnglesEnabled;
-
   bool currentLoggingEnabled;
 
-  float radiansToDegrees(float radians);
-
-  float degreesToRadians(float degrees);
-
   void workerFunc();
-
   void Start();
-
   void Stop();
+  float radiansToDegrees(float radians);
+  float degreesToRadians(float degrees);
+  void handle_SetAngle(const fin_control::SetAngle::ConstPtr& msg);
+  void handle_SetAngles(const fin_control::SetAngles::ConstPtr& msg);
+  void handle_EnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
 
   double maxCtrlFinSwing;
-
+  double maxCtrlPlaneSwing;
   double ctrlFinOffet;
-
   double ctrlFinScaleFactor;
 
   double reportAngleRate;
   double minReportAngleRate;
   double maxReportAngleRate;
 
-  double maxCtrlPlaneSwing;
-
-  void handle_SetAngle(const fin_control::SetAngle::ConstPtr& msg);
-
-  void handle_SetAngles(const fin_control::SetAngles::ConstPtr& msg);
-
-  void handle_EnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
-
   ros::NodeHandle& nodeHandle;
-
   ros::Subscriber subscriber_setAngle;
-
   ros::Subscriber subscriber_setAngles;
-
   ros::Subscriber subscriber_enableReportAngles;
-
   ros::Publisher publisher_reportAngle;
 
   DynamixelWorkbench myWorkBench;
 
   uint8_t ids[10];
-
   uint8_t num_of_ids;
 
   boost::mutex m_mutex;
@@ -177,7 +124,6 @@ class FinControl
 };
 
 }  // namespace robot
-
 }  // namespace qna
 
 #endif  // _FIN_CONTROL_H_
