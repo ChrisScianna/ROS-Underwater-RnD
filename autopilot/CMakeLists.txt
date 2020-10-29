@@ -46,8 +46,9 @@ include_directories(
 )
 
 add_executable(${NODE_APP_NAME} 
-	src/autopilot.cpp
-	src/pid.cpp)
+  src/autopilot.cpp
+  src/autopilot_main.cpp
+  src/pid.cpp)
 
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

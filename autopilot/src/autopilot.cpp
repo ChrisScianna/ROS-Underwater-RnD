@@ -34,159 +34,7 @@
 
 // Original version: Christopher Scianna <Christopher.Scianna@us.QinetiQ.com>
 
-#include <math.h>
-#include <ros/ros.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <algorithm>
-#include <sstream>
-
-#include <pose_estimator/CorrectedData.h>
-#include "jaus_ros_bridge/ActivateManualControl.h"
-
-#include "thruster_control/ReportRPM.h"
-#include "thruster_control/SetRPM.h"
-
-#include "fin_control/EnableReportAngles.h"
-#include "fin_control/ReportAngle.h"
-#include "fin_control/SetAngles.h"
-
-#include <autopilot/AutoPilotInControl.h>
-
-#include "pid.h"
-#include "sensor_msgs/Imu.h"
-
-#include <boost/function.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
-
-#include "mission_manager/AttitudeServo.h"
-#include "mission_manager/DepthHeading.h"
-#include "mission_manager/FixedRudder.h"
-#include "mission_manager/ReportExecuteMissionState.h"
-#include "mission_manager/ReportHeartbeat.h"
-#include "mission_manager/SetBehavior.h"
-
-#define NODE_VERSION "2.02x"
-
-class AutoPilotNode {
- public:
-  AutoPilotNode(ros::NodeHandle& node_handle);
-  void Start();
-  void Stop();
-
- private:
-  ros::NodeHandle nh;
-  ros::Publisher auto_pilot_in_control_pub;
-  ros::Publisher thruster_pub;
-  ros::Publisher fins_control_pub;
-  ros::Publisher fins_enable_reporting_pub;
-
-  ros::Subscriber jaus_ros_sub;
-  ros::Subscriber thruster_sub;
-
-  ros::Subscriber desiredRoll_sub_;
-  ros::Subscriber desiredYaw_sub_;
-  ros::Subscriber desiredPitch_sub_;
-
-  ros::Subscriber correctedData_sub_;
-  ros::Subscriber missionStatus_sub_;
-  ros::Timer missionMgrHeartbeatTimer;
-
-  ros::Subscriber missionMgrHeartBeat_sub_;
-  ros::Subscriber setAttitudeBehavior_sub_;
-  ros::Subscriber setDepthHeadingBehavior_sub_;
-  ros::Subscriber setFixedRudderBehavior_sub_;
-
-  control_toolbox::Pid roll_pid_controller;
-  control_toolbox::Pid pitch_pid_controller;
-  control_toolbox::Pid yaw_pid_controller;
-  control_toolbox::Pid depth_pid_controller;
-
-  bool auto_pilot_in_control;
-  bool mission_mode;
-
-  double roll_pgain;
-  double roll_igain;
-  double roll_dgain;
-  double roll_imax;
-  double roll_imin;
-
-  double pitch_pgain;
-  double pitch_igain;
-  double pitch_dgain;
-  double pitch_imax;
-  double pitch_imin;
-
-  double yaw_pgain;
-  double yaw_igain;
-  double yaw_dgain;
-  double yaw_imax;
-  double yaw_imin;
-
-  double depth_pgain;
-  double depth_igain;
-  double depth_dgain;
-  double depth_imax;
-  double depth_imin;
-
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
-  void missionStatusCallback(const mission_manager::ReportExecuteMissionState& data);
-
-  void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
-
-  void mixactuators(double roll, double pitch, double yaw);
-  double radiansToDegrees(double radians);
-  double degreesToRadians(double degrees);
-  void missionMgrHeartbeatTimeout(const ros::TimerEvent& timer);
-
-  void workerFunc();
-
-  boost::mutex m_mutex;
-
-  double currentRoll;
-  double currentPitch;
-  double currentYaw;
-  double currentDepth;
-
-  double desiredRoll;
-  double desiredPitch;
-  double desiredYaw;
-  double desiredDepth;
-  double desiredRudder;
-  double desiredSpeed;
-
-  double maxAllowedThrusterRpm;
-  double minimalspeed;  // knots
-  double rpmPerKnot;
-  int control_loop_rate;  // Hz
-
-  bool thrusterEnabled;      // Thruster can't spin if false
-  bool speedControlEnabled;  // Autopilot controls acceleration if true
-  bool fixedRudder;          // Robot cordinate system for yaw if true
-  bool depthControl;         // Depth if true, pitch if false
-  bool autopilotEnabled;     // Autopilot if true, OCU if false
-
-  bool allowReverseThrusterAutopilot;  // allow negative RPM if true
-
-  double maxCtrlPlaneAngle;  // Max fin angle (degrees)
-  double maxDepthCommand;    // Max amount the depth affects the fin angle (degrees)
-
-  boost::shared_ptr<boost::thread> m_thread;
-
-  // Behavior callbacks
-  void missionMgrHbCallback(const mission_manager::ReportHeartbeat& msg);
-  void attitudeServoCallback(const mission_manager::AttitudeServo& msg);
-  void depthHeadingCallback(const mission_manager::DepthHeading& msg);
-  void fixedRudderCallback(const mission_manager::FixedRudder& msg);
-
-  // Mask that keeps tracks of active behaviors
-  boost::mutex m_behavior_mutex;
-  boost::mutex mm_hb_mutex;  // misson manager heartbeat lock
-
-  double mmTimeout;
-  bool mmIsAlive;
-};
+#include "autopilot.h"
 
 AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle) {
   auto_pilot_in_control = false;
@@ -210,9 +58,9 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle) {
   ROS_INFO("mm hb rate: [%f]", mgr_report_hb_rate);
   mmTimeout = 3.0 * mgr_report_hb_rate;
 
-  nh.param<int>("/autopilot_node/control_loop_rate", control_loop_rate, 25);  // Hz
-  nh.param<double>("/autopilot_node/minimal_vehicle_speed", minimalspeed, 2.0); // knots
-  nh.param<double>("/autopilot_node/rpm_per_knot", rpmPerKnot, 100.0);        // rpm
+  nh.param<int>("/autopilot_node/control_loop_rate", control_loop_rate, 25);     // Hz
+  nh.param<double>("/autopilot_node/minimal_vehicle_speed", minimalspeed, 2.0);  // knots
+  nh.param<double>("/autopilot_node/rpm_per_knot", rpmPerKnot, 100.0);           // rpm
   nh.param<bool>("/autopilot_node/speed_control_enabled", speedControlEnabled, false);
 
   nh.param<double>("/autopilot_node/roll_p", roll_pgain, 1.0);
@@ -239,8 +87,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle) {
   nh.param<double>("/autopilot_node/depth_imin", depth_imin, 0.0);
   nh.param<double>("/autopilot_node/depth_d", depth_dgain, 0.0);
 
-  nh.param<double>("/autopilot_node/max_ctrl_plane_angle", maxCtrlPlaneAngle, 10.0); //degrees
-  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);	//degrees
+  nh.param<double>("/autopilot_node/max_ctrl_plane_angle", maxCtrlPlaneAngle, 10.0);  // degrees
+  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);       // degrees
 
   roll_pid_controller.initPid(roll_pgain, roll_igain, roll_dgain, roll_imax, roll_imin);
   pitch_pid_controller.initPid(pitch_pgain, pitch_igain, pitch_dgain, pitch_imax, pitch_imin);
@@ -367,31 +215,29 @@ void AutoPilotNode::HandleActivateManualControl(
   }
 }
 
-
-void AutoPilotNode::mixactuators(double roll, double pitch, double yaw)
-{
+void AutoPilotNode::mixactuators(double roll, double pitch, double yaw) {
   // da = roll, ds = pitch, dr = yaw
 
-  yaw=fmod((yaw+180.0),360.0)-180.0; // translate from INS 0-360 to +/-180
-  double d1;//Fin 1 bottom stbd
-  double d2;//Fin 2 top stb
-  double d3;//Fin 3 bottom port
-  double d4;//Fin 4 top port
-  //ROS_INFO("ds: [%f] dr: [%f] da: [%f]",ds,dr,da);
+  yaw = fmod((yaw + 180.0), 360.0) - 180.0;  // translate from INS 0-360 to +/-180
+  double d1;                                 // Fin 1 bottom stbd
+  double d2;                                 // Fin 2 top stb
+  double d3;                                 // Fin 3 bottom port
+  double d4;                                 // Fin 4 top port
+  // ROS_INFO("ds: [%f] dr: [%f] da: [%f]",ds,dr,da);
 
-  double rollRadians=degreesToRadians(currentRoll);
-  double newYaw =   yaw * cos(rollRadians) - pitch * sin(rollRadians);
+  double rollRadians = degreesToRadians(currentRoll);
+  double newYaw = yaw * cos(rollRadians) - pitch * sin(rollRadians);
   double newPitch = yaw * sin(rollRadians) + pitch * cos(rollRadians);
   yaw = newYaw;
   pitch = newPitch;
 
-  d1 =   pitch - yaw + roll;
-  d2 =   pitch + yaw + roll;
-  d3 = - pitch - yaw + roll;
-  d4 = - pitch + yaw + roll;
+  d1 = pitch - yaw + roll;
+  d2 = pitch + yaw + roll;
+  d3 = -pitch - yaw + roll;
+  d4 = -pitch + yaw + roll;
 
-  double maxOptions[]={ fabs(d1), fabs(d2), fabs(d3), fabs(d4), maxCtrlPlaneAngle };
-  double maxAngle = *std::max_element(maxOptions,maxOptions+5);
+  double maxOptions[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), maxCtrlPlaneAngle};
+  double maxAngle = *std::max_element(maxOptions, maxOptions + 5);
   d1 = d1 * maxCtrlPlaneAngle / maxAngle;
   d2 = d2 * maxCtrlPlaneAngle / maxAngle;
   d3 = d3 * maxCtrlPlaneAngle / maxAngle;
@@ -403,8 +249,8 @@ void AutoPilotNode::mixactuators(double roll, double pitch, double yaw)
   setAnglesMsg.f2_angle_in_radians = degreesToRadians(d2);
   setAnglesMsg.f3_angle_in_radians = degreesToRadians(d3);
   setAnglesMsg.f4_angle_in_radians = degreesToRadians(d4);
-  //ROS_INFO("F1,F2,F3,F4: [%f,%f,%f,%f]",d1,d2,d3,d4);
-  fins_control_pub.publish(setAnglesMsg);   
+  // ROS_INFO("F1,F2,F3,F4: [%f,%f,%f,%f]",d1,d2,d3,d4);
+  fins_control_pub.publish(setAnglesMsg);
 }
 
 void AutoPilotNode::missionMgrHbCallback(const mission_manager::ReportHeartbeat& msg) {
@@ -564,21 +410,4 @@ void AutoPilotNode::workerFunc() {
   auto_pilot_in_control = false;
   enableReportAnglesMsg.enable_report_angles = !auto_pilot_in_control;
   fins_enable_reporting_pub.publish(enableReportAnglesMsg);
-}
-
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "autopilot node");
-  ros::NodeHandle nh;
-
-  ROS_INFO("Starting Autopilot node Version: [%s]", NODE_VERSION);
-  nh.setParam("/version_numbers/autopilot", NODE_VERSION);
-
-  AutoPilotNode autoPilotNode(nh);
-  autoPilotNode.Start();
-
-  ros::spin();
-
-  autoPilotNode.Stop();
-
-  return (0);
 }
