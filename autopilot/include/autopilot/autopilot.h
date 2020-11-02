@@ -80,65 +80,60 @@ class AutoPilotNode
 
  private:
   ros::NodeHandle nh;
-  ros::Publisher auto_pilot_in_control_pub;
-  ros::Publisher thruster_pub;
-  ros::Publisher fins_control_pub;
-  ros::Publisher fins_enable_reporting_pub;
+  ros::Publisher autoPilotInControlPub;
+  ros::Publisher thrusterPub;
+  ros::Publisher finsControlPub;
+  ros::Publisher finsEnableReportingPub;
 
-  ros::Subscriber jaus_ros_sub;
-  ros::Subscriber thruster_sub;
+  ros::Subscriber jausRosSub;
 
-  ros::Subscriber desiredRoll_sub_;
-  ros::Subscriber desiredYaw_sub_;
-  ros::Subscriber desiredPitch_sub_;
-
-  ros::Subscriber correctedData_sub_;
-  ros::Subscriber missionStatus_sub_;
+  ros::Subscriber correctedDataSub;
+  ros::Subscriber missionStatusSub;
   ros::Timer missionMgrHeartbeatTimer;
 
-  ros::Subscriber missionMgrHeartBeat_sub_;
-  ros::Subscriber setAttitudeBehavior_sub_;
-  ros::Subscriber setDepthHeadingBehavior_sub_;
-  ros::Subscriber setFixedRudderBehavior_sub_;
+  ros::Subscriber missionMgrHeartBeatSub;
+  ros::Subscriber setAttitudeBehaviorSub;
+  ros::Subscriber setDepthHeadingBehaviorSub;
+  ros::Subscriber setFixedRudderBehaviorSub;
 
-  control_toolbox::Pid roll_pid_controller;
-  control_toolbox::Pid pitch_pid_controller;
-  control_toolbox::Pid yaw_pid_controller;
-  control_toolbox::Pid depth_pid_controller;
+  control_toolbox::Pid rollPIDController;
+  control_toolbox::Pid pitchPIDController;
+  control_toolbox::Pid yawPidController;
+  control_toolbox::Pid depthPIDController;
 
-  bool auto_pilot_in_control;
-  bool mission_mode;
+  bool autoPilotInControl;
+  bool missionMode;
 
-  double roll_pgain;
-  double roll_igain;
-  double roll_dgain;
-  double roll_imax;
-  double roll_imin;
+  double rollPGain;
+  double rollIGain;
+  double rollDGain;
+  double rollIMax;
+  double rollIMin;
 
-  double pitch_pgain;
-  double pitch_igain;
-  double pitch_dgain;
-  double pitch_imax;
-  double pitch_imin;
+  double pitchPGain;
+  double pitchIGain;
+  double pitchDGain;
+  double pitchIMax;
+  double pitchIMin;
 
-  double yaw_pgain;
-  double yaw_igain;
-  double yaw_dgain;
-  double yaw_imax;
-  double yaw_imin;
+  double yawPGain;
+  double yawIGain;
+  double yawDGain;
+  double yawIMax;
+  double yawIMin;
 
-  double depth_pgain;
-  double depth_igain;
-  double depth_dgain;
-  double depth_imax;
-  double depth_imin;
+  double depthPGain;
+  double depthIGain;
+  double depthDGain;
+  double depthIMax;
+  double depthIMin;
 
   void correctedDataCallback(const pose_estimator::CorrectedData& data);
   void missionStatusCallback(const mission_manager::ReportExecuteMissionState& data);
 
   void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
 
-  void mixactuators(double roll, double pitch, double yaw);
+  void mixActuators(double roll, double pitch, double yaw);
   double radiansToDegrees(double radians);
   double degreesToRadians(double degrees);
   void missionMgrHeartbeatTimeout(const ros::TimerEvent& timer);
@@ -160,9 +155,9 @@ class AutoPilotNode
   double desiredSpeed;
 
   double maxAllowedThrusterRpm;
-  double minimalspeed;  // knots
+  double minimalSpeed;       // knots
   double rpmPerKnot;
-  int control_loop_rate;  // Hz
+  int controlLoopRate;       // Hz
 
   bool thrusterEnabled;      // Thruster can't spin if false
   bool speedControlEnabled;  // Autopilot controls acceleration if true
@@ -184,8 +179,8 @@ class AutoPilotNode
   void fixedRudderCallback(const mission_manager::FixedRudder& msg);
 
   // Mask that keeps tracks of active behaviors
-  boost::mutex m_behavior_mutex;
-  boost::mutex mm_hb_mutex;  // misson manager heartbeat lock
+  boost::mutex behaviorMutex;
+  boost::mutex missonManagerHeartbeatMutex;  // misson manager heartbeat lock
 
   double mmTimeout;
   bool mmIsAlive;
