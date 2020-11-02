@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   pose_estimator
   roscpp
   rospy
+  roslint
   std_msgs
   thruster_control
   jaus_ros_bridge
@@ -35,6 +36,16 @@ catkin_package(
  INCLUDE_DIRS include
  CATKIN_DEPENDS fin_control pose_estimator roscpp rospy std_msgs thruster_control jaus_ros_bridge
 )
+
+roslint_cpp(
+  src/autopilot.cpp
+  src/autopilot_main.cpp
+  src/pid.cpp
+  include/autopilot/autopilot.h
+  include/autopilot/pid.h
+)
+
+roslint_add_test()
 
 ###########
 ## Build ##

@@ -38,8 +38,9 @@
  * autopilot.h
  */
 
-#ifndef _AUTOPILOT_H_
-#define _AUTOPILOT_H_
+#ifndef AUTOPILOT_AUTOPILOT_H
+#define AUTOPILOT_AUTOPILOT_H
+
 #include <autopilot/AutoPilotInControl.h>
 #include <math.h>
 #include <pose_estimator/CorrectedData.h>
@@ -53,6 +54,7 @@
 #include <boost/thread/mutex.hpp>
 #include <sstream>
 
+#include "autopilot/pid.h"
 #include "fin_control/EnableReportAngles.h"
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
@@ -63,16 +65,16 @@
 #include "mission_manager/ReportExecuteMissionState.h"
 #include "mission_manager/ReportHeartbeat.h"
 #include "mission_manager/SetBehavior.h"
-#include "pid.h"
 #include "sensor_msgs/Imu.h"
 #include "thruster_control/ReportRPM.h"
 #include "thruster_control/SetRPM.h"
 
 #define NODE_VERSION "2.02x"
 
-class AutoPilotNode {
+class AutoPilotNode
+{
  public:
-  AutoPilotNode(ros::NodeHandle& node_handle);
+  explicit AutoPilotNode(ros::NodeHandle& node_handle);
   void Start();
   void Stop();
 
@@ -188,4 +190,4 @@ class AutoPilotNode {
   double mmTimeout;
   bool mmIsAlive;
 };
-#endif  // _AUTOPILOT_H_
+#endif  // AUTOPILOT_AUTOPILOT_H

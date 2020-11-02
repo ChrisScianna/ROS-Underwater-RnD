@@ -34,14 +34,14 @@
 
 // Original version: Melonee Wise <mwise@willowgarage.com>
 
-//#include "control_toolbox/pid.h"
-#include "pid.h"
-//#include "tinyxml/tinyxml.h"
+#include "autopilot/pid.h"
+#include <string>
 
-namespace control_toolbox {
-
+namespace control_toolbox
+{
 Pid::Pid(double P, double I, double D, double I1, double I2)
-    : p_gain_(P), i_gain_(I), d_gain_(D), i_max_(I1), i_min_(I2) {
+    : p_gain_(P), i_gain_(I), d_gain_(D), i_max_(I1), i_min_(I2)
+{
   p_error_last_ = 0.0;
   p_error_ = 0.0;
   d_error_ = 0.0;
@@ -51,7 +51,8 @@ Pid::Pid(double P, double I, double D, double I1, double I2)
 
 Pid::~Pid() {}
 
-void Pid::initPid(double P, double I, double D, double I1, double I2) {
+void Pid::initPid(double P, double I, double D, double I1, double I2)
+{
   p_gain_ = P;
   i_gain_ = I;
   d_gain_ = D;
@@ -61,7 +62,8 @@ void Pid::initPid(double P, double I, double D, double I1, double I2) {
   reset();
 }
 
-void Pid::reset() {
+void Pid::reset()
+{
   p_error_last_ = 0.0;
   p_error_ = 0.0;
   d_error_ = 0.0;
@@ -69,7 +71,8 @@ void Pid::reset() {
   cmd_ = 0.0;
 }
 
-void Pid::getGains(double &p, double &i, double &d, double &i_max, double &i_min) {
+void Pid::getGains(double &p, double &i, double &d, double &i_max, double &i_min)
+{
   p = p_gain_;
   i = i_gain_;
   d = d_gain_;
@@ -77,7 +80,8 @@ void Pid::getGains(double &p, double &i, double &d, double &i_max, double &i_min
   i_min = i_min_;
 }
 
-void Pid::setGains(double P, double I, double D, double I1, double I2) {
+void Pid::setGains(double P, double I, double D, double I1, double I2)
+{
   p_gain_ = P;
   i_gain_ = I;
   d_gain_ = D;
@@ -85,10 +89,12 @@ void Pid::setGains(double P, double I, double D, double I1, double I2) {
   i_min_ = I2;
 }
 
-bool Pid::initParam(const std::string &prefix) {
+bool Pid::initParam(const std::string &prefix)
+{
   ros::NodeHandle node(prefix);
 
-  if (!node.getParam("p", p_gain_)) {
+  if (!node.getParam("p", p_gain_))
+  {
     ROS_ERROR("No p gain specified for pid.  Prefix: %s", prefix.c_str());
     return false;
   }
@@ -113,9 +119,11 @@ bool Pid::initXml(TiXmlElement *config)
   return true;
 }
 */
-bool Pid::init(const ros::NodeHandle &node) {
+bool Pid::init(const ros::NodeHandle &node)
+{
   ros::NodeHandle n(node);
-  if (!n.getParam("p", p_gain_)) {
+  if (!n.getParam("p", p_gain_))
+  {
     ROS_ERROR("No p gain specified for pid.  Namespace: %s", n.getNamespace().c_str());
     return false;
   }
@@ -128,7 +136,8 @@ bool Pid::init(const ros::NodeHandle &node) {
   return true;
 }
 
-double Pid::updatePid(double error, ros::Duration dt) {
+double Pid::updatePid(double error, ros::Duration dt)
+{
   double p_term, d_term, i_term;
   p_error_ = error;  // this is pError = pState-pTarget
 
@@ -144,16 +153,20 @@ double Pid::updatePid(double error, ros::Duration dt) {
   i_term = i_gain_ * i_error_;
 
   // Limit i_term so that the limit is meaningful in the output
-  if (i_term > i_max_) {
+  if (i_term > i_max_)
+  {
     i_term = i_max_;
     i_error_ = i_term / i_gain_;
-  } else if (i_term < i_min_) {
+  }
+  else if (i_term < i_min_)
+  {
     i_term = i_min_;
     i_error_ = i_term / i_gain_;
   }
 
   // Calculate the derivative error
-  if (dt.toSec() != 0) {
+  if (dt.toSec() != 0)
+  {
     d_error_ = (p_error_ - p_error_last_) / dt.toSec();
     p_error_last_ = p_error_;
   }
@@ -164,7 +177,8 @@ double Pid::updatePid(double error, ros::Duration dt) {
   return cmd_;
 }
 
-double Pid::updatePid(double error, double error_dot, ros::Duration dt) {
+double Pid::updatePid(double error, double error_dot, ros::Duration dt)
+{
   double p_term, d_term, i_term;
   p_error_ = error;  // this is pError = pState-pTarget
   d_error_ = error_dot;
@@ -183,10 +197,13 @@ double Pid::updatePid(double error, double error_dot, ros::Duration dt) {
   i_term = i_gain_ * i_error_;
 
   // Limit i_term so that the limit is meaningful in the output
-  if (i_term > i_max_) {
+  if (i_term > i_max_)
+  {
     i_term = i_max_;
     i_error_ = i_term / i_gain_;
-  } else if (i_term < i_min_) {
+  }
+  else if (i_term < i_min_)
+  {
     i_term = i_min_;
     i_error_ = i_term / i_gain_;
   }
@@ -202,7 +219,8 @@ void Pid::setCurrentCmd(double cmd) { cmd_ = cmd; }
 
 double Pid::getCurrentCmd() { return cmd_; }
 
-void Pid::getCurrentPIDErrors(double *pe, double *ie, double *de) {
+void Pid::getCurrentPIDErrors(double *pe, double *ie, double *de)
+{
   *pe = p_error_;
   *ie = i_error_;
   *de = d_error_;

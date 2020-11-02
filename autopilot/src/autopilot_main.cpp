@@ -38,9 +38,10 @@
  * autopilot_main.cpp
  */
 
-#include "autopilot.h"
+#include "autopilot/autopilot.h"
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   ros::init(argc, argv, "autopilot node");
   ros::NodeHandle nh;
 
