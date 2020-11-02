@@ -31,16 +31,17 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef CONTROL_TOOLBOX_PID_H
-#define CONTROL_TOOLBOX_PID_H
+#ifndef AUTOPILOT_PID_H
+#define AUTOPILOT_PID_H
 
 #include <string>
+
 #include "ros/node_handle.h"
 
 class TiXmlElement;
 
-namespace control_toolbox {
-
+namespace control_toolbox
+{
 /***************************************************/
 /*! \class Pid
     \brief A basic pid class.
@@ -103,7 +104,8 @@ while (true) {
 */
 /***************************************************/
 
-class Pid {
+class Pid
+{
  public:
   /*!
    * \brief Constructor, zeros out Pid values when created and
@@ -115,7 +117,7 @@ class Pid {
    * \param I1 The integral upper limit.
    * \param I2 The integral lower limit.
    */
-  Pid(double P = 0.0, double I = 0.0, double D = 0.0, double I1 = 0.0, double I2 = -0.0);
+  explicit Pid(double P = 0.0, double I = 0.0, double D = 0.0, double I1 = 0.0, double I2 = -0.0);
 
   /*!
    * \brief Destructor of Pid class.
@@ -208,7 +210,8 @@ class Pid {
    */
   double updatePid(double error, double error_dot, ros::Duration dt);
 
-  Pid &operator=(const Pid &p) {
+  Pid &operator=(const Pid &p)
+  {
     if (this == &p) return *this;
 
     p_gain_ = p.p_gain_;
@@ -236,4 +239,4 @@ class Pid {
 
 }  // namespace control_toolbox
 
-#endif
+#endif  // AUTOPILOT_PID_H
