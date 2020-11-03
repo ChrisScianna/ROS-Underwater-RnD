@@ -38,8 +38,8 @@
  * fin_control.h
  */
 
-#ifndef _FIN_CONTROL_H_
-#define _FIN_CONTROL_H_
+#ifndef FIN_CONTROL_H
+#define FIN_CONTROL_H
 
 #define NUM_FINS 4
 #define NODE_VERSION "1.8x"
@@ -69,11 +69,14 @@
 #include "dynamixel_workbench_msgs/GetDynamixelInfo.h"
 #include "dynamixel_workbench_toolbox/dynamixel_workbench.h"
 
-namespace qna {
-namespace robot {
-class FinControl {
+namespace qna
+{
+namespace robot
+{
+class FinControl
+{
  public:
-  FinControl(ros::NodeHandle& nodeHandle);
+  explicit FinControl(ros::NodeHandle& nodeHandle);
   virtual ~FinControl();
   ros::Timer reportAngleTimer;
   void reportAngleSendTimeout(const ros::TimerEvent& timer);
@@ -126,4 +129,4 @@ class FinControl {
 }  // namespace robot
 }  // namespace qna
 
-#endif  // _FIN_CONTROL_H_
+#endif  // FIN_CONTROL_H

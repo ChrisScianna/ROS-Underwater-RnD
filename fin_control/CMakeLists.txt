@@ -10,8 +10,9 @@ find_package(catkin REQUIRED COMPONENTS
   diagnostic_updater
   diagnostic_tools
   health_monitor
-  rospy
   roscpp
+  roslint
+  rospy
   std_msgs
   std_srvs
   message_generation
@@ -34,6 +35,14 @@ catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS dynamixel_workbench_controllers rospy roscpp std_msgs std_srvs
 )
+
+roslint_cpp(
+  src/fin_control.cpp
+  src/fin_control_main.cpp
+  include/fin_control.h
+)
+
+roslint_add_test()
 
 ###########
 ## Build ##
