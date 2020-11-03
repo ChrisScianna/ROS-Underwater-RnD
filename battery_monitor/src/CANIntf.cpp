@@ -37,8 +37,8 @@
 #include <iostream>
 
 #include <ros/ros.h>
-#include "CANIntf.h"
-#include "CO_VehicleSBC.h"
+#include "battery_monitor/CANIntf.h"
+#include "battery_monitor/CO_VehicleSBC.h"
 
 #define CAN_BUS_NAME "1"
 #define CAN_BAUD "500K"

@@ -7,6 +7,7 @@ add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  roslint
   rospy
   std_msgs
   sensor_msgs
@@ -67,6 +68,15 @@ set(CANFESTIVAL_LIBRARIES
     $ENV{CANFESTIVALHOME}/lib/libcanfestival_unix.a
     $ENV{CANFESTIVALHOME}/lib/libcanfestival_can_socket.a
 )
+
+roslint_cpp(
+  src/battery_monitor.cpp
+  src/battery_monitor_main.cpp
+  include/battery_monitor/battery_monitor.h
+  include/battery_monitor/BatteryInfo.h
+)
+
+roslint_add_test()
 
 target_include_directories(${NODE_APP_NAME} PUBLIC
     ${CANFESTIVAL_INCLUDES})
