@@ -39,7 +39,7 @@
  *
  */
 
-#include "include/fin_control.h"
+#include "fin_control/fin_control.h"
 #include <string>
 
 namespace qna
@@ -60,7 +60,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   maxCtrlFinSwing = 10.0;
   ctrlFinOffet = 0;
   ctrlFinScaleFactor = 1.0;
-  servos_on = false;
+  servosON = false;
   const char *log;
   currentLoggingEnabled = false;
   reportAngleRate = 0.04;
@@ -101,11 +101,11 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   ROS_INFO("fin control constructor enter");
 
   subscriber_setAngle =
-      nodeHandle.subscribe("/fin_control/set_angle", 10, &FinControl::handle_SetAngle, this);
+      nodeHandle.subscribe("/fin_control/set_angle", 10, &FinControl::handleSetAngle, this);
   subscriber_setAngles =
-      nodeHandle.subscribe("/fin_control/set_angles", 10, &FinControl::handle_SetAngles, this);
+      nodeHandle.subscribe("/fin_control/set_angles", 10, &FinControl::handleSetAngles, this);
   subscriber_enableReportAngles = nodeHandle.subscribe(
-      "/fin_control/enable_report_angles", 10, &FinControl::handle_EnableReportAngles, this);
+      "/fin_control/enable_report_angles", 10, &FinControl::handleEnableReportAngles, this);
 
   publisher_reportAngle =
       nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
@@ -137,13 +137,14 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
     return;
   }
 
-  num_of_ids = 0;
+  numOfIDs = 0;
 
-  if (myWorkBench.scan(ids, &num_of_ids, 1, 4, &log))
+  if (myWorkBench.scan(ids, &numOfIDs, 1, 4, &log))
   {
-    ROS_INFO("num of ids found [%d]", num_of_ids);
-    if (num_of_ids < NUM_FINS)
-      ROS_WARN("Fin servos found: [%d] does not math number of fins [%d]", num_of_ids, NUM_FINS);
+    ROS_INFO("num of ids found [%d]", numOfIDs);
+    if (numOfIDs < NUM_FINS)
+      ROS_WARN("Fin servos found: [%d] does not match expected number of fins [%d]", numOfIDs,
+               NUM_FINS);
   }
   else
   {
@@ -151,7 +152,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
     return;
   }
   // power on all servos
-  for (int x = 0; x < num_of_ids; x++)
+  for (int x = 0; x < numOfIDs; x++)
   {
     if (!myWorkBench.torqueOn(ids[x], &log))
     {
@@ -160,7 +161,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
     }
     else
     {
-      servos_on = true;
+      servosON = true;
     }
   }
 
@@ -179,11 +180,11 @@ FinControl::~FinControl()
 {
   const char *log;
 
-  if (servos_on)
+  if (servosON)
   {
     ROS_INFO("Turning off fin servos");
     // power off all servos
-    for (int x = 0; x < num_of_ids; x++)
+    for (int x = 0; x < numOfIDs; x++)
     {
       if (!myWorkBench.torqueOff(ids[x], &log))
         ROS_ERROR("Could not turn off torque on fin sevro [%d] %s", ids[x], log);
@@ -203,7 +204,7 @@ void FinControl::reportAngles()
 
   boost::mutex::scoped_lock lock(m_mutex);
 
-  for (int x = 0; x < num_of_ids; x++)
+  for (int x = 0; x < numOfIDs; x++)
   {
     reportAngle(ids[x]);
   }
@@ -239,7 +240,7 @@ float FinControl::radiansToDegrees(float radians) { return (radians * (180.0 / M
 
 float FinControl::degreesToRadians(float degrees) { return ((degrees / 180.0) * M_PI); }
 
-void FinControl::handle_SetAngles(const fin_control::SetAngles::ConstPtr &msg)
+void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 {
   const char *log;
   float angle_plus_offset;
@@ -354,7 +355,7 @@ void FinControl::handle_SetAngles(const fin_control::SetAngles::ConstPtr &msg)
   }
 }
 
-void FinControl::handle_SetAngle(const fin_control::SetAngle::ConstPtr &msg)
+void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
 {
   const char *log;
   // check for max angle the fins can mechanically handle
@@ -378,7 +379,7 @@ void FinControl::handle_SetAngle(const fin_control::SetAngle::ConstPtr &msg)
     ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
 }
 
-void FinControl::handle_EnableReportAngles(const fin_control::EnableReportAngles::ConstPtr &msg)
+void FinControl::handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr &msg)
 {
   if (msg->enable_report_angles)
   {

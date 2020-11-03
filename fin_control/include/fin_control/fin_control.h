@@ -87,7 +87,7 @@ class FinControl
   boost::shared_ptr<boost::thread> m_thread;
 
   bool fincontrolEnabled;
-  bool servos_on;
+  bool servosON;
   bool reportAnglesEnabled;
   bool currentLoggingEnabled;
 
@@ -96,9 +96,9 @@ class FinControl
   void Stop();
   float radiansToDegrees(float radians);
   float degreesToRadians(float degrees);
-  void handle_SetAngle(const fin_control::SetAngle::ConstPtr& msg);
-  void handle_SetAngles(const fin_control::SetAngles::ConstPtr& msg);
-  void handle_EnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
+  void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
+  void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
+  void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
 
   double maxCtrlFinSwing;
   double maxCtrlPlaneSwing;
@@ -118,7 +118,7 @@ class FinControl
   DynamixelWorkbench myWorkBench;
 
   uint8_t ids[10];
-  uint8_t num_of_ids;
+  uint8_t numOfIDs;
 
   boost::mutex m_mutex;
 

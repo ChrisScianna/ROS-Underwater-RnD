@@ -39,14 +39,9 @@
  */
 
 #include <ros/ros.h>
-#include <signal.h>
-#include <stdlib.h>
-
-#include <fstream>
 #include <iostream>
-#include <vector>
 
-#include "include/fin_control.h"
+#include "fin_control/fin_control.h"
 
 int main(int argc, char **argv)
 {
