@@ -38,19 +38,13 @@
  * health_monitor_main.cpp
  */
 
-#include <health_monitor.h>
-
+#include "health_monitor/health_monitor.h"
 #include <ros/ros.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
 
 // Version log
-// 1.0 		Initial versio
-// 1.0.1	Added motor temperature monitoring
-// 1.0.2	Added faults for timeouts of pressure, estimated pose, INS, and Altimeter
+// 1.0      Initial versio
+// 1.0.1    Added motor temperature monitoring
+// 1.0.2    Added faults for timeouts of pressure, estimated pose, INS, and Altimeter
 // information
 #define NODE_VERSION "1.0.2"
 

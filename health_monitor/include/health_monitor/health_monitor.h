@@ -39,8 +39,8 @@
  * health_monitor.h
  */
 
-#ifndef _HEALTH_MONITOR_H_
-#define _HEALTH_MONITOR_H_
+#ifndef HEALTH_MONITOR_HEALTH_MONITOR_H
+#define HEALTH_MONITOR_HEALTH_MONITOR_H
 
 #include <ros/ros.h>
 
@@ -54,7 +54,8 @@
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
-
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
 
 namespace qna
 {
@@ -64,7 +65,7 @@ namespace robot
 class HealthMonitor
 {
 public:
-    HealthMonitor(ros::NodeHandle &nodeHandle);
+    explicit HealthMonitor(ros::NodeHandle &nodeHandle);
     virtual ~HealthMonitor();
 
     ros::Timer reportFaultsTimer;
@@ -76,7 +77,8 @@ public:
 private:
     std::mutex faultArrayMutex;
     uint64_t faults;
-    std::unordered_map<std::string, uint64_t> uErrorMap{
+    std::unordered_map<std::string, uint64_t> uErrorMap
+        {
         {"payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
         {"vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
         {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
@@ -85,7 +87,8 @@ private:
         {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
         {"autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
         {"battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
-        {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED}};
+        {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED}
+        };
 
     void handle_ClearFault(const health_monitor::ClearFault::ConstPtr &msg);
     void handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg);
@@ -100,7 +103,7 @@ private:
     diagnostic_updater::Updater diagnosticsUpdater;
 };
 
-}
-}
+}   // namespace robot
+}   // namespace qna
 
-#endif // _HEALTH_MONITOR_H_
+#endif  // HEALTH_MONITOR_HEALTH_MONITOR_H

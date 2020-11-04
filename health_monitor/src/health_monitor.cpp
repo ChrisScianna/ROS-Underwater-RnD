@@ -39,10 +39,7 @@
  *
  */
 
-#include "health_monitor.h"
-
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
+#include "health_monitor/health_monitor.h"
 
 namespace qna
 {
@@ -104,26 +101,26 @@ void HealthMonitor::handle_ClearFault(const health_monitor::ClearFault::ConstPtr
 
 void HealthMonitor::handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg)
 {
-    uint64_t error_values = 0;
+    uint64_t errorValues = 0;
     for (int i = 0; i < msg->status.size(); i++)
     {
         if ((msg->status[i].level != diagnostic_msgs::DiagnosticStatus::OK) &&
             (msg->status[i].values.size() > 0) &&
             (msg->status[i].values[0].key == "Code"))
         {
-            error_values |= stoi(msg->status[i].values[0].value);
+            errorValues |= stoi(msg->status[i].values[0].value);
         }
     }
-    if (error_values != 0)
+    if (errorValues != 0)
     {
-        setFault(error_values);
+        setFault(errorValues);
         sendFaults();
     }
 }
 
 void HealthMonitor::handle_rosmonFaults(const rosmon_msgs::State &msg)
 {
-    uint64_t error_values = 0;
+    uint64_t errorValues = 0;
     for (int i = 0; i < msg.nodes.size(); i++)
     {
         if (msg.nodes[i].state == rosmon_msgs::NodeState::CRASHED)
@@ -136,13 +133,13 @@ void HealthMonitor::handle_rosmonFaults(const rosmon_msgs::State &msg)
             }
             else
             {
-                error_values |= uErrorMap[msg.nodes[i].name];
+                errorValues |= uErrorMap[msg.nodes[i].name];
             }
         }
     }
-    if (error_values != 0)
+    if (errorValues != 0)
     {
-        setFault(error_values);
+        setFault(errorValues);
         sendFaults();
     }
 }
@@ -159,12 +156,12 @@ void HealthMonitor::sendFaults()
     health_monitor::ReportFault message;
 
     faultArrayMutex.lock();
-    uint64_t temp_fault_id = faults;
+    uint64_t tempFaultID = faults;
     faultArrayMutex.unlock();
 
     ROS_DEBUG_STREAM("Error Code: " << faults);
     message.header.stamp = ros::Time::now();
-    message.fault_id = temp_fault_id;
+    message.fault_id = tempFaultID;
 
     publisher_reportFault.publish(message);
     diagnosticsUpdater.update();
@@ -175,5 +172,5 @@ void HealthMonitor::reportFaultsTimeout(const ros::TimerEvent &timer)
     sendFaults();
 }
 
-} // namespace robot
-} // namespace qna
+}   // namespace robot
+}   // namespace qna
