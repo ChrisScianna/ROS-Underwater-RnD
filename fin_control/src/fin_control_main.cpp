@@ -38,16 +38,13 @@
  * fin_control_main.cpp
  */
 
-#include <fin_control.h>
-
 #include <ros/ros.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <fstream>
 #include <iostream>
-#include <vector>
 
-int main(int argc, char **argv) {
+#include "fin_control/fin_control.h"
+
+int main(int argc, char **argv)
+{
   ros::init(argc, argv, "fin control");
   ros::Time::init();
 
@@ -56,8 +53,6 @@ int main(int argc, char **argv) {
   std::cout << "Creating Fin Control ROS node" << std::endl;
 
   qna::robot::FinControl robot(nodeHandle);
-
-  //   ros::spin();
 
   return 0;
 }
