@@ -39,10 +39,7 @@
  *
  */
 
-#include "health_monitor.h"
-
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
+#include "health_monitor/health_monitor.h"
 
 namespace qna
 {
@@ -175,5 +172,5 @@ void HealthMonitor::reportFaultsTimeout(const ros::TimerEvent &timer)
     sendFaults();
 }
 
-} // namespace robot
-} // namespace qna
+}   // namespace robot
+}   // namespace qna
