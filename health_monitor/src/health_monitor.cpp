@@ -156,12 +156,12 @@ void HealthMonitor::sendFaults()
     health_monitor::ReportFault message;
 
     faultArrayMutex.lock();
-    uint64_t tempFaultIF = faults;
+    uint64_t tempFaultID = faults;
     faultArrayMutex.unlock();
 
     ROS_DEBUG_STREAM("Error Code: " << faults);
     message.header.stamp = ros::Time::now();
-    message.fault_id = tempFaultIF;
+    message.fault_id = tempFaultID;
 
     publisher_reportFault.publish(message);
     diagnosticsUpdater.update();

@@ -1,5 +1,5 @@
 
-uint32 ALL_FAULTS = 0
+uint64 ALL_FAULTS = 0
 
 std_msgs/Header header
-uint32 fault_id
+uint64 fault_id
