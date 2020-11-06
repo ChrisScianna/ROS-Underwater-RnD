@@ -37,54 +37,39 @@
 #ifndef __BEHAVIOR_H
 #define __BEHAVIOR_H
 
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread.hpp>
-
 #include <ros/ros.h>
 #include <ros/time.h>
 #include <string.h>
+
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 #include <string>
-#include "std_msgs/Header.h"
 
 #include "pose_estimator/CorrectedData.h"
+#include "std_msgs/Header.h"
 #include "tinyxml/tinyxml.h"
 
-/*
-// These are hooks for creating and destroying the child Behavior class
-#define DECLARE_CREATE(childclass) \
-        extern "C" Behavior *createObj() { return dynamic_cast<Behavior *>(new childclass()); }
+namespace mission_manager
+{
+typedef enum
+{
+  BEHAVIOR_TYPE_MSG = 0,
+  BEHAVIOR_TYPE_SRV
+} behavior_type_t;
 
-#define DECLARE_DESTROY(childclass) \
-        extern "C" void destroyObj(Behavior *b) { delete dynamic_cast<childclass *>(b); }
-
-#define DECLARE_COMMON_HELPERS(childclass) \
-        DECLARE_CREATE(childclass) \
-        DECLARE_DESTROY(childclass)
-
-// Constructor helpers
-#define DECLARE_CONSTRUCTOR_MSG(childclass, tag, topic) \
-        childclass::childclass() : Behavior(tag, BEHAVIOR_TYPE_MSG, topic, "")
-
-#define DECLARE_CONSTRUCTOR_SRV(childclass, tag, service) \
-        childclass::childclass() : Behavior(tag, BEHAVIOR_TYPE_SRV, "", service)
-
-// Other junk
-#define XML_WARN(node, fmt, ...) \
-    ROS_WARN("%s:%hu: "fmt, (const char *)xmlNodeGetBase(node->doc, node), node->line,
-##__VA_ARGS__)
-*/
-
-namespace mission_manager {
-
-typedef enum { BEHAVIOR_TYPE_MSG = 0, BEHAVIOR_TYPE_SRV } behavior_type_t;
-
-class TimeStamp {
+class TimeStamp
+{
  public:
   TimeStamp() {}
   virtual ~TimeStamp() {}
 
-  typedef enum { REL_TIME = 0, ABS_TIME, ABS_DATETIME } ts_type_t;
+  typedef enum
+  {
+    REL_TIME = 0,
+    ABS_TIME,
+    ABS_DATETIME
+  } ts_type_t;
 
   ts_type_t type;
   boost::posix_time::time_duration duration;
@@ -93,7 +78,8 @@ class TimeStamp {
 
 // class IFactory;
 
-class BehaviorXMLParam {
+class BehaviorXMLParam
+{
  public:
   BehaviorXMLParam(){};
   virtual ~BehaviorXMLParam(){};
@@ -113,13 +99,16 @@ class BehaviorXMLParam {
   std::string xmlTagValue;
 };
 
-class Behavior {
+class Behavior
+{
  public:
   Behavior(const std::string& xml_tag, behavior_type_t type, const std::string& topic,
-           const std::string& service) {
+           const std::string& service)
+  {
     m_xml_tag = xml_tag;
     m_type = type;
-    switch (type) {
+    switch (type)
+    {
       case BEHAVIOR_TYPE_MSG:
         m_topic = topic;
         break;
@@ -132,77 +121,26 @@ class Behavior {
     m_duration = 0;
   }
 
-  Behavior() {
+  Behavior()
+  {
     m_timeout_ena = false;
     m_behavior_done = false;
     m_duration = 0;
   };
   virtual ~Behavior() {}
 
-  /*
-          // Message-type behavior creation/destruction helper functions
-          template <class M>
-          static ros::Publisher createPublisher(ros::NodeHandle nh, const std::string& topic, int
-     queue_size) { return nh.advertise<M>(topic, queue_size);
-          }
-
-          template <class M>
-          static ros::Message *createMsg() {
-                  return dynamic_cast<ros::Message *>(new M());
-          }
-
-          template <class M>
-          static void destroyMsg(ros::Message *msg) {
-                  delete dynamic_cast<M *>(msg);
-          }
-
-          // Service-type behavior creation/destruction helper functions
-          template <class S>
-          static ros::ServiceClient createServiceClient(const std::string& service, bool persistent)
-     { return ros::service::createClient<S>(service, persistent);
-          }
-
-          template <class S>
-          static void *createSrv() {
-                  return static_cast<void *>(new S);
-          }
-
-          template <class S>
-          static void destroySrv(void *srv) {
-                  delete static_cast<S *>(srv);
-          }
-
-          template <class S>
-          static void callSrv(ros::ServiceClient srvcli, void *srv) {
-                  srvcli.call<S>(*(static_cast<S *>(srv)));
-          }
-  */
   // Behavior meta-data retrieval functions
   behavior_type_t getType() { return m_type; }
   const char* getXmlTag() { return m_xml_tag.c_str(); }
 
-  //	const char *getTopic() { return m_topic.c_str(); }
-  //	const char *getService() { return m_service.c_str(); }
-
   // Message-type behavior implementation overrides
   virtual void publishMsg(){};
-
-  //	virtual ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) { return
-  //ros::Publisher(); } 	virtual ros::Message *createMsg() { return NULL; } 	virtual void
-  //destroyMsg(ros::Message *msg) { } 	virtual void populateMsg(ros::Message *msg) { } 	virtual void
-  //publishMsg(ros::Publisher pub, ros::Message *msg) { pub.publish(*msg); }
   virtual bool checkCorrectedData(const pose_estimator::CorrectedData& data) { return true; }
 
   // Service-type behavior implementation overrides
   virtual void callService(){};
 
-  //	virtual ros::ServiceClient createServiceClient(bool persistent) { return
-  //ros::ServiceClient(); } 	virtual void *createSrv() { return NULL; } 	virtual void destroySrv(void
-  //*srv) { } 	virtual void populateSrv(void *srv) { } 	virtual void callSrv(ros::ServiceClient
-  //srvcli, void *srv) { }
-
   // Common behavior overrides
-  //	virtual bool parseXml(xmlNodePtr node) { return true; }
   virtual bool getParams(ros::NodeHandle nh) { return true; }
   std::list<BehaviorXMLParam>& getBehaviorXmlParams() { return m_behaviorXMLParams; }
   void setBehaviorXmlParams(std::list<BehaviorXMLParam> aList) { m_behaviorXMLParams = aList; }
@@ -214,16 +152,11 @@ class Behavior {
   bool getBehaviorDone() { return m_behavior_done; }
   float getBehaviorDuration() { return m_duration; }
 
-  //	IFactory *factory;
-
-  int ExecuteBehavior(ros::NodeHandle nh) {
-    switch (getType()) {
+  int ExecuteBehavior(ros::NodeHandle nh)
+  {
+    switch (getType())
+    {
       case BEHAVIOR_TYPE_MSG:
-        //					pub_iter = m_mapBehaviorPubs.find(xml_tag);
-        //					msg_iter = m_mapBehaviorMsgs.find(xml_tag);
-
-        //					cur_behavior->populateMsg(msg_iter->second);
-
         // Publish the appropriate behavior message
         ROS_INFO("Publishing behavior [%s]", m_xml_tag.c_str());
         publishMsg();
@@ -233,19 +166,12 @@ class Behavior {
 
         ROS_INFO("Behavior [%s] calling service", m_xml_tag.c_str());
         callService();
-
-        /*					srvcli_iter = m_mapBehaviorSrvClis.find(xml_tag);
-                                        srv_iter = m_mapBehaviorSrvs.find(xml_tag);
-
-                                        cur_behavior->populateSrv(srv_iter->second);
-                                        cur_behavior->callSrv(srvcli_iter->second,
-           srv_iter->second);
-        */
         break;
     }
   }
 
-  int WaitForExecutionTimeSlot() {
+  int WaitForExecutionTimeSlot()
+  {
     int retval = 0;  // 0 means success
     boost::posix_time::ptime cur_ptime;
     boost::posix_time::ptime calc_ptime;
@@ -253,7 +179,8 @@ class Behavior {
 
     TimeStamp when = getWhen();
 
-    switch (when.type) {
+    switch (when.type)
+    {
       case TimeStamp::REL_TIME:
         if (when.duration.total_seconds() == 0) break;  // now
         boost::this_thread::sleep(when.duration);
@@ -269,9 +196,9 @@ class Behavior {
         break;
 
       case TimeStamp::ABS_DATETIME:
-        if (when.time < cur_ptime) {
+        if (when.time < cur_ptime)
+        {
           ROS_ERROR("Behavior occurs in the past; aborting mission");
-          // AbortMission();
           retval = -1;
           break;
         }
@@ -282,14 +209,16 @@ class Behavior {
     return retval;
   }
 
-  int computeExecutionTimeForBehavior() {
+  int computeExecutionTimeForBehavior()
+  {
     int nsec = -1;
 
     TimeStamp tout = getTimeout();
     boost::posix_time::ptime calc_ptime,
         cur_ptime = boost::posix_time::second_clock::universal_time();
 
-    switch (tout.type) {
+    switch (tout.type)
+    {
       case TimeStamp::REL_TIME:
         if (tout.duration.total_seconds() == 0) return 0;  // execution time is 0 seconds
         nsec = tout.duration.total_seconds();
@@ -305,9 +234,9 @@ class Behavior {
         break;
 
       case TimeStamp::ABS_DATETIME:
-        if (tout.time < cur_ptime) {
+        if (tout.time < cur_ptime)
+        {
           ROS_ERROR("Timeout occurs in the past; aborting mission");
-          // AbortMission();	// return -1 as a flag to AbortMission
           break;
         }
         nsec = (tout.time - cur_ptime).total_seconds();
@@ -317,10 +246,12 @@ class Behavior {
     return nsec;
   }
 
-  bool startBehavior() {
+  bool startBehavior()
+  {
     std::string xml_tag = getXmlTag();
 
-    switch (getType()) {
+    switch (getType())
+    {
       case BEHAVIOR_TYPE_MSG:
 
         break;
@@ -333,10 +264,12 @@ class Behavior {
     return true;
   }
 
-  bool stopBehavior() {
+  bool stopBehavior()
+  {
     std::string xml_tag = getXmlTag();
 
-    switch (getType()) {
+    switch (getType())
+    {
       case BEHAVIOR_TYPE_MSG:
         break;
 
@@ -348,107 +281,38 @@ class Behavior {
   }
 
  protected:
-  // XML parsing utility functions
-  /*	bool parseCommonElements(xmlNodePtr node) {
-                  for (xmlNodePtr cur = xmlFirstElementChild(node); cur; cur = cur->next) {
-                  if (!strcmp((const char *)cur->name, "when")) {
-                      if (!parseNodeTimeStamp(cur, m_when)) return false;
-                  } else if (!strcmp((const char *)cur->name, "timeout")) {
-                      if (!parseNodeTimeStamp(cur, m_timeout)) return false;
-                      m_timeout_ena = true;
-                  } else if (!strcmp((const char *)cur->name, "duration")) {
-                      if (!parseNodeText(cur, m_duration)) return false;
-                  }
-          }
-              return true;
-          }
-
-          static bool parseNodeText(xmlNodePtr node, double& val) {
-                  xmlChar *buf = xmlNodeGetContent(node);
-                  int rc = sscanf((const char *)buf, "%lf", &val);
-                  xmlFree(buf);
-                  if (rc != 1) {
-                  XML_WARN(node, "Could not parse text as double.");
-              return false;
-              }
-              return true;
-          }
-
-          static bool parseNodeText(xmlNodePtr node, float& val) {
-                  xmlChar *buf = xmlNodeGetContent(node);
-              int rc = sscanf((const char *)buf, "%f", &val);
-          xmlFree(buf);
-              if (rc != 1) {
-              XML_WARN(node, "Could not parse text as float.");
-                  return false;
-              }
-          return true;
-          }
-
-          static bool parseNodeText(xmlNodePtr node, int& val) {
-                  xmlChar *buf = xmlNodeGetContent(node);
-              int rc = sscanf((const char *)buf, "%d", &val);
-              xmlFree(buf);
-              if (rc != 1) {
-              XML_WARN(node, "Could not parse text as integer.");
-                  return false;
-              }
-              return true;
-          }
-
-          static bool parseNodeText(xmlNodePtr node, std::string& str) {
-                  xmlChar *buf = xmlNodeGetContent(node);
-              str = (const char *)buf;
-              xmlFree(buf);
-              return true;
-          }
-
-          static bool parseNodeAngle(xmlNodePtr node, double& val) {
-                  double tmp;
-              xmlChar *unit;
-              if (!parseNodeText(node, tmp)) return false;
-          unit = xmlGetProp(node, (const xmlChar *)"unit");
-              if (!strcmp((const char *)unit, "deg")) val = tmp;
-              else if (!strcmp((const char *)unit, "rad")) val = tmp * 180.0 / M_PI;
-              else {
-              XML_WARN(node, "Unexpected angle unit.");
-                  xmlFree(unit);
-                  return false;
-              }
-              xmlFree(unit);
-              return true;
-          }
-
-          static bool parseNodeAngle(xmlNodePtr node, float& val) {
-                  double tmp;
-                  if (!parseNodeAngle(node, tmp)) return false;
-                  val = (float)tmp;
-                  return true;
-          }
-  */
-
-  bool parseTimeStamps(std::list<BehaviorXMLParam>::iterator it) {
+  bool parseTimeStamps(std::list<BehaviorXMLParam>::iterator it)
+  {
     bool retval = true;
     bool pnts1 = true;
     bool pnts2 = true;
     std::string xmlParamTag = it->getXMLTag();
-    if (xmlParamTag.compare("when") == 0) {
+    if (xmlParamTag.compare("when") == 0)
+    {
       std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0) {
+      if (attribMap.size() > 0)
+      {
         std::map<std::string, std::string>::iterator attrib_it;
         attrib_it = attribMap.begin();
         pnts1 = parseNodeTimeStamp(attrib_it->second, it->getXMLTagValue(), m_when);
-      } else {
+      }
+      else
+      {
         std::cout << "No attributes for when tag" << std::endl;
       }
-    } else if (xmlParamTag.compare("timeout") == 0) {
+    }
+    else if (xmlParamTag.compare("timeout") == 0)
+    {
       std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0) {
+      if (attribMap.size() > 0)
+      {
         std::map<std::string, std::string>::iterator attrib_it;
         attrib_it = attribMap.begin();
         pnts2 = parseNodeTimeStamp(attrib_it->second, it->getXMLTagValue(), m_timeout);
         m_timeout_ena = true;
-      } else {
+      }
+      else
+      {
         std::cout << "No attributes for timeout tag" << std::endl;
       }
     }
@@ -458,50 +322,72 @@ class Behavior {
     return retval;
   }
 
-  bool parseNodeTimeStamp(std::string unit, std::string val, TimeStamp& t) {
+  bool parseNodeTimeStamp(std::string unit, std::string val, TimeStamp& t)
+  {
     using namespace boost::gregorian;
     using namespace boost::posix_time;
 
     int hrs, min, sec;
     bool ret = true;
 
-    if (unit.compare("abs") == 0) {
+    if (unit.compare("abs") == 0)
+    {
       // Parse an absolute time in HH:MM:SS format
-      if (sscanf((const char*)val.c_str(), "%d:%d:%d", &hrs, &min, &sec) != 3) {
+      if (sscanf((const char*)val.c_str(), "%d:%d:%d", &hrs, &min, &sec) != 3)
+      {
         std::cout << "Could not parse \"abs\" time." << std::endl;
         ret = false;
-      } else {
+      }
+      else
+      {
         t.type = TimeStamp::ABS_TIME;
         t.time = ptime(date(0, 0, 0), time_duration(hrs, min, sec));
       }
-    } else if (unit.compare("hms") == 0) {
+    }
+    else if (unit.compare("hms") == 0)
+    {
       // Parse a relative time in HH:MM:SS format
-      if (sscanf((const char*)val.c_str(), "%d:%d:%d", &hrs, &min, &sec) != 3) {
+      if (sscanf((const char*)val.c_str(), "%d:%d:%d", &hrs, &min, &sec) != 3)
+      {
         std::cout << "Could not parse \"hms\" time." << std::endl;
         ret = false;
-      } else {
+      }
+      else
+      {
         t.type = TimeStamp::REL_TIME;
         t.duration = time_duration(hrs, min, sec);
       }
-    } else if (unit.compare("iso") == 0) {
+    }
+    else if (unit.compare("iso") == 0)
+    {
       // Parse an absolute ISO 8601 date/time string
       t.type = TimeStamp::ABS_DATETIME;
-      try {
+      try
+      {
         t.time = from_iso_string(val);
-      } catch (std::exception) {
+      }
+      catch (std::exception)
+      {
         std::cout << "Could not parse \"iso\" time." << std::endl;
         ret = false;
       }
-    } else if (unit.compare("sec") == 0) {
+    }
+    else if (unit.compare("sec") == 0)
+    {
       // Parse a relative time in seconds
-      if (sscanf((const char*)val.c_str(), "%d", &sec) != 1) {
+      if (sscanf((const char*)val.c_str(), "%d", &sec) != 1)
+      {
         std::cout << "Could not parse \"sec\" time." << std::endl;
         ret = false;
-      } else {
+      }
+      else
+      {
         t.type = TimeStamp::REL_TIME;
         t.duration = time_duration(0, 0, sec);
       }
-    } else {
+    }
+    else
+    {
       ROS_INFO("parseNodeTimeStamp - unsupported time unit [%s]", unit.c_str());
 
       ret = false;
@@ -509,64 +395,6 @@ class Behavior {
 
     return ret;
   }
-  /*
-          static bool parseNodeTimeStamp(xmlNodePtr node, TimeStamp& t) {
-                  using namespace boost::gregorian;
-              using namespace boost::posix_time;
-
-          xmlChar *unit = xmlGetProp(node, (const xmlChar *)"unit");
-              xmlChar *buf = xmlNodeGetContent(node);
-          int hrs, min, sec;
-              bool ret = true;
-
-          if (!strcmp((const char *)unit, "abs")) {
-                  // Parse an absolute time in HH:MM:SS format
-                  if (sscanf((const char *)buf, "%d:%d:%d", &hrs, &min, &sec) != 3) {
-                      XML_WARN(node, "Could not parse \"abs\" time.");
-                      ret = false;
-                              goto out;
-                  }
-                  t.type = TimeStamp::ABS_TIME;
-              t.time = ptime(date(0, 0, 0), time_duration(hrs, min, sec));
-                  } else if (!strcmp((const char *)unit, "hms")) {
-                  // Parse a relative time in HH:MM:SS format
-                  if (sscanf((const char *)buf, "%d:%d:%d", &hrs, &min, &sec) != 3) {
-                      XML_WARN(node, "Could not parse \"hms\" time.");
-                      ret = false;
-                      goto out;
-                  }
-                  t.type = TimeStamp::REL_TIME;
-              t.duration = time_duration(hrs, min, sec);
-              } else if (!strcmp((const char *)unit, "iso")) {
-              // Parse an absolute ISO 8601 date/time string
-                  t.type = TimeStamp::ABS_DATETIME;
-                  try {
-                      t.time = from_iso_string(std::string((const char *)buf));
-                  } catch (std::exception) {
-                      XML_WARN(node, "Could not parse \"iso\" time.");
-                      ret = false;
-                      goto out;
-                  }
-          } else if (!strcmp((const char *)unit, "sec")) {
-                  // Parse a relative time in seconds
-                  if (sscanf((const char *)buf, "%d", &sec) != 1) {
-                      XML_WARN(node, "Could not parse \"sec\" time.");
-                      ret = false;
-                      goto out;
-                  }
-                  t.type = TimeStamp::REL_TIME;
-                  t.duration = time_duration(0, 0, sec);
-              } else {
-                  XML_WARN(node, "Unsupported time unit [%s]", unit);
-                  ret = false;
-              }
-
-          out:
-          xmlFree(buf);
-              xmlFree(unit);
-              return ret;
-          }
-  */
 
   TimeStamp m_when;
   TimeStamp m_timeout;
@@ -583,7 +411,5 @@ class Behavior {
 };
 
 }  // namespace mission_manager
-
-//#undef XML_WARN
 
 #endif

@@ -39,55 +39,53 @@
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <string.h>
+
 #include <string>
 
+/* Behavioral payload
+
+                <payload>
+                        <description>Payload Msg</description>
+                        <when unit="sec">30</when>
+                        <timeout unit="sec">35</timeout>
+                        <command>Go,500</command>
+                </payload>
+*/
 
 using namespace mission_manager;
 
-
 PayloadCommandBehavior::PayloadCommandBehavior()
-    : Behavior("payload_command", BEHAVIOR_TYPE_MSG, "/payload_manager/command", "") 
+    : Behavior("payload_command", BEHAVIOR_TYPE_MSG, "/payload_manager/command", "")
 {
-  	m_command_str_ena = false;
-	m_command_str = "";
+  m_command_str_ena = false;
+  m_command_str = "";
 
-  	ros::NodeHandle nh;
-  	payload_command_behavior_pub = nh.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
+  ros::NodeHandle nh;
+  payload_command_behavior_pub =
+      nh.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
 }
 
 PayloadCommandBehavior::~PayloadCommandBehavior() {}
 
-bool PayloadCommandBehavior::getParams(ros::NodeHandle nh) 
-{
-  return true;
-}
+bool PayloadCommandBehavior::getParams(ros::NodeHandle nh) { return true; }
 
-/*
-		<payload>
-			<description>Payload Msg</description>
-			<when unit="sec">30</when>
-			<timeout unit="sec">35</timeout>
-			<command>Go,500</command>
-		</payload>
-*/
-
-bool PayloadCommandBehavior::parseMissionFileParams() 
+bool PayloadCommandBehavior::parseMissionFileParams()
 {
   bool retval = true;
   std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++) 
-  {   
+  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  {
     std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0)) 
+    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
     {
       retval = parseTimeStamps(it);
-    } 
-	else if (xmlParamTag.compare("command") == 0) 
-	{
+    }
+    else if (xmlParamTag.compare("command") == 0)
+    {
       m_command_str = it->getXMLTagValue();
       m_command_str_ena = true;
-	}
-    else 
+    }
+    else
     {
       std::cout << "Payload Command behavior found invalid parameter " << xmlParamTag << std::endl;
     }
@@ -96,7 +94,7 @@ bool PayloadCommandBehavior::parseMissionFileParams()
   return retval;
 }
 
-void PayloadCommandBehavior::publishMsg() 
+void PayloadCommandBehavior::publishMsg()
 {
   payload_manager::PayloadCommand msg;
 
@@ -106,9 +104,7 @@ void PayloadCommandBehavior::publishMsg()
   payload_command_behavior_pub.publish(msg);
 }
 
-
-
-bool PayloadCommandBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data) 
+bool PayloadCommandBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
 {
   return true;
 }

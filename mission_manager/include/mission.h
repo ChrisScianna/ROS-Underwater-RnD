@@ -41,9 +41,10 @@
 
 #include "behavior.h"
 
-namespace mission_manager {
-
-class Mission {
+namespace mission_manager
+{
+class Mission
+{
  public:
   Mission();
   virtual ~Mission();
@@ -54,7 +55,15 @@ class Mission {
   void addAbortBehavior(Behavior *behavior);
   Behavior *getNextAbortBehavior(bool reset = false);
 
-  enum MissionState { READY, EXECUTING, ABORTING, STOPPED, PAUSED, COMPLETE };
+  enum MissionState
+  {
+    READY,
+    EXECUTING,
+    ABORTING,
+    STOPPED,
+    PAUSED,
+    COMPLETE
+  };
   void SetState(MissionState state);
   MissionState GetState();
   boost::mutex m_MissionStateLock;

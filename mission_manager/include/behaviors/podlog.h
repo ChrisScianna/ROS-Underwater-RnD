@@ -53,7 +53,7 @@
 #ifdef USE_PODLOG
 #include "podlog/SetLogState.h"
 #else
-//#include "logbase.h"
+
 #endif
 
 namespace mission_manager {
@@ -64,46 +64,8 @@ class PodlogBehavior : public Behavior {
   virtual ~PodlogBehavior();
 
   virtual bool parseMissionFileParams();
-  //	bool parseXml(xmlNodePtr node);
-
   virtual void callService(ros::NodeHandle node_handle);
-  /*
-          ros::ServiceClient createServiceClient(bool persistent) {
-  #ifdef USE_PODLOG
-                  return Behavior::createServiceClient<podlog::SetLogState>(m_service, persistent);
-  #else
-                  return ros::ServiceClient();
-  #endif
-          }
 
-          void *createSrv() {
-  #ifdef USE_PODLOG
-                  return Behavior::createSrv<podlog::SetLogState>();
-  #else
-                  return Behavior::createSrv<logbase::SetLogState>();
-  #endif
-          }
-
-          void destroySrv(void *srv) {
-  #ifdef USE_PODLOG
-                  return Behavior::destroySrv<podlog::SetLogState>(srv);
-  #else
-                  return Behavior::destroySrv<logbase::SetLogState>(srv);
-  #endif
-          }
-
-          void populateSrv(void *srv);
-
-          void callSrv(ros::ServiceClient srvcli, void *srv) {
-  #ifdef USE_PODLOG
-                  return Behavior::callSrv<podlog::SetLogState>(srvcli, srv);
-  #else
-                  std::string s = "/" + m_logid + "/set_log_state";
-                  srvcli = Behavior::createServiceClient<logbase::SetLogState>(s, false);
-                  return Behavior::callSrv<logbase::SetLogState>(srvcli, srv);
-  #endif
-          }
-  */
  private:
   bool m_logging;
   std::string m_logid;

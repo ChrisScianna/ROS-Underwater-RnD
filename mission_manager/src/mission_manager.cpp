@@ -35,16 +35,16 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
 #include <dirent.h>
-
 #include <ros/ros.h>
 #include <stdint.h>
+
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <map>
 #include <string>
 
+#include "behavior.h"
 #include "health_monitor/ReportFault.h"
-#include "pose_estimator/CorrectedData.h"
-
+#include "mission.h"
 #include "mission_manager/AbortMission.h"
 #include "mission_manager/ExecuteMission.h"
 #include "mission_manager/LoadMission.h"
@@ -54,10 +54,8 @@
 #include "mission_manager/ReportHeartbeat.h"
 #include "mission_manager/ReportLoadMissionState.h"
 #include "mission_manager/ReportMissions.h"
-
-#include "behavior.h"
-#include "mission.h"
 #include "mission_parser.h"
+#include "pose_estimator/CorrectedData.h"
 
 #define LOGGING (1)
 
@@ -71,7 +69,8 @@ using namespace std;
 using namespace pose_estimator;
 using namespace mission_manager;
 
-class MissionManagerNode {
+class MissionManagerNode
+{
  public:
   ros::NodeHandle node_handle;
   ros::Subscriber sub_corrected_data;
@@ -113,7 +112,8 @@ class MissionManagerNode {
   unsigned long heartbeat_sequence_id;
 
  public:
-  MissionManagerNode(ros::NodeHandle& h) : node_handle(h) {
+  MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
+  {
     heartbeat_sequence_id = 0;
     last_id = -1;
     last_state = Mission::MissionState::READY;
@@ -175,13 +175,16 @@ class MissionManagerNode {
                                                    &MissionManagerNode::reportHeartbeat, this);
   }
 
-  ~MissionManagerNode() {
+  ~MissionManagerNode()
+  {
     stop();
 
     std::map<int, Mission*>::iterator it;
 
-    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++) {
-      if (it->second != NULL) {
+    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
+    {
+      if (it->second != NULL)
+      {
         delete it->second;
       }
     }
@@ -189,12 +192,14 @@ class MissionManagerNode {
     m_mission_map.clear();
   }
 
-  int loadMissionFile(std::string mission_full_path) {
+  int loadMissionFile(std::string mission_full_path)
+  {
     MissionParser parser(node_handle);
 
     Mission* newMission = new Mission();
     // Parse the specified mission
-    if (parser.parseMissionFile(*newMission, mission_full_path) == false) {
+    if (parser.parseMissionFile(*newMission, mission_full_path) == false)
+    {
       delete newMission;
       return -1;
     }
@@ -206,8 +211,10 @@ class MissionManagerNode {
     return 0;
   }
 
-  int executeMission(int missionId) {
-    if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0)) {
+  int executeMission(int missionId)
+  {
+    if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
+    {
       last_state = Mission::MissionState::READY;
       last_id = -1;
       m_current_mission_id = missionId;
@@ -215,8 +222,10 @@ class MissionManagerNode {
     }
   }
 
-  int abortMission(int missionId) {
-    if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0)) {
+  int abortMission(int missionId)
+  {
+    if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
+    {
       last_state = Mission::MissionState::READY;
       last_id = -1;
       m_current_mission_id = missionId;
@@ -224,7 +233,8 @@ class MissionManagerNode {
     }
   }
 
-  int start() {
+  int start()
+  {
     stop();
 
     int retval = loadMissionFile(mission_path);
@@ -234,7 +244,8 @@ class MissionManagerNode {
     return retval;
   }
 
-  int stop() {
+  int stop()
+  {
     if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
         (m_mission_map.count(m_current_mission_id) > 0))
       m_mission_map[m_current_mission_id]->Stop();
@@ -242,9 +253,12 @@ class MissionManagerNode {
     return 0;
   }
 
-  bool spin() {
-    if (start() == 0) {
-      while (node_handle.ok()) {
+  bool spin()
+  {
+    if (start() == 0)
+    {
+      while (node_handle.ok())
+      {
         ros::spin();
       }
     }
@@ -254,49 +268,57 @@ class MissionManagerNode {
     return true;
   }
 
-  void reportHeartbeat(const ros::TimerEvent& timer) {
+  void reportHeartbeat(const ros::TimerEvent& timer)
+  {
     ReportHeartbeat outmsg;
     outmsg.header.stamp = ros::Time::now();
     outmsg.seq_id = heartbeat_sequence_id++;
     pub_report_heartbeat.publish(outmsg);
   }
 
-  void reportExecuteMissionState(const ros::TimerEvent& timer) {
+  void reportExecuteMissionState(const ros::TimerEvent& timer)
+  {
     if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
-        (m_mission_map.count(m_current_mission_id) > 0)) {
+        (m_mission_map.count(m_current_mission_id) > 0))
+    {
       Mission::MissionState state = m_mission_map[m_current_mission_id]->GetState();
 
       int id = -1;
       std::string name = "";
-      if (state == Mission::MissionState::ABORTING) {
+      if (state == Mission::MissionState::ABORTING)
+      {
         id = m_mission_map[m_current_mission_id]->getCurrentAbortBehaviorId();
         name = m_mission_map[m_current_mission_id]->getCurrentAbortBehaviorsName();
-      } else {
+      }
+      else
+      {
         id = m_mission_map[m_current_mission_id]->getCurrentBehaviorId();
         name = m_mission_map[m_current_mission_id]->getCurrentBehaviorsName();
       }
 
-      if ((state != last_state) || (id != last_id)) {
+      if ((state != last_state) || (id != last_id))
+      {
         ReportExecuteMissionState outmsg;
 
         outmsg.current_behavior_name = name;
         outmsg.current_behavior_id = id;
         outmsg.execute_mission_state = ReportExecuteMissionState::PAUSED;
         std::string stateStr = "PAUSED";
-        if (state == Mission::MissionState::EXECUTING) {
+        if (state == Mission::MissionState::EXECUTING)
+        {
           outmsg.execute_mission_state = ReportExecuteMissionState::EXECUTING;
           stateStr = "EXECUTING";
         }
-        if (state == Mission::MissionState::ABORTING) {
+        if (state == Mission::MissionState::ABORTING)
+        {
           outmsg.execute_mission_state = ReportExecuteMissionState::ABORTING;
           stateStr = "ABORTING";
         }
-        if (state == Mission::MissionState::COMPLETE) {
+        if (state == Mission::MissionState::COMPLETE)
+        {
           outmsg.execute_mission_state = ReportExecuteMissionState::COMPLETE;
           stateStr = "COMPLETE";
         }
-        // if (state == Mission::MissionState::PAUSED) outmsg.execute_mission_state =
-        // ReportExecuteMissionState::PAUSED;
 
         outmsg.mission_id = m_current_mission_id;
         outmsg.header.stamp = ros::Time::now();
@@ -310,19 +332,23 @@ class MissionManagerNode {
     }
   }
 
-  void loadMissionCallback(const mission_manager::LoadMission::ConstPtr& msg) {
+  void loadMissionCallback(const mission_manager::LoadMission::ConstPtr& msg)
+  {
     ROS_INFO("loadMissionCallback - just received mission file '%s'",
              (msg->mission_file_full_path).c_str());
 
     int retval = loadMissionFile(msg->mission_file_full_path);
 
     ReportLoadMissionState outmsg;
-    if (retval == -1) {
+    if (retval == -1)
+    {
       outmsg.load_state = ReportLoadMissionState::FAILED;
       outmsg.mission_id = 0;
       ROS_INFO("loadMissionCallback - FAILED to parse mission file '%s'",
                (msg->mission_file_full_path).c_str());
-    } else {
+    }
+    else
+    {
       outmsg.load_state = ReportLoadMissionState::SUCCESS;
       outmsg.mission_id = m_mission_id_counter;
       ROS_INFO("loadMissionCallback - SUCCESSFULLY parsed mission file '%s'",
@@ -334,25 +360,29 @@ class MissionManagerNode {
     pub_report_mission_load_state.publish(outmsg);
   }
 
-  void executeMissionCallback(const mission_manager::ExecuteMission::ConstPtr& msg) {
+  void executeMissionCallback(const mission_manager::ExecuteMission::ConstPtr& msg)
+  {
     // TODO: Need to shutdown any mission that is currently running.
     ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
     executeMission(msg->mission_id);
   }
 
-  void abortMissionCallback(const mission_manager::AbortMission::ConstPtr& msg) {
+  void abortMissionCallback(const mission_manager::AbortMission::ConstPtr& msg)
+  {
     // TODO: Need to shutdown any mission that is currently running.
     // TODO should probably also check the timestamp from the message
     ROS_INFO("abortMissionCallback - Aborting mission id[%d]", msg->mission_id);
     abortMission(msg->mission_id);  // assume mission ID is the current mission
   }
 
-  void queryMissionsCallback(const mission_manager::QueryMissions::ConstPtr& msg) {
+  void queryMissionsCallback(const mission_manager::QueryMissions::ConstPtr& msg)
+  {
     ReportMissions outmsg;
     MissionData data;
     std::map<int, Mission*>::iterator it;
 
-    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++) {
+    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
+    {
       data.mission_id = it->first;
       data.mission_description = it->second->getMissionDescription();
       outmsg.missions.push_back(data);
@@ -362,22 +392,26 @@ class MissionManagerNode {
     pub_report_missions.publish(outmsg);
 
     ROS_INFO("queryMissionsCallback - Reporting these missions");
-    for (int i = 0; i < outmsg.missions.size(); ++i) {
+    for (int i = 0; i < outmsg.missions.size(); ++i)
+    {
       const mission_manager::MissionData& mdata = outmsg.missions[i];
       ROS_INFO("Mission Id:[%d] Description:[%s]", mdata.mission_id,
                mdata.mission_description.c_str());
     }
   }
 
-  void removeMissionsCallback(const mission_manager::RemoveMissions::ConstPtr& msg) {
+  void removeMissionsCallback(const mission_manager::RemoveMissions::ConstPtr& msg)
+  {
     MissionData data;
     std::map<int, Mission*>::iterator it;
 
     ROS_INFO("removeMissionsCallback - Removing missions");
 
-    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++) {
+    for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
+    {
       if ((it->second->GetState() != Mission::MissionState::ABORTING) &&
-          (it->second->GetState() != Mission::MissionState::EXECUTING)) {
+          (it->second->GetState() != Mission::MissionState::EXECUTING))
+      {
         ROS_INFO("Deleting mission id[%d] with description[%s]", it->first,
                  (it->second->getMissionDescription()).c_str());
         delete it->second;
@@ -386,15 +420,17 @@ class MissionManagerNode {
     }
   }
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data) {
+  void correctedDataCallback(const pose_estimator::CorrectedData& data)
+  {
     // mission_map.count checks to see if a key is in the map
     if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
-        (m_mission_map.count(m_current_mission_id) > 0)) {
+        (m_mission_map.count(m_current_mission_id) > 0))
+    {
       m_mission_map[m_current_mission_id]->ProcessCorrectedPoseData(data);
     }
   }
 
-  void reportFaultCallback(const health_monitor::ReportFault::ConstPtr &msg)
+  void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg)
   {
     if (msg->fault_id != 0)
     {
@@ -403,30 +439,33 @@ class MissionManagerNode {
     }
   }
 
-  bool endsWith(const std::string& str, const char* suffix) {
+  bool endsWith(const std::string& str, const char* suffix)
+  {
     unsigned suffixLen = std::string::traits_type::length(suffix);
     return str.size() >= suffixLen &&
            0 == str.compare(str.size() - suffixLen, suffixLen, suffix, suffixLen);
   }
 
-  bool FoundMissionFile() {
+  bool FoundMissionFile()
+  {
     ROS_INFO("Mission path is [%s]", mission_path.c_str());
 
     bool retval = false;
     DIR* d;
     struct dirent* dir;
-    // char path[1000]="/home/joy/Downloads";
     d = opendir(mission_path.c_str());
 
     if (d)  // if the directory is valid
     {
       if (endsWith(mission_path, ".xml")) return true;
 
-      while (retval == false) {
+      while (retval == false)
+      {
         while ((dir = readdir(d)) != NULL)  // read file in directory
         {
           // Condition to check regular file.
-          if (dir->d_type == DT_REG) {
+          if (dir->d_type == DT_REG)
+          {
             mission_path.append("/");
             mission_path.append(dir->d_name);
 
@@ -436,12 +475,15 @@ class MissionManagerNode {
           }
         }
 
-        if (retval == false) {
+        if (retval == false)
+        {
           ROS_INFO("sleeping");
           usleep(250000);
         }
       }
-    } else {
+    }
+    else
+    {
       ROS_ERROR("The directory path to the mission file is invalid: %s", mission_path.c_str());
     }
 
@@ -450,7 +492,8 @@ class MissionManagerNode {
   }
 };
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   ros::init(argc, argv, "mission_manager_node");
 
   ros::NodeHandle nh;
@@ -458,8 +501,6 @@ int main(int argc, char** argv) {
   nh.setParam("/version_numbers/mission_manager_node", NODE_VERSION);
 
   MissionManagerNode mmn(nh);
-  //	if ( mmn.FoundMissionFile() )
-  //		mmn.spin();
   ros::spin();
 
   ROS_INFO("Mission mgr shutting down");

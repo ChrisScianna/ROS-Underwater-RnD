@@ -40,35 +40,18 @@
 #include "../behavior.h"
 #include "mission_manager/AltitudeHeading.h"
 
-namespace mission_manager {
-
-class AltitudeHeadingBehavior : public Behavior {
+namespace mission_manager
+{
+class AltitudeHeadingBehavior : public Behavior
+{
  public:
   AltitudeHeadingBehavior();
   virtual ~AltitudeHeadingBehavior();
-
   virtual bool parseMissionFileParams();
-
-  //	bool parseXml(xmlNodePtr node);
   bool getParams(ros::NodeHandle nh);
-
   virtual void publishMsg();
-
-  //	void populateMsg(ros::Message *msg);
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<DepthHeading>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<DepthHeading>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<DepthHeading>(msg);
-          }
-  */
  private:
   ros::Publisher altitude_heading_behavior_pub;
 

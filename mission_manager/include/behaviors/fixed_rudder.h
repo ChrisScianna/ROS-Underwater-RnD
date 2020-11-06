@@ -40,35 +40,19 @@
 #include "../behavior.h"
 #include "mission_manager/FixedRudder.h"
 
-namespace mission_manager {
-
-class FixedRudderBehavior : public Behavior {
+namespace mission_manager
+{
+class FixedRudderBehavior : public Behavior
+{
  public:
   FixedRudderBehavior();
   virtual ~FixedRudderBehavior();
-
   virtual bool parseMissionFileParams();
-
-  //	bool parseXml(xmlNodePtr node);
-  bool getParams(ros::NodeHandle nh);
-
   virtual void publishMsg();
 
-  //	void populateMsg(ros::Message *msg);
+  bool getParams(ros::NodeHandle nh);
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<FixedRudder>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<FixedRudder>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<FixedRudder>(msg);
-          }
-  */
  private:
   ros::Publisher fixed_rudder_behavior_pub;
 

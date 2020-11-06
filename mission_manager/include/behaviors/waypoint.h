@@ -40,34 +40,20 @@
 #include "../behavior.h"
 #include "mission_manager/Waypoint.h"  // this is the ROS Message
 
-namespace mission_manager {
-
-class WaypointBehavior : public Behavior {
+namespace mission_manager
+{
+class WaypointBehavior : public Behavior
+{
  public:
   WaypointBehavior();
   virtual ~WaypointBehavior();
 
   virtual bool parseMissionFileParams();
-
-  //	bool parseXml(xmlNodePtr node);
   bool getParams(ros::NodeHandle nh);
 
   virtual void publishMsg();
-  //	void populateMsg(ros::Message *msg);
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<Waypoint>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<Waypoint>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<Waypoint>(msg);
-          }
-  */
  private:
   ros::Publisher waypoint_behavior_pub;
 

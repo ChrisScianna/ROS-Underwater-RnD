@@ -40,33 +40,19 @@
 #include "../behavior.h"
 #include "mission_manager/Ping.h"
 
-namespace mission_manager {
-
-class PingerBehavior : public Behavior {
+namespace mission_manager
+{
+class PingerBehavior : public Behavior
+{
  public:
   PingerBehavior();
   virtual ~PingerBehavior();
-
   virtual bool parseMissionFileParams();
-  //	bool parseXml(xmlNodePtr node);
+
   bool getParams(ros::NodeHandle nh);
 
   virtual void publishMsg();
-  /*
-          void populateMsg(ros::Message *msg);
 
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<Ping>(nh, m_topic, queue_size);
-          }
-
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<Ping>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<Ping>(msg);
-          }
-  */
  private:
   ros::Publisher fixed_rudder_behavior_pub;
 

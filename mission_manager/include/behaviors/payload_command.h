@@ -38,13 +38,11 @@
 #define __PAYLOAD_COMMAND_H
 
 #include "../behavior.h"
-
 #include "payload_manager/PayloadCommand.h"  // this is the ROS Message
 
-namespace mission_manager 
+namespace mission_manager
 {
-
-class PayloadCommandBehavior : public Behavior 
+class PayloadCommandBehavior : public Behavior
 {
  public:
   PayloadCommandBehavior();

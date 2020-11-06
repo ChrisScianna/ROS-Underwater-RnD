@@ -39,119 +39,15 @@
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <string.h>
+
 #include <string>
 
 #include "mission_manager/Ping.h"
 
 using namespace mission_manager;
 
-// DECLARE_COMMON_HELPERS(PingerBehavior)
+/*  Behavioral Pinger
 
-// DECLARE_CONSTRUCTOR_MSG(PingerBehavior, "pinger", "/mngr/pinger")
-PingerBehavior::PingerBehavior() : Behavior("pinger", BEHAVIOR_TYPE_MSG, "/mngr/pinger", "") {
-  m_pingenabled = false;
-
-  ros::NodeHandle node_handle;
-  fixed_rudder_behavior_pub = node_handle.advertise<mission_manager::Ping>("/mngr/pinger", 100);
-}
-
-PingerBehavior::~PingerBehavior() {}
-
-bool PingerBehavior::getParams(ros::NodeHandle nh) { return true; }
-
-/*
-bool PingerBehavior::parseXml(xmlNodePtr node)
-{
-        parseCommonElements(node);
-
-        int pingvalue = 0;
-        int wf_select = 0;
-        float wf_amp = 0.0;
-        float wf_freq = 0.0;
-        float wf_on = 0.0;
-        float wf_off = 0.0;
-
-
-        for (xmlNodePtr cur = xmlFirstElementChild(node); cur; cur = cur->next) {
-                if (!strcmp((const char *)cur->name, "ping_enabled")) {
-                   if (!parseNodeText(cur, pingvalue))
-                   {
-                        m_pingenabled = false;
-                        return false;
-                   }
-                   else
-                   {
-                     if (pingvalue == 0)
-                     {
-                        m_pingenabled = false;
-                     }
-                     else
-                     {
-                        m_pingenabled = true;
-                     }
-                   }
-                }
-                else if (!strcmp((const char *)cur->name, "waveform_select")) {
-                   if (!parseNodeText(cur, wf_select))
-                   {
-                        m_waveform_select = 0;
-                        return false;
-                   }
-                   else
-                   {
-                       m_waveform_select = (uint8_t) wf_select;
-                   }
-                }
-                else if (!strcmp((const char *)cur->name, "waveform_amplitude")) {
-                   if (!parseNodeText(cur, wf_amp))
-                   {
-                        m_waveform_amp = 0;
-                        return false;
-                   }
-                   else
-                   {
-                       m_waveform_amp = wf_amp;
-                   }
-                }
-                else if (!strcmp((const char *)cur->name, "waveform_frequency")) {
-                   if (!parseNodeText(cur, wf_freq))
-                   {
-                        m_waveform_freq = 0;
-                        return false;
-                   }
-                   else
-                   {
-                       m_waveform_freq = wf_freq;
-                   }
-                }
-                else if (!strcmp((const char *)cur->name, "waveform_ON_time_sec")) {
-                   if (!parseNodeText(cur, wf_on))
-                   {
-                        m_waveform_on = 0;
-                        return false;
-                   }
-                   else
-                   {
-                       m_waveform_on = wf_on;
-                   }
-                }
-                else if (!strcmp((const char *)cur->name, "waveform_OFF_time_sec")) {
-                   if (!parseNodeText(cur, wf_off))
-                   {
-                        m_waveform_off = 0;
-                        return false;
-                   }
-                   else
-                   {
-                       m_waveform_off = wf_off;
-                   }
-                }
-        }
-
-        return true;
-}
-*/
-/*
         <pinger>
             <description>
                 00:00:00 - .
@@ -166,59 +62,76 @@ bool PingerBehavior::parseXml(xmlNodePtr node)
             <waveform_OFF_time_sec>10.0</waveform_OFF_time_sec>
         </pinger>
 */
-bool PingerBehavior::parseMissionFileParams() {
+
+PingerBehavior::PingerBehavior() : Behavior("pinger", BEHAVIOR_TYPE_MSG, "/mngr/pinger", "")
+{
+  m_pingenabled = false;
+
+  ros::NodeHandle node_handle;
+  fixed_rudder_behavior_pub = node_handle.advertise<mission_manager::Ping>("/mngr/pinger", 100);
+}
+
+PingerBehavior::~PingerBehavior() {}
+
+bool PingerBehavior::getParams(ros::NodeHandle nh) { return true; }
+
+bool PingerBehavior::parseMissionFileParams()
+{
   bool retval = true;
   std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++) {
+  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  {
     std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0)) {
+    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
+    {
       retval = parseTimeStamps(it);
-    } else if (xmlParamTag.compare("ping_enabled") == 0) {
+    }
+    else if (xmlParamTag.compare("ping_enabled") == 0)
+    {
       m_pingenabled = false;
       int pingEnabled = std::atoi(it->getXMLTagValue().c_str());
-      if (pingEnabled == 1) {
+      if (pingEnabled == 1)
+      {
         m_pingenabled = true;
         m_pingenabled_ena = true;
       }
-    } else if (xmlParamTag.compare("waveform_select") == 0) {
+    }
+    else if (xmlParamTag.compare("waveform_select") == 0)
+    {
       m_waveform_select = std::atoi(it->getXMLTagValue().c_str());
       m_waveform_select_ena = true;
-    } else if (xmlParamTag.compare("waveform_amplitude") == 0) {
+    }
+    else if (xmlParamTag.compare("waveform_amplitude") == 0)
+    {
       m_waveform_amp = std::atof(it->getXMLTagValue().c_str());
       m_waveform_amp_ena = true;
-    } else if (xmlParamTag.compare("waveform_frequency") == 0) {
+    }
+    else if (xmlParamTag.compare("waveform_frequency") == 0)
+    {
       m_waveform_freq = std::atof(it->getXMLTagValue().c_str());
       m_waveform_freq_ena = true;
-    } else if (xmlParamTag.compare("waveform_ON_time_sec") == 0) {
+    }
+    else if (xmlParamTag.compare("waveform_ON_time_sec") == 0)
+    {
       m_waveform_on = std::atof(it->getXMLTagValue().c_str());
       m_waveform_on_ena = true;
-    } else if (xmlParamTag.compare("waveform_OFF_time_sec") == 0) {
+    }
+    else if (xmlParamTag.compare("waveform_OFF_time_sec") == 0)
+    {
       m_waveform_off = std::atof(it->getXMLTagValue().c_str());
       m_waveform_off_ena = true;
-    } else {
+    }
+    else
+    {
       std::cout << "Pinger behavior found invalid parameter " << xmlParamTag << std::endl;
     }
   }
 
   return retval;
 }
-/*
-void PingerBehavior::populateMsg(ros::Message *msg)
+
+void PingerBehavior::publishMsg()
 {
-        Ping *pmsg = dynamic_cast<Ping *>(msg);
-
-        pmsg->ping = m_pingenabled;
-        pmsg->waveform_select_byte = m_waveform_select;
-        pmsg-> waveform_amplitude_cmd = m_waveform_amp;
-        pmsg->waveform_frequency_cmd = m_waveform_freq;
-        pmsg->waveform_ON_time_sec_cmd = m_waveform_on;
-        pmsg->waveform_OFF_time_sec_cmd = m_waveform_off;
-
-
-        pmsg->header.stamp = ros::Time::now();
-}
-*/
-void PingerBehavior::publishMsg() {
   Ping msg;
 
   msg.ping = m_pingenabled;

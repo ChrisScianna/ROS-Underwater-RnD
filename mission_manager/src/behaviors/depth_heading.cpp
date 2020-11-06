@@ -34,22 +34,35 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
+/*  Behavioral - Depth Heading
+
+        <depth_heading>
+            <description>
+                00:00:00 - .
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">50</timeout>
+            <depth unit="deg">10.0</depth>
+            <heading unit="deg">180.0</heading>
+            <speed_knots>0.0</speed_knots>
+        </depth_heading>
+*/
+
 #include "behaviors/depth_heading.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <string.h>
+
 #include <string>
 
 #include "mission_manager/DepthHeading.h"
 
 using namespace mission_manager;
 
-// DECLARE_COMMON_HELPERS(DepthHeadingBehavior)
-
-// DECLARE_CONSTRUCTOR_MSG(DepthHeadingBehavior, "depth_heading", "/mngr/depth_heading")
 DepthHeadingBehavior::DepthHeadingBehavior()
-    : Behavior("depth_heading", BEHAVIOR_TYPE_MSG, "/mngr/depth_heading", "") {
+    : Behavior("depth_heading", BEHAVIOR_TYPE_MSG, "/mngr/depth_heading", "")
+{
   m_depth_ena = m_heading_ena = false;
   m_speed_knots_ena = false;
   m_depth_tol = m_heading_tol = 0.0;
@@ -63,7 +76,8 @@ DepthHeadingBehavior::DepthHeadingBehavior()
 
 DepthHeadingBehavior::~DepthHeadingBehavior() {}
 
-bool DepthHeadingBehavior::getParams(ros::NodeHandle nh) {
+bool DepthHeadingBehavior::getParams(ros::NodeHandle nh)
+{
   double f = 0.0;
 
   nh.getParam("/mission_manager_node/depth_heading_depth_tol", f);
@@ -75,76 +89,56 @@ bool DepthHeadingBehavior::getParams(ros::NodeHandle nh) {
   return true;
 }
 
-/*
-bool DepthHeadingBehavior::parseXml(xmlNodePtr node)
+bool DepthHeadingBehavior::parseMissionFileParams()
 {
-        parseCommonElements(node);
-
-        for (xmlNodePtr cur = xmlFirstElementChild(node); cur; cur = cur->next) {
-                if (!strcmp((const char *)cur->name, "depth")) {
-                        if (!parseNodeText(cur, m_depth)) return false;
-                        m_depth_ena = true;
-                } else if (!strcmp((const char *)cur->name, "heading")) {
-                        if (!parseNodeText(cur, m_heading)) return false;
-                        m_heading_ena = true;
-                } else if (!strcmp((const char *)cur->name, "shaft_speed")) {
-                        if (!parseNodeText(cur, m_shaft_speed)) return false;
-                        m_shaft_speed_ena = true;
-                }
-        }
-
-        return true;
-}
-*/
-
-/*
-        <depth_heading>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="deg">10.0</depth>
-            <heading unit="deg">180.0</heading>
-            <speed_knots>0.0</speed_knots>
-        </depth_heading>
-*/
-
-bool DepthHeadingBehavior::parseMissionFileParams() {
   bool retval = true;
   std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++) {
+  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  {
     std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0)) {
+    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
+    {
       retval = parseTimeStamps(it);
-    } else if (xmlParamTag.compare("depth") == 0) {
+    }
+    else if (xmlParamTag.compare("depth") == 0)
+    {
       std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0) {
+      if (attribMap.size() > 0)
+      {
         std::map<std::string, std::string>::iterator it;
         it = attribMap.begin();
-        if (it->first.compare("unit") == 0) {
+        if (it->first.compare("unit") == 0)
+        {
           m_depth_unit = it->second;
         }
       }
 
       m_depth = std::atof(it->getXMLTagValue().c_str());
       m_depth_ena = true;
-    } else if (xmlParamTag.compare("heading") == 0) {
+    }
+    else if (xmlParamTag.compare("heading") == 0)
+    {
       std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0) {
+      if (attribMap.size() > 0)
+      {
         std::map<std::string, std::string>::iterator it;
         it = attribMap.begin();
-        if (it->first.compare("unit") == 0) {
+        if (it->first.compare("unit") == 0)
+        {
           m_heading_unit = it->second;
         }
       }
 
       m_heading = std::atof(it->getXMLTagValue().c_str());
       m_heading_ena = true;
-    } else if (xmlParamTag.compare("speed_knots") == 0) {
+    }
+    else if (xmlParamTag.compare("speed_knots") == 0)
+    {
       m_speed_knots = std::atof(it->getXMLTagValue().c_str());
       m_speed_knots_ena = true;
-    } else {
+    }
+    else
+    {
       std::cout << "Depth Heading behavior found invalid parameter " << xmlParamTag << std::endl;
     }
   }
@@ -152,7 +146,8 @@ bool DepthHeadingBehavior::parseMissionFileParams() {
   return retval;
 }
 
-void DepthHeadingBehavior::publishMsg() {
+void DepthHeadingBehavior::publishMsg()
+{
   DepthHeading msg;
 
   msg.depth = m_depth;
@@ -169,28 +164,12 @@ void DepthHeadingBehavior::publishMsg() {
   depth_heading_behavior_pub.publish(msg);
 }
 
-/*
-void DepthHeadingBehavior::populateMsg(ros::Message *msg)
+bool DepthHeadingBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
 {
-        DepthHeading *pmsg = dynamic_cast<DepthHeading *>(msg);
-
-        pmsg->depth = m_depth;
-        pmsg->heading = m_heading;
-        pmsg->shaft_speed = m_shaft_speed;
-
-        pmsg->ena_mask = 0x0;
-        if (m_depth_ena) pmsg->ena_mask |= DepthHeading::DEPTH_ENA;
-        if (m_heading_ena) pmsg->ena_mask |= DepthHeading::HEADING_ENA;
-        if (m_shaft_speed_ena) pmsg->ena_mask |= DepthHeading::SHAFT_SPEED_ENA;
-
-        pmsg->header.stamp = ros::Time::now();
-}
-*/
-
-bool DepthHeadingBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data) {
   // A quick check to see if our RPY angles match
   // tjw debug	if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
-  if (m_heading_ena && (abs(m_heading - data.rpy_ang.z) > m_heading_tol)) {
+  if (m_heading_ena && (abs(m_heading - data.rpy_ang.z) > m_heading_tol))
+  {
     ROS_INFO("heading corrected data returning false");
     return false;
   }
