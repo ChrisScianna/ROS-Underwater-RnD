@@ -39,16 +39,17 @@
  *
  */
 
-#include "battery_monitor.h"
+#include "battery_monitor/battery_monitor.h"
 
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
+namespace qna
+{
+namespace robot
+{
+BatteryMonitor::BatteryMonitor(ros::NodeHandle& nodeHandle)
+    : nodeHandle(nodeHandle), diagnosticsUpdater(nodeHandle)
+{
+  using health_monitor::ReportFault;
 
-namespace qna {
-namespace robot {
-
-BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
-    : nodeHandle(nodeHandle), diagnosticsUpdater(nodeHandle) {
   diagnosticsUpdater.setHardwareID("battery");
 
   double minBatteryInfoCheckPeriod = 0.5;
@@ -72,7 +73,8 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
   ROS_INFO("Battery Check Period:[%lf]", batteryCheckPeriod);
 
   double batteryTotalCurrentSteadyBand = 0.0;
-  nodeHandle.getParam("/battery_monitor/battery_total_current_steady_band", batteryTotalCurrentSteadyBand);
+  nodeHandle.getParam("/battery_monitor/battery_total_current_steady_band",
+                      batteryTotalCurrentSteadyBand);
   ROS_INFO("Epsilon value for stagnation compare values:[%lf]", batteryTotalCurrentSteadyBand);
 
   double minBatteryTotalCurrent = 5000;  // in mA
@@ -91,73 +93,100 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
       diagnostic_tools::create_publisher<battery_monitor::ReportBatteryInfo>(
           nodeHandle, "/battery_monitor/report_battery_info", 1);
 
+  diagnostic_tools::PeriodicMessageStatusParams paramsBatteryCheckPeriod{};
+  paramsBatteryCheckPeriod.min_acceptable_period(minBatteryInfoCheckPeriod);
+  paramsBatteryCheckPeriod.max_acceptable_period(maxBatteryInfoCheckPeriod);
+  diagnostic_tools::Diagnostic diagnosticBateryInfoStale
+  {
+    diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STALE
+  };
+  paramsBatteryCheckPeriod.abnormal_diagnostic(diagnosticBateryInfoStale);
   diagnosticsUpdater.add(
       publisher_reportBatteryInfo.add_check<diagnostic_tools::PeriodicMessageStatus>(
-          "rate check",
-          diagnostic_tools::PeriodicMessageStatusParams{}
-              .min_acceptable_period(minBatteryInfoCheckPeriod)
-              .max_acceptable_period(maxBatteryInfoCheckPeriod)
-              .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
-                                    health_monitor::ReportFault::BATTERY_INFO_STALE})));
+          "rate check", paramsBatteryCheckPeriod));
 
+
+  diagnostic_tools::MessageStagnationCheckParams paramsBatteryReportInfoStagnate{};
+  paramsBatteryReportInfoStagnate.stagnation_diagnostic(diagnostic_tools::Diagnostic
+  {
+    diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STAGNATED
+  }
+);
   diagnosticsUpdater.add(
       publisher_reportBatteryInfo.add_check<diagnostic_tools::MessageStagnationCheck>(
           "stagnation check",
           [batteryTotalCurrentSteadyBand](const battery_monitor::ReportBatteryInfo &a,
-                                          const battery_monitor::ReportBatteryInfo &b) {
+                                          const battery_monitor::ReportBatteryInfo &b)
+          {
             return (std::fabs(a.batteryPacksTotalCurrent - b.batteryPacksTotalCurrent) <
                     batteryTotalCurrentSteadyBand);
-          },
-          diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
-              {diagnostic_tools::Diagnostic::WARN,
-               health_monitor::ReportFault::BATTERY_INFO_STAGNATED})));
+          }
+          , paramsBatteryReportInfoStagnate));
 
   batteryCurrentCheck = diagnostic_tools::create_health_check<BatteryInfo>(
-      "Battery Current check", [=](const BatteryInfo &info) -> diagnostic_tools::Diagnostic {
+      "Battery Current check",
+      [minBatteryTotalCurrent](const BatteryInfo &info) -> diagnostic_tools::Diagnostic
+      {
         using diagnostic_tools::Diagnostic;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (info.batteryPacksTotalCurrent < minBatteryTotalCurrent) {
+        if (info.batteryPacksTotalCurrent < minBatteryTotalCurrent)
+        {
           diagnostic.status(Diagnostic::WARN)
               .description("Total current - NOT OK (%f mA < %f mA)", info.batteryPacksTotalCurrent,
                            minBatteryTotalCurrent)
-              .code(health_monitor::ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED);
-        } else {
+              .code(ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED);
+        }
+        else
+        {
           diagnostic.description("Packs total current - OK (%f mA)", info.batteryPacksTotalCurrent);
         }
         return diagnostic;
-      });
+      }
+);
   diagnosticsUpdater.add(batteryCurrentCheck);
 
   batteryVoltageCheck = diagnostic_tools::create_health_check<BatteryInfo>(
-      "Battery Voltage check", [=](const BatteryInfo &info) -> diagnostic_tools::Diagnostic {
+      "Battery Voltage check",
+      [minBatteryCellVoltage](const BatteryInfo &info) -> diagnostic_tools::Diagnostic
+      {
         using diagnostic_tools::Diagnostic;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (info.batteryPackACell1 < minBatteryCellVoltage) {
+        if (info.batteryPackACell1 < minBatteryCellVoltage)
+        {
           diagnostic.status(Diagnostic::WARN)
               .description("Pack A cell 1 voltage - NOT OK (%f V < %f V)", info.batteryPackACell1,
                            minBatteryCellVoltage)
-              .code(health_monitor::ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED);
-        } else {
+              .code(ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED);
+        }
+        else
+        {
           diagnostic.description("Pack A cell 1 voltage - OK (%f V)", info.batteryPackACell1);
         }
         return diagnostic;
-      });
+      }
+);
   diagnosticsUpdater.add(batteryVoltageCheck);
 
   batteryTemperatureCheck = diagnostic_tools::create_health_check<BatteryInfo>(
-      "Battery Voltage check", [=](const BatteryInfo &info) -> diagnostic_tools::Diagnostic {
+      "Battery Voltage check",
+      [maxBatteryTemperature](const BatteryInfo &info) -> diagnostic_tools::Diagnostic
+      {
         using diagnostic_tools::Diagnostic;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (info.systemThermocouple1 > maxBatteryTemperature) {
+        if (info.systemThermocouple1 > maxBatteryTemperature)
+        {
           diagnostic.status(Diagnostic::WARN)
               .description("Packs temperature - NOT OK (%f degC > %f degC)",
                            info.systemThermocouple1, maxBatteryTemperature)
-              .code(health_monitor::ReportFault::BATTERY_TEMPERATURE_THRESHOLD_REACHED);
-        } else {
+              .code(ReportFault::BATTERY_TEMPERATURE_THRESHOLD_REACHED);
+        }
+        else
+        {
           diagnostic.description("Packs temperature - OK (%f degC)", info.systemThermocouple1);
         }
         return diagnostic;
-      });
+      }
+);
 
   diagnosticsUpdater.add(batteryTemperatureCheck);
 
@@ -165,24 +194,32 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
       diagnostic_tools::create_publisher<battery_monitor::ReportLeakDetected>(
           nodeHandle, "/battery_monitor/report_leak_detected", 1);
 
+  diagnostic_tools::PeriodicMessageStatusParams paramsBatteryLeakCheckPeriod{};
+  paramsBatteryLeakCheckPeriod.min_acceptable_period(minBatteryLeakCheckPeriod);
+  paramsBatteryLeakCheckPeriod.max_acceptable_period(maxBatteryLeakCheckPeriod);
+  diagnostic_tools::Diagnostic diagnosticBateryInfoLeakStale
+  {
+    diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STALE
+  };
+  paramsBatteryLeakCheckPeriod.abnormal_diagnostic(diagnosticBateryInfoLeakStale);
+
   diagnosticsUpdater.add(
       publisher_reportLeakDetected.add_check<diagnostic_tools::PeriodicMessageStatus>(
-          "rate check",
-          diagnostic_tools::PeriodicMessageStatusParams{}
-              .min_acceptable_period(minBatteryLeakCheckPeriod)
-              .max_acceptable_period(maxBatteryLeakCheckPeriod)
-              .abnormal_diagnostic({diagnostic_tools::Diagnostic::WARN,
-                                    health_monitor::ReportFault::BATTERY_INFO_STALE})));
+          "rate check", paramsBatteryLeakCheckPeriod));
 
   batteryLeakCheck = diagnostic_tools::create_health_check<bool>(
-      "Battery leak check", [=](bool leak_detected) -> diagnostic_tools::Diagnostic {
+      "Battery leak check", [](bool leak_detected) -> diagnostic_tools::Diagnostic
+      {
         using diagnostic_tools::Diagnostic;
-        if (leak_detected) {
-          return {Diagnostic::WARN, "Battery leak detected",
-                  health_monitor::ReportFault::BATTERY_LEAK_DETECTED};
+        if (leak_detected)
+        {
+          return
+          {
+            Diagnostic::WARN, "Battery leak detected", ReportFault::BATTERY_LEAK_DETECTED};
         }
         return {Diagnostic::OK, "No leaks detected"};
-      });
+      }
+);
   diagnosticsUpdater.add(batteryLeakCheck);
 
   canIntf.Init();
@@ -193,14 +230,16 @@ BatteryMonitor::BatteryMonitor(ros::NodeHandle &nodeHandle)
 
 BatteryMonitor::~BatteryMonitor() {}
 
-void BatteryMonitor::batteryCheckTimeout(const ros::TimerEvent &timer) {
+void BatteryMonitor::batteryCheckTimeout(const ros::TimerEvent &timer)
+{
   checkBatteryInfo();
   checkBatteryLeaks();
 
   diagnosticsUpdater.update();
 }
 
-void BatteryMonitor::checkBatteryLeaks() {
+void BatteryMonitor::checkBatteryLeaks()
+{
   bool leak_detected = canIntf.GetLeakDetected();
   batteryLeakCheck.test(leak_detected);
 
@@ -211,12 +250,13 @@ void BatteryMonitor::checkBatteryLeaks() {
   publisher_reportLeakDetected.publish(message);
 }
 
-void BatteryMonitor::checkBatteryInfo() {
+void BatteryMonitor::checkBatteryInfo()
+{
   BatteryInfo bi = canIntf.GetBatteryInfo();
   batteryCurrentCheck.test(bi);
   batteryVoltageCheck.test(bi);
   batteryTemperatureCheck.test(bi);
-  
+
   battery_monitor::ReportBatteryInfo message;
 
   message.header.stamp = ros::Time::now();

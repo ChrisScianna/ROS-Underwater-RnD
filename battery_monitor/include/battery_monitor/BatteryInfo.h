@@ -38,12 +38,14 @@
  * BatteryInfo.h
  */
 
-#ifndef _BATTERY_INFO_H
-#define _BATTERY_INFO_H
+#ifndef BATTERY_MONITOR_BATTERYINFO_H
+#define BATTERY_MONITOR_BATTERYINFO_H
 
-class BatteryInfo {
+class BatteryInfo
+{
  public:
-  BatteryInfo() {
+  BatteryInfo()
+  {
     batteryPackAConnected = 0;
     batteryPackBConnected = 0;
     batteryPacksTotalCurrent = 0.0;
@@ -82,8 +84,10 @@ class BatteryInfo {
     systemThermocouple1 = 0;
   }
 
-  ~BatteryInfo(){};
-  void operator=(const BatteryInfo &bi) {
+  ~BatteryInfo() { }
+
+  void operator=(const BatteryInfo &bi)
+  {
     batteryPackAConnected = bi.batteryPackAConnected;
     batteryPackBConnected = bi.batteryPackBConnected;
     batteryPacksTotalCurrent = bi.batteryPacksTotalCurrent;
@@ -159,4 +163,4 @@ class BatteryInfo {
   unsigned char systemThermocouple1;
 };
 
-#endif  // _BATTERY_INFO_H
+#endif  // BATTERY_MONITOR_BATTERYINFO_H

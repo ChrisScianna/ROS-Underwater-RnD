@@ -38,13 +38,14 @@
  * battery_monitor_main.cpp
  */
 
-#include <battery_monitor.h>
+#include <battery_monitor/battery_monitor.h>
 #include <ros/ros.h>
 
 // Version log
 #define NODE_VERSION "1.0.0"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   ros::init(argc, argv, "battery_monitor_node");
   ros::Time::init();
 

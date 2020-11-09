@@ -38,27 +38,31 @@
  * battery_monitor.h
  */
 
-#ifndef _BATTERY_MONITOR_H_
-#define _BATTERY_MONITOR_H_
-
-#include <ros/ros.h>
-#include <cmath>
+#ifndef BATTERY_MONITOR_BATTERY_MONITOR_H
+#define BATTERY_MONITOR_BATTERY_MONITOR_H
 
 #include <battery_monitor/ReportBatteryInfo.h>
 #include <battery_monitor/ReportLeakDetected.h>
-#include <health_monitor/ReportFault.h>
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
+#include <health_monitor/ReportFault.h>
+#include <ros/ros.h>
+
+#include <cmath>
 
 #include "CANIntf.h"
 
-namespace qna {
-namespace robot {
-
-class BatteryMonitor {
+namespace qna
+{
+namespace robot
+{
+class BatteryMonitor
+{
  public:
-  BatteryMonitor(ros::NodeHandle &nodeHandle);
+  explicit BatteryMonitor(ros::NodeHandle& nodeHandle);
   virtual ~BatteryMonitor();
 
  private:
@@ -88,4 +92,4 @@ class BatteryMonitor {
 }  // namespace robot
 }  // namespace qna
 
-#endif  // _BATTERY_MONITOR_H_
+#endif  // BATTERY_MONITOR_BATTERY_MONITOR_H

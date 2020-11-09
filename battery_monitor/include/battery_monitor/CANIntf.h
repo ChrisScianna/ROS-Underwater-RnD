@@ -46,7 +46,7 @@
 #include "canfestival/canfestival.h"
 
 #include "CO_VehicleSBC.h"
-#include "BatteryInfo.h"
+#include "battery_monitor/BatteryInfo.h"
 
 class CANIntf
 {
