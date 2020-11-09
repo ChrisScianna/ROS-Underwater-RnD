@@ -95,7 +95,7 @@ class Keller9lxPressureSensorProtocol(serial.threaded.Protocol):
     def data_received(self, data):
         rospy.logdebug('Data received from pressure sensor: %s', data)
         self.__receive_buffer += data
-        while len(self.__receive_buffer) > 14:
+        while len(self.__receive_buffer) >= 14:
             # TODO(hidmic): perform CRC16 check
             self.__receive_queue.put(self.__receive_buffer[:14])
             self.__receive_buffer = self.__receive_buffer[14:]
@@ -264,7 +264,7 @@ class Keller9lxPressureSensorDriverNode(object):
                 )
                 with port:
                     transport = serial.threaded.ReaderThread(
-                        port, Keller9lxPressureSensorProtocol()
+                        port, Keller9lxPressureSensorProtocol
                     )
                     with transport:
                         self.loop(transport)
