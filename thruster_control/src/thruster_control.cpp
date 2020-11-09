@@ -39,8 +39,9 @@
  *
  */
 
-#include <string>
 #include "thruster_control/thruster_control.h"
+
+#include <string>
 
 namespace qna
 {
@@ -89,12 +90,12 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       motorTemperatureThreshold);
   nodeHandle.getParam("/thruster_control_node/motor_temperature_steady_band",
                       motorTemperatureSteadyBand);
-  ROS_INFO("report_rpm_rate set to %lf", reportRPMRate);
-  ROS_INFO("report_motor_temperatuere_rate set to %lf", reportMotorTemperatureRate);
-  ROS_INFO("set_rpm_timeout_seconds set to %lf", setRPMTimeout);
-  ROS_INFO("current_logging_enabled set to %s", currentLoggingEnabled ? "true" : "false");
-  ROS_INFO("CAN Node 1 Id = %s", canNodeId1);
-  ROS_INFO("CAN Node 2 Id = %s", canNodeId2);
+  ROS_DEBUG_STREAM("report_rpm_rate set to " << reportRPMRate);
+  ROS_DEBUG_STREAM("report_motor_temperatuere_rate set to  " << reportMotorTemperatureRate);
+  ROS_DEBUG_STREAM("set_rpm_timeout_seconds set to  " << setRPMTimeout);
+  ROS_DEBUG_STREAM("current_logging_enabled set to  " << currentLoggingEnabled ? "true" : "false");
+  ROS_DEBUG_STREAM("CAN Node 1 Id =  " << canNodeId1);
+  ROS_DEBUG_STREAM("CAN Node 2 Id =  " << canNodeId2);
 
   subscriber_setRPM =
       nodeHandle.subscribe("/thruster_control/set_rpm", 1, &ThrusterControl::handle_SetRPM, this);
@@ -110,10 +111,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
   paramsReportsRPMCheckPeriod.min_acceptable_period(minReportRPMRate);
   paramsReportsRPMCheckPeriod.max_acceptable_period(maxReportRPMRate);
-  diagnostic_tools::Diagnostic diagnosticRPMInfoStale
-  {
-    diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_RPM_STALE
-  };
+  diagnostic_tools::Diagnostic diagnosticRPMInfoStale(diagnostic_tools::Diagnostic::WARN,
+                                                      ReportFault::THRUSTER_RPM_STALE);
   paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnosticRPMInfoStale);
   diagnosticsUpdater.add(publisher_reportRPM.add_check<diagnostic_tools::PeriodicMessageStatus>(
       "rate check", paramsReportsRPMCheckPeriod));
@@ -121,19 +120,20 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   publisher_reportMotorTemp =
       diagnostic_tools::create_publisher<thruster_control::ReportMotorTemperature>(
           nodeHandle, "/thruster_control/report_motor_temperature", 1);
-
-
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsTemperatureCheckPeriod{};
   paramsReportsTemperatureCheckPeriod.min_acceptable_period(minReportMotorTemperatureRate);
   paramsReportsTemperatureCheckPeriod.max_acceptable_period(maxReportMotorTemperatureRate);
-  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStale
-  {
-      diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_TEMP_STALE
-  };
+  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStale(diagnostic_tools::Diagnostic::WARN,
+                                                              ReportFault::THRUSTER_TEMP_STALE);
   paramsReportsTemperatureCheckPeriod.abnormal_diagnostic(diagnosticTemperatureInfoStale);
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check", paramsReportsTemperatureCheckPeriod));
+
+  diagnostic_tools::MessageStagnationCheckParams paramsTemperatureMessageStagnationcheck;
+  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStagnate(
+      diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_TEMP_STAGNATED);
+  paramsTemperatureMessageStagnationcheck.stagnation_diagnostic(diagnosticTemperatureInfoStagnate);
 
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::MessageStagnationCheck>(
@@ -143,12 +143,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
           {
             return std::fabs(a.motor_temp - b.motor_temp < motorTemperatureSteadyBand);
           }
-          , diagnostic_tools::MessageStagnationCheckParams{}
-          .stagnation_diagnostic(
-              {
-                diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_TEMP_STAGNATED
-              }
-)));
+          , paramsTemperatureMessageStagnationcheck));
 
   canIntf.SetMotorTimeoutSeconds(setRPMTimeout);
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
@@ -159,10 +154,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (std::abs(rpms) > maxAllowedMotorRPM)
         {
-          return Diagnostic
-          {
-            Diagnostic::WARN, ReportFault::THRUSTER_RPM_THRESHOLD_REACHED
-          }
+          return Diagnostic(Diagnostic::WARN, ReportFault::THRUSTER_RPM_THRESHOLD_REACHED)
               .description("Absolute RPMs above threshold: |%f| > %f", rpms, maxAllowedMotorRPM);
         }
         return Diagnostic::OK;
@@ -176,10 +168,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (temperature > motorTemperatureThreshold)
         {
-          return Diagnostic
-          {
-            Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED
-          }
+          return Diagnostic(Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED)
               .description("Temperature above threshold: %f degC > %f degC", temperature,
                            motorTemperatureThreshold);
         }

@@ -52,7 +52,7 @@
 #include <thruster_control/ReportMotorTemperature.h>
 #include <thruster_control/ReportRPM.h>
 #include <thruster_control/SetRPM.h>
-#include "CANIntf.h"
+#include "thruster_control/CANIntf.h"
 
 
 namespace qna

@@ -36,8 +36,8 @@
 
 
 
-#ifndef THRUSTER_CONTROL_CAN_INTERFACE_H
-#define THRUSTER_CONTROL_CAN_INTERFACE_H
+#ifndef THRUSTER_CONTROL_CANINTF_H
+#define THRUSTER_CONTROL_CANINTF_H
 
 #include <pthread.h>
 #include <unistd.h>
@@ -102,4 +102,4 @@ class CANIntf
 
 };
 
-#endif // THRUSTER_CONTROL_DATA_OBJECT_H
+#endif // THRUSTER_CONTROL_CANINTF_H

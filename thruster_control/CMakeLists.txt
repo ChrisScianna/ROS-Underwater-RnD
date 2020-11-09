@@ -85,8 +85,6 @@ roslint_cpp(
   include/thruster_control/thruster_control.h
 )
 
-roslint_add_test()
-
 #############
 ## Install ##
 #############
@@ -101,3 +99,9 @@ install(FILES
   launch/thruster_control.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+#############
+## Testing ##
+#############
+
+roslint_add_test()
