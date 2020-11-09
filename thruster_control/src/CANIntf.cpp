@@ -39,10 +39,8 @@
 
 
 #include <iostream>
-
 #include <ros/ros.h>
-#include "CANIntf.h"
-//#include "CO_VehicleSBC.h"
+#include "thruster_control/CANIntf.h"
 
 #define CAN_BUS_NAME "0"
 #define CAN_BAUD "500K"

@@ -38,14 +38,8 @@
  * thruster_control_main.cpp
  */
 
-#include <thruster_control.h>
-
 #include <ros/ros.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
+#include <thruster_control/thruster_control.h>
 
 // Version log
 // 1.0 Initial version
@@ -53,7 +47,8 @@
 // operational state in CANIntf.cpp
 #define NODE_VERSION "1.1"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   ros::init(argc, argv, "thruster_control");
   ros::Time::init();
 

@@ -37,8 +37,8 @@
 
 
 
-#ifndef _DATA_OBJECT_H
-#define _DATA_OBJECT_H
+#ifndef THRUSTER_CONTROL_DATA_OBJECT_H
+#define THRUSTER_CONTROL_DATA_OBJECT_H
 
 #include <thread>
 #include <mutex>
@@ -72,4 +72,4 @@ inline DataObject<T>::DataObject()
 {
 }
 
-#endif // _DATA_OBJECT_H
+#endif // THRUSTER_CONTROL_DATA_OBJECT_H

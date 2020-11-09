@@ -36,8 +36,8 @@
 
 
 
-#ifndef _CAN_INTERFACE_H
-#define _CAN_INTERFACE_H
+#ifndef THRUSTER_CONTROL_CAN_INTERFACE_H
+#define THRUSTER_CONTROL_CAN_INTERFACE_H
 
 #include <pthread.h>
 #include <unistd.h>
@@ -61,7 +61,7 @@ class CANIntf
         DataObject<double> velocity_radsec;
         DataObject<double> velocity_feedback_radsec;
         DataObject<double> motor_tempC;
-		DataObject<double> last_set_rpm_time;		// in seconds
+        DataObject<double> last_set_rpm_time;		// in seconds
 
         bool IsInitialized() {return isInitialized;}
         void SetVehicleCommandData();
@@ -70,10 +70,10 @@ class CANIntf
         void SetMotorTimeoutSeconds(double timeout) {motorTimeoutSeconds = timeout;}
         double GetMotorTiemoutSeconds() {return motorTimeoutSeconds; }
 
-		void SetEnableCANLogging(bool enableLogging) {enableCANBusLogging = enableLogging;}
+        void SetEnableCANLogging(bool enableLogging) {enableCANBusLogging = enableLogging;}
 
-		void AddCanNodeIdToList(std::string nodeId) {canNodeIdList.push_back(nodeId);}
-		std::vector<std::string> & GetCanNodeIdList(){return canNodeIdList;}
+        void AddCanNodeIdToList(std::string nodeId) {canNodeIdList.push_back(nodeId);}
+        std::vector<std::string> & GetCanNodeIdList(){return canNodeIdList;}
 
 
     protected:
@@ -93,13 +93,13 @@ class CANIntf
         bool SetupCANBus();
         bool isInitialized;
 
-    	bool DMCHeartbeatTimeout;
-		double motorTimeoutSeconds;
+        bool DMCHeartbeatTimeout;
+        double motorTimeoutSeconds;
 
-		bool enableCANBusLogging;
+        bool enableCANBusLogging;
 
-		std::vector<std::string> canNodeIdList;
+        std::vector<std::string> canNodeIdList;
 
 };
 
-#endif // _DATA_OBJECT_H
+#endif // THRUSTER_CONTROL_DATA_OBJECT_H

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   health_monitor
   message_generation
   roscpp
+  roslint
   rospy
   std_msgs
 )
@@ -77,6 +78,14 @@ target_include_directories(${NODE_APP_NAME} PUBLIC
     dl
     pthread
  )
+
+roslint_cpp(
+  src/thruster_control.cpp
+  src/thruster_control_main.cpp
+  include/thruster_control/thruster_control.h
+)
+
+roslint_add_test()
 
 #############
 ## Install ##
