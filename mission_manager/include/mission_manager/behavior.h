@@ -34,8 +34,8 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __BEHAVIOR_H
-#define __BEHAVIOR_H
+#ifndef MISSION_MANAGER_BEHAVIOR_H
+#define MISSION_MANAGER_BEHAVIOR_H
 
 #include <ros/ros.h>
 #include <ros/time.h>
@@ -44,6 +44,8 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
+#include <list>
+#include <map>
 #include <string>
 
 #include "pose_estimator/CorrectedData.h"
@@ -52,11 +54,13 @@
 
 namespace mission_manager
 {
+
 typedef enum
 {
   BEHAVIOR_TYPE_MSG = 0,
   BEHAVIOR_TYPE_SRV
-} behavior_type_t;
+}
+behavior_type_t;
 
 class TimeStamp
 {
@@ -69,20 +73,19 @@ class TimeStamp
     REL_TIME = 0,
     ABS_TIME,
     ABS_DATETIME
-  } ts_type_t;
+  }
+  ts_type_t;
 
   ts_type_t type;
   boost::posix_time::time_duration duration;
   boost::posix_time::ptime time;
 };
 
-// class IFactory;
-
 class BehaviorXMLParam
 {
  public:
-  BehaviorXMLParam(){};
-  virtual ~BehaviorXMLParam(){};
+  BehaviorXMLParam() { }
+  virtual ~BehaviorXMLParam() { }
 
   void setXMLTag(std::string val) { xmlTag = val; }
   std::string getXMLTag() { return xmlTag; }
@@ -134,11 +137,11 @@ class Behavior
   const char* getXmlTag() { return m_xml_tag.c_str(); }
 
   // Message-type behavior implementation overrides
-  virtual void publishMsg(){};
+  virtual void publishMsg() { }
   virtual bool checkCorrectedData(const pose_estimator::CorrectedData& data) { return true; }
 
   // Service-type behavior implementation overrides
-  virtual void callService(){};
+  virtual void callService() { }
 
   // Common behavior overrides
   virtual bool getParams(ros::NodeHandle nh) { return true; }
@@ -161,9 +164,7 @@ class Behavior
         ROS_INFO("Publishing behavior [%s]", m_xml_tag.c_str());
         publishMsg();
         break;
-
       case BEHAVIOR_TYPE_SRV:
-
         ROS_INFO("Behavior [%s] calling service", m_xml_tag.c_str());
         callService();
         break;
@@ -176,7 +177,6 @@ class Behavior
     boost::posix_time::ptime cur_ptime;
     boost::posix_time::ptime calc_ptime;
     cur_ptime = boost::posix_time::second_clock::universal_time();
-
     TimeStamp when = getWhen();
 
     switch (when.type)
@@ -185,7 +185,6 @@ class Behavior
         if (when.duration.total_seconds() == 0) break;  // now
         boost::this_thread::sleep(when.duration);
         break;
-
       case TimeStamp::ABS_TIME:
         // Construct the appropriate absolute datetime
         calc_ptime = boost::posix_time::ptime(cur_ptime.date(), when.time.time_of_day());
@@ -194,7 +193,6 @@ class Behavior
           calc_ptime += boost::gregorian::days(1);
         boost::this_thread::sleep(boost::system_time(calc_ptime));
         break;
-
       case TimeStamp::ABS_DATETIME:
         if (when.time < cur_ptime)
         {
@@ -205,7 +203,6 @@ class Behavior
         boost::this_thread::sleep(boost::system_time(when.time));
         break;
     };
-
     return retval;
   }
 
@@ -223,7 +220,6 @@ class Behavior
         if (tout.duration.total_seconds() == 0) return 0;  // execution time is 0 seconds
         nsec = tout.duration.total_seconds();
         break;
-
       case TimeStamp::ABS_TIME:
         // Construct the appropriate absolute datetime
         calc_ptime = boost::posix_time::ptime(cur_ptime.date(), tout.time.time_of_day());
@@ -232,7 +228,6 @@ class Behavior
           calc_ptime += boost::gregorian::days(1);
         nsec = (calc_ptime - cur_ptime).total_seconds();
         break;
-
       case TimeStamp::ABS_DATETIME:
         if (tout.time < cur_ptime)
         {
@@ -242,41 +237,32 @@ class Behavior
         nsec = (tout.time - cur_ptime).total_seconds();
         break;
     };
-
     return nsec;
   }
 
   bool startBehavior()
   {
     std::string xml_tag = getXmlTag();
-
     switch (getType())
     {
       case BEHAVIOR_TYPE_MSG:
-
         break;
-
       case BEHAVIOR_TYPE_SRV:
-
         break;
     }
-
     return true;
   }
 
   bool stopBehavior()
   {
     std::string xml_tag = getXmlTag();
-
     switch (getType())
     {
       case BEHAVIOR_TYPE_MSG:
         break;
-
       case BEHAVIOR_TYPE_SRV:
         break;
     }
-
     return true;
   }
 
@@ -324,9 +310,10 @@ class Behavior
 
   bool parseNodeTimeStamp(std::string unit, std::string val, TimeStamp& t)
   {
-    using namespace boost::gregorian;
-    using namespace boost::posix_time;
-
+    using boost::gregorian::date;
+    using boost::posix_time::time_duration;
+    using boost::posix_time::ptime;
+    using boost::posix_time::from_iso_string;
     int hrs, min, sec;
     bool ret = true;
 
@@ -392,7 +379,6 @@ class Behavior
 
       ret = false;
     }
-
     return ret;
   }
 
@@ -410,6 +396,6 @@ class Behavior
   std::list<BehaviorXMLParam> m_behaviorXMLParams;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIOR_H

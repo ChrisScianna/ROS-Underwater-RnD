@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   pose_estimator
   payload_manager
   roscpp
+  roslint
   rospy
   std_msgs
   message_generation
@@ -83,6 +84,33 @@ target_link_libraries(${NODE_APP_NAME}
   ${catkin_LIBRARIES}
 )
 
+roslint_cpp(
+  src/mission.cpp
+  src/mission_manager.cpp
+  src/mission_parser.cpp
+  src/behavior_factory.cpp
+  src/behaviors/attitude_servo.cpp
+  src/behaviors/depth_heading.cpp
+  src/behaviors/fixed_rudder.cpp
+  src/behaviors/pinger.cpp
+  src/behaviors/podlog.cpp
+  src/behaviors/waypoint.cpp
+  src/behaviors/altitude_heading.cpp
+  src/behaviors/payload_command.cpp
+  include/mission_manager/behavior.h
+  include/mission_manager/behavior_factory.h
+  include/mission_manager/mission.h
+  include/mission_manager/mission_parser.h
+  include/mission_manager/behaviors/altitude_heading.h
+  include/mission_manager/behaviors/attitude_servo.h
+  include/mission_manager/behaviors/depth_heading.h
+  include/mission_manager/behaviors/fixed_rudder.h
+  include/mission_manager/behaviors/payload_command.h
+  include/mission_manager/behaviors/pinger.h
+  include/mission_manager/behaviors/podlog.h
+  include/mission_manager/behaviors/waypoint.h
+)
+
 #############
 ## Install ##
 #############
@@ -101,3 +129,5 @@ install(FILES
 #############
 ## Testing ##
 #############
+
+roslint_add_test()

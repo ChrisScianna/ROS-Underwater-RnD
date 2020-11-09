@@ -35,11 +35,10 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "mission.h"
-
-#include "behavior.h"
-
-using namespace mission_manager;
+#include "mission_manager/mission.h"
+#include "mission_manager/behavior.h"
+using mission_manager::Mission;
+using mission_manager::Behavior;
 
 Mission::Mission() : missionState(MissionState::READY), m_current_behavior(NULL), elasped_time(0.0)
 {
@@ -89,8 +88,8 @@ void Mission::Stop()
     {
       cur_behavior->stopBehavior();
       cur_behavior = getNextBehavior();
-
-    } while (cur_behavior != NULL);
+    }
+    while (cur_behavior != NULL);
   }
   else if (GetState() == MissionState::ABORTING)
   {
@@ -107,8 +106,8 @@ void Mission::Stop()
     {
       cur_behavior->stopBehavior();
       cur_behavior = getNextAbortBehavior();
-
-    } while (cur_behavior != NULL);
+    }
+    while (cur_behavior != NULL);
   }
 }
 

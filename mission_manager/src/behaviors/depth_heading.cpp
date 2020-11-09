@@ -34,31 +34,17 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/*  Behavioral - Depth Heading
-
-        <depth_heading>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="deg">10.0</depth>
-            <heading unit="deg">180.0</heading>
-            <speed_knots>0.0</speed_knots>
-        </depth_heading>
-*/
-
-#include "behaviors/depth_heading.h"
+#include "mission_manager/behaviors/depth_heading.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
 #include <string>
+#include <map>
+#include <list>
 
 #include "mission_manager/DepthHeading.h"
-
-using namespace mission_manager;
+using mission_manager::DepthHeading;
+using mission_manager::DepthHeadingBehavior;
 
 DepthHeadingBehavior::DepthHeadingBehavior()
     : Behavior("depth_heading", BEHAVIOR_TYPE_MSG, "/mngr/depth_heading", "")
@@ -81,10 +67,10 @@ bool DepthHeadingBehavior::getParams(ros::NodeHandle nh)
   double f = 0.0;
 
   nh.getParam("/mission_manager_node/depth_heading_depth_tol", f);
-  if (f != 0.0) m_depth_tol = (float)f;
+  if (f != 0.0) m_depth_tol = static_cast<float>(f);
   f = 0.0;
   nh.getParam("/mission_manager_node/depth_heading_heading_tol", f);
-  if (f != 0.0) m_heading_tol = (float)f;
+  if (f != 0.0) m_heading_tol = static_cast<float>(f);
 
   return true;
 }
@@ -167,13 +153,13 @@ void DepthHeadingBehavior::publishMsg()
 bool DepthHeadingBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our RPY angles match
-  // tjw debug	if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
+  // tjw debug  if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
   if (m_heading_ena && (abs(m_heading - data.rpy_ang.z) > m_heading_tol))
   {
     ROS_INFO("heading corrected data returning false");
     return false;
   }
-  // TODO: check shaft speed?
+  // TODO(QNA): check shaft speed?
   ROS_INFO("corrected data returning true");
 
   return true;

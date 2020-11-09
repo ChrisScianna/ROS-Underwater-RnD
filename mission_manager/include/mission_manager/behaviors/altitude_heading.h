@@ -34,48 +34,59 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __WAYPOINT_H
-#define __WAYPOINT_H
+/*      Behavioral - Altitude Heading
 
-#include "../behavior.h"
-#include "mission_manager/Waypoint.h"  // this is the ROS Message
+        <altitude_heading>
+            <description>
+                00:00:00 - .
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">50</timeout>
+            <altitude unit="deg">10.0</altitude>
+            <heading unit="deg">180.0</heading>
+            <speed_knots>0.0</speed_knots>
+        </altitude_heading>
+*/
+
+#ifndef MISSION_MANAGER_BEHAVIORS_ALTITUDE_HEADING_H
+#define MISSION_MANAGER_BEHAVIORS_ALTITUDE_HEADING_H
+
+#include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/AltitudeHeading.h"
 
 namespace mission_manager
 {
-class WaypointBehavior : public Behavior
+
+
+class AltitudeHeadingBehavior : public Behavior
 {
  public:
-  WaypointBehavior();
-  virtual ~WaypointBehavior();
-
+  AltitudeHeadingBehavior();
+  virtual ~AltitudeHeadingBehavior();
   virtual bool parseMissionFileParams();
   bool getParams(ros::NodeHandle nh);
-
   virtual void publishMsg();
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
  private:
-  ros::Publisher waypoint_behavior_pub;
+  ros::Publisher altitude_heading_behavior_pub;
 
   float m_altitude;
-  float m_depth;
-  float m_lat;
-  float m_long;
+  float m_heading;
   float m_speed_knots;
-  double m_wp_radius;
+
+  std::string m_altitude_unit;
+  std::string m_heading_unit;
 
   bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_lat_ena;
-  bool m_long_ena;
+  bool m_heading_ena;
   bool m_speed_knots_ena;
-  bool m_wp_radius_ena;
 
-  float m_depth_tol;
-  void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-  double degreesToRadians(double degrees);
+  float m_altitude_tol;
+  float m_heading_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_ALTITUDE_HEADING_H

@@ -34,35 +34,36 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PAYLOAD_COMMAND_H
-#define __PAYLOAD_COMMAND_H
+#ifndef MISSION_MANAGER_BEHAVIOR_FACTORY_H
+#define MISSION_MANAGER_BEHAVIOR_FACTORY_H
 
-#include "../behavior.h"
-#include "payload_manager/PayloadCommand.h"  // this is the ROS Message
+#include <map>
+#include <string>
+
+#include "behaviors/altitude_heading.h"
+#include "behaviors/attitude_servo.h"
+#include "behaviors/depth_heading.h"
+#include "behaviors/fixed_rudder.h"
+#include "behaviors/payload_command.h"
+#include "behaviors/pinger.h"
+#include "behaviors/podlog.h"
+#include "behaviors/waypoint.h"
 
 namespace mission_manager
 {
-class PayloadCommandBehavior : public Behavior
+
+class BehaviorFactory
 {
  public:
-  PayloadCommandBehavior();
-  virtual ~PayloadCommandBehavior();
+  BehaviorFactory();
+  explicit BehaviorFactory(const std::string& behavior_dir);
+  virtual ~BehaviorFactory();
 
-  virtual bool parseMissionFileParams();
-
-  bool getParams(ros::NodeHandle nh);
-
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  Behavior* createBehavior(const std::string& name);
 
  private:
-  ros::Publisher payload_command_behavior_pub;
-
-  std::string m_command_str;
-
-  bool m_command_str_ena;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIOR_FACTORY_H

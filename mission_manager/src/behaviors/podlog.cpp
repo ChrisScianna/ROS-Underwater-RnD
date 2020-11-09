@@ -34,26 +34,15 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "behaviors/podlog.h"
+#include "mission_manager/behaviors/podlog.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
 #include <string>
+#include <map>
+#include <list>
 
-using namespace mission_manager;
-
-/*  Behavioral podlog
-
-        <podlog>
-            <description>
-                Turn on logging for the servocntl.
-            </description>
-            <when unit="sec">0</when>
-            <log_id state="on">servocntl</log_id>
-        </podlog>
-*/
+using mission_manager::PodlogBehavior;
 
 PodlogBehavior::PodlogBehavior()
     : Behavior("podlog", BEHAVIOR_TYPE_SRV, "/podlog/set_log_state", "")
@@ -104,5 +93,5 @@ bool PodlogBehavior::parseMissionFileParams()
   return retval;
 }
 
-// TODO - commented out for now 9/9/2019 - Not sure if we are using logging node or service.
+// TODO(QNA) - commented out for now 9/9/2019 - Not sure if we are using logging node or service.
 void PodlogBehavior::callService(ros::NodeHandle node_handle) {}

@@ -34,25 +34,14 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "behaviors/payload_command.h"
+#include "mission_manager/behaviors/payload_command.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
 #include <string>
+#include <list>
 
-/* Behavioral payload
-
-                <payload>
-                        <description>Payload Msg</description>
-                        <when unit="sec">30</when>
-                        <timeout unit="sec">35</timeout>
-                        <command>Go,500</command>
-                </payload>
-*/
-
-using namespace mission_manager;
+using mission_manager::PayloadCommandBehavior;
 
 PayloadCommandBehavior::PayloadCommandBehavior()
     : Behavior("payload_command", BEHAVIOR_TYPE_MSG, "/payload_manager/command", "")

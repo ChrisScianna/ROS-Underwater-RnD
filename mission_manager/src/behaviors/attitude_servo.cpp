@@ -34,31 +34,17 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/* Behavioral Attitude Servo
-        <attitude_servo>
-            <description>
-                00:00:00 - At the beginning of the mission, set everything to initial conditions.
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">5</timeout>
-            <roll unit="deg">0.0</roll>
-            <pitch unit="deg">0.0</pitch>
-            <yaw unit="deg">0.0</yaw>
-            <speed_knots>0.0</speed_knots>
-        </attitude_servo>
-*/
-
-#include "behaviors/attitude_servo.h"
+#include "mission_manager/behaviors/attitude_servo.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
 #include <string>
+#include <map>
+#include <list>
 
 #include "mission_manager/AttitudeServo.h"
-
-using namespace mission_manager;
+using mission_manager::AttitudeServo;
+using mission_manager::AttitudeServoBehavior;
 
 AttitudeServoBehavior::AttitudeServoBehavior()
     : Behavior("attitude_servo", BEHAVIOR_TYPE_MSG, "/mngr/attitude_servo", "")
@@ -81,13 +67,13 @@ bool AttitudeServoBehavior::getParams(ros::NodeHandle nh)
   double f = 0.0;
 
   nh.getParam("/mission_manager_node/attitude_servo_roll_tol", f);
-  if (f != 0.0) m_roll_tol = (float)f;
+  if (f != 0.0) m_roll_tol = static_cast<float>(f);
   f = 0.0;
   nh.getParam("/mission_manager_node/attitude_servo_pitch_tol", f);
-  if (f != 0.0) m_pitch_tol = (float)f;
+  if (f != 0.0) m_pitch_tol = static_cast<float>(f);
   f = 0.0;
   nh.getParam("/mission_manager_node/attitude_servo_yaw_tol", f);
-  if (f != 0.0) m_yaw_tol = (float)f;
+  if (f != 0.0) m_yaw_tol = static_cast<float>(f);
 
   return true;
 }
@@ -198,8 +184,8 @@ bool AttitudeServoBehavior::checkCorrectedData(const pose_estimator::CorrectedDa
   if (m_pitch_ena && (abs(m_pitch - data.rpy_ang.y) > m_pitch_tol)) return false;
   if (m_yaw_ena && (abs(m_yaw - data.rpy_ang.z) > m_yaw_tol)) return false;
 
-  // TODO: check shaft speed and/or battery position?
-  // TODO: make sure our RPY rates are close to zero?
+  // TODO(QNA): check shaft speed and/or battery position?
+  // TODO(QNA): make sure our RPY rates are close to zero?
 
   return true;
 }

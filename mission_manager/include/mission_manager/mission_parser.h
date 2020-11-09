@@ -34,43 +34,35 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __DEPTH_HEADING_H
-#define __DEPTH_HEADING_H
+#ifndef MISSION_MANAGER_MISSION_PARSER_H
+#define MISSION_MANAGER_MISSION_PARSER_H
 
-#include "../behavior.h"
-#include "mission_manager/DepthHeading.h"
+#include <ros/node_handle.h>
+#include <string>
+
+#include "mission_manager/behavior_factory.h"
+#include "mission_manager/mission.h"
+#include "tinyxml/tinyxml.h"
 
 namespace mission_manager
 {
-class DepthHeadingBehavior : public Behavior
+
+class MissionParser
 {
  public:
-  DepthHeadingBehavior();
-  virtual ~DepthHeadingBehavior();
-  virtual bool parseMissionFileParams();
-  virtual void publishMsg();
+  MissionParser();
+  explicit MissionParser(ros::NodeHandle nh);
+  virtual ~MissionParser();
 
-  bool getParams(ros::NodeHandle nh);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  bool parseMissionFile(Mission& mission, const std::string& mission_file);
 
- private:
-  ros::Publisher depth_heading_behavior_pub;
+  void cleanupMission(Mission& mission);
 
-  float m_depth;
-  float m_heading;
-  float m_speed_knots;
-
-  std::string m_depth_unit;
-  std::string m_heading_unit;
-
-  bool m_depth_ena;
-  bool m_heading_ena;
-  bool m_speed_knots_ena;
-
-  float m_depth_tol;
-  float m_heading_tol;
+ protected:
+  BehaviorFactory m_factory;
+  ros::NodeHandle node_handle;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_MISSION_PARSER_H

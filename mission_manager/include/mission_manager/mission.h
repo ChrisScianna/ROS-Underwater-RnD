@@ -34,15 +34,16 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __MISSION_H
-#define __MISSION_H
+#ifndef MISSION_MANAGER_MISSION_H
+#define MISSION_MANAGER_MISSION_H
 
 #include <vector>
-
-#include "behavior.h"
+#include <string>
+#include "mission_manager/behavior.h"
 
 namespace mission_manager
 {
+
 class Mission
 {
  public:
@@ -118,6 +119,6 @@ class Mission
   int current_abort_behavior_id;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_MISSION_H

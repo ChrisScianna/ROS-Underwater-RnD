@@ -34,35 +34,63 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __MISSION_PARSER_H
-#define __MISSION_PARSER_H
+/* Behavioral Attitude Servo
+        <attitude_servo>
+            <description>
+                00:00:00 - At the beginning of the mission, set everything to initial conditions.
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">5</timeout>
+            <roll unit="deg">0.0</roll>
+            <pitch unit="deg">0.0</pitch>
+            <yaw unit="deg">0.0</yaw>
+            <speed_knots>0.0</speed_knots>
+        </attitude_servo>
+*/
 
-#include <ros/node_handle.h>
+#ifndef MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H
+#define MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H
 
 #include <string>
-
-#include "behavior_factory.h"
-#include "mission.h"
-#include "tinyxml/tinyxml.h"
+#include "mission_manager/behavior.h"
+#include "mission_manager/AttitudeServo.h"
 
 namespace mission_manager
 {
-class MissionParser
+
+class AttitudeServoBehavior : public Behavior
 {
  public:
-  MissionParser();
-  MissionParser(ros::NodeHandle nh);
-  virtual ~MissionParser();
+  AttitudeServoBehavior();
+  virtual ~AttitudeServoBehavior();
 
-  bool parseMissionFile(Mission& mission, const std::string& mission_file);
+  virtual bool parseMissionFileParams();
+  bool getParams(ros::NodeHandle nh);
+  virtual void publishMsg();
+  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
-  void cleanupMission(Mission& mission);
+ private:
+  ros::Publisher attitude_servo_behavior_pub;
 
- protected:
-  BehaviorFactory m_factory;
-  ros::NodeHandle node_handle;
+  float m_roll;
+  float m_pitch;
+  float m_yaw;
+  float m_speed_knots;
+
+  std::string m_roll_unit;
+  std::string m_pitch_unit;
+  std::string m_yaw_unit;
+
+  bool m_roll_ena;
+  bool m_pitch_ena;
+  bool m_yaw_ena;
+  bool m_speed_knots_ena;
+
+  float m_roll_tol;
+  float m_pitch_tol;
+  float m_yaw_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H

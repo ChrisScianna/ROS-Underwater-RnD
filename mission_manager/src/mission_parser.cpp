@@ -34,17 +34,17 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "mission_parser.h"
-
+#include "mission_manager/mission_parser.h"
 #include <ros/console.h>
 #include <stdarg.h>
-#include <string.h>
+#include <list>
+#include <string>
 
-#include "behavior.h"
-#include "behavior_factory.h"
-#include "mission.h"
+#include "mission_manager/behavior.h"
+#include "mission_manager/behavior_factory.h"
+#include "mission_manager/mission.h"
 
-using namespace mission_manager;
+using mission_manager::MissionParser;
 
 static char *create_msg(const char *msg, va_list orig)
 {
@@ -52,7 +52,7 @@ static char *create_msg(const char *msg, va_list orig)
   char *p, *np;
   va_list ap;
 
-  if ((p = (char *)malloc(size)) == NULL) return NULL;
+  if ((p = static_cast<char *>(malloc(size))) == NULL) return NULL;
 
   while (1)
   {
@@ -65,7 +65,7 @@ static char *create_msg(const char *msg, va_list orig)
       size += n + 1;
     else
       size *= 2;
-    if ((np = (char *)realloc(p, size)) == NULL)
+    if ((np = static_cast<char *>(realloc(p, size))) == NULL)
     {
       free(p);
       return NULL;

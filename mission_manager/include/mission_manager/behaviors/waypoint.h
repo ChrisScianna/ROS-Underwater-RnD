@@ -33,48 +33,64 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+/*  Behavioral Waipoint
+  <waypoint>
+      <description>
+          00:00:00 - .
+      </description>
+      <when unit="sec">0</when>
+      <timeout unit="sec">50</timeout>
+      <depth unit="m">10.0</depth>
+      <latitude>42.656040</latitude>
+      <longitude>-70.591213</longitude>
+      <radius unit="m">14.0</radius>
+      <speed_knots>0.0</speed_knots>
+  </waypoint>
+*/
 
-#ifndef __ATTITUDE_SERVO_H
-#define __ATTITUDE_SERVO_H
+#ifndef MISSION_MANAGER_BEHAVIORS_WAYPOINT_H
+#define MISSION_MANAGER_BEHAVIORS_WAYPOINT_H
 
-#include "../behavior.h"
-#include "mission_manager/AttitudeServo.h"
+#include "mission_manager/behavior.h"
+#include "mission_manager/Waypoint.h"  // this is the ROS Message
 
 namespace mission_manager
 {
-class AttitudeServoBehavior : public Behavior
+
+class WaypointBehavior : public Behavior
 {
  public:
-  AttitudeServoBehavior();
-  virtual ~AttitudeServoBehavior();
+  WaypointBehavior();
+  virtual ~WaypointBehavior();
 
   virtual bool parseMissionFileParams();
   bool getParams(ros::NodeHandle nh);
+
   virtual void publishMsg();
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
  private:
-  ros::Publisher attitude_servo_behavior_pub;
+  ros::Publisher waypoint_behavior_pub;
 
-  float m_roll;
-  float m_pitch;
-  float m_yaw;
+  float m_altitude;
+  float m_depth;
+  float m_lat;
+  float m_long;
   float m_speed_knots;
+  double m_wp_radius;
 
-  std::string m_roll_unit;
-  std::string m_pitch_unit;
-  std::string m_yaw_unit;
-
-  bool m_roll_ena;
-  bool m_pitch_ena;
-  bool m_yaw_ena;
+  bool m_altitude_ena;
+  bool m_depth_ena;
+  bool m_lat_ena;
+  bool m_long_ena;
   bool m_speed_knots_ena;
+  bool m_wp_radius_ena;
 
-  float m_roll_tol;
-  float m_pitch_tol;
-  float m_yaw_tol;
+  float m_depth_tol;
+  void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
+  double degreesToRadians(double degrees);
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_WAYPOINT_H

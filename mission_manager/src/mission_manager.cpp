@@ -42,9 +42,9 @@
 #include <map>
 #include <string>
 
-#include "behavior.h"
+#include "mission_manager/behavior.h"
 #include "health_monitor/ReportFault.h"
-#include "mission.h"
+#include "mission_manager/mission.h"
 #include "mission_manager/AbortMission.h"
 #include "mission_manager/ExecuteMission.h"
 #include "mission_manager/LoadMission.h"
@@ -54,20 +54,26 @@
 #include "mission_manager/ReportHeartbeat.h"
 #include "mission_manager/ReportLoadMissionState.h"
 #include "mission_manager/ReportMissions.h"
-#include "mission_parser.h"
+#include "mission_manager/mission_parser.h"
 #include "pose_estimator/CorrectedData.h"
 
 #define LOGGING (1)
 
 // Version 2.0 rewritten in 2019 for SeaScout mkIII
 // Version 2.1 removed the battery handling for faults. There is now a
-//	    HeatlhMonitor ROS Node that publishes a ReportFault message.
+//      HeatlhMonitor ROS Node that publishes a ReportFault message.
 //      The mission manager now subscribes to the ReportFault message.
 #define NODE_VERSION "2.1x"
 
-using namespace std;
-using namespace pose_estimator;
-using namespace mission_manager;
+using mission_manager::LoadMission;
+using mission_manager::MissionData;
+using mission_manager::ReportExecuteMissionState;
+using mission_manager::ReportHeartbeat;
+using mission_manager::ReportLoadMissionState;
+using mission_manager::ReportMissions;
+using mission_manager::Mission;
+using mission_manager::MissionParser;
+using pose_estimator::CorrectedData;
 
 class MissionManagerNode
 {
@@ -109,10 +115,10 @@ class MissionManagerNode
 
   std::map<int, Mission*> m_mission_map;
 
-  unsigned long heartbeat_sequence_id;
+  uint64_t heartbeat_sequence_id;
 
  public:
-  MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
+  explicit MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
   {
     heartbeat_sequence_id = 0;
     last_id = -1;
@@ -362,15 +368,15 @@ class MissionManagerNode
 
   void executeMissionCallback(const mission_manager::ExecuteMission::ConstPtr& msg)
   {
-    // TODO: Need to shutdown any mission that is currently running.
+    // TODO(qna): Need to shutdown any mission that is currently running.
     ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
     executeMission(msg->mission_id);
   }
 
   void abortMissionCallback(const mission_manager::AbortMission::ConstPtr& msg)
   {
-    // TODO: Need to shutdown any mission that is currently running.
-    // TODO should probably also check the timestamp from the message
+    // TODO(qna): Need to shutdown any mission that is currently running.
+    // TODO(qna): should probably also check the timestamp from the message
     ROS_INFO("abortMissionCallback - Aborting mission id[%d]", msg->mission_id);
     abortMission(msg->mission_id);  // assume mission ID is the current mission
   }

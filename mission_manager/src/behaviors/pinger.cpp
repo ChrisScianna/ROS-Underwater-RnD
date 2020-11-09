@@ -34,34 +34,16 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "behaviors/pinger.h"
+#include "mission_manager/behaviors/pinger.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
 #include <string>
+#include <list>
 
 #include "mission_manager/Ping.h"
-
-using namespace mission_manager;
-
-/*  Behavioral Pinger
-
-        <pinger>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">20</timeout>
-            <ping_enabled>1</ping_enabled>
-            <waveform_select>0</waveform_select>
-            <waveform_amplitude>100.0</waveform_amplitude>
-            <waveform_frequency>2.0</waveform_frequency>
-            <waveform_ON_time_sec>10.0</waveform_ON_time_sec>
-            <waveform_OFF_time_sec>10.0</waveform_OFF_time_sec>
-        </pinger>
-*/
+using mission_manager::Ping;
+using mission_manager::PingerBehavior;
 
 PingerBehavior::PingerBehavior() : Behavior("pinger", BEHAVIOR_TYPE_MSG, "/mngr/pinger", "")
 {

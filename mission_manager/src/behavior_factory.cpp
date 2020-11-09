@@ -34,16 +34,17 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "behavior_factory.h"
+#include "mission_manager/behavior_factory.h"
 
 #include <dirent.h>
 #include <dlfcn.h>
 #include <regex.h>
 #include <ros/console.h>
-
+#include <string>
 #include <boost/assign.hpp>
 
-using namespace mission_manager;
+using mission_manager::BehaviorFactory;
+using mission_manager::Behavior;
 
 BehaviorFactory::BehaviorFactory() {}
 

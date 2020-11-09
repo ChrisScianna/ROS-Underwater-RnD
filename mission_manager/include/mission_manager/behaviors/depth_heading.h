@@ -34,19 +34,35 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __FIXED_RUDDER_H
-#define __FIXED_RUDDER_H
+/*  Behavioral - Depth Heading
 
-#include "../behavior.h"
-#include "mission_manager/FixedRudder.h"
+        <depth_heading>
+            <description>
+                00:00:00 - .
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">50</timeout>
+            <depth unit="deg">10.0</depth>
+            <heading unit="deg">180.0</heading>
+            <speed_knots>0.0</speed_knots>
+        </depth_heading>
+*/
+
+#ifndef MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H
+#define MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H
+
+#include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/DepthHeading.h"
 
 namespace mission_manager
 {
-class FixedRudderBehavior : public Behavior
+
+class DepthHeadingBehavior : public Behavior
 {
  public:
-  FixedRudderBehavior();
-  virtual ~FixedRudderBehavior();
+  DepthHeadingBehavior();
+  virtual ~DepthHeadingBehavior();
   virtual bool parseMissionFileParams();
   virtual void publishMsg();
 
@@ -54,27 +70,23 @@ class FixedRudderBehavior : public Behavior
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
  private:
-  ros::Publisher fixed_rudder_behavior_pub;
+  ros::Publisher depth_heading_behavior_pub;
 
   float m_depth;
-  float m_altitude;
-  float m_rudder;
+  float m_heading;
   float m_speed_knots;
 
   std::string m_depth_unit;
-  std::string m_altitude_unit;
-  std::string m_rudder_unit;
+  std::string m_heading_unit;
 
-  bool m_altitude_ena;
   bool m_depth_ena;
-  bool m_rudder_ena;
+  bool m_heading_ena;
   bool m_speed_knots_ena;
 
   float m_depth_tol;
-  float m_rudder_tol;
-  float m_altitude_tol;
+  float m_heading_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H

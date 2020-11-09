@@ -34,33 +34,19 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "behaviors/waypoint.h"
+#include "mission_manager/behaviors/waypoint.h"
 
 #include <math.h>
 #include <ros/console.h>
 #include <ros/ros.h>
 #include <stdlib.h>
-#include <string.h>
-
 #include <string>
+#include <map>
+#include <list>
 
 #include "mission_manager/Waypoint.h"
-
-/*  Behavioral Waipoint
-
-        <waypoint>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="m">10.0</depth>
-            <latitude>42.656040</latitude>
-            <longitude>-70.591213</longitude>
-            <radius unit="m">14.0</radius>
-            <speed_knots>0.0</speed_knots>
-        </waypoint>
-*/
+using mission_manager::Waypoint;
+using mission_manager::WaypointBehavior;
 
 // WGS84 Parameters
 
@@ -79,8 +65,6 @@
 #define UTM_E4 (UTM_E2 * UTM_E2)         // e^4
 #define UTM_E6 (UTM_E4 * UTM_E2)         // e^6
 #define UTM_EP2 (UTM_E2 / (1 - UTM_E2))  // e'^2
-
-using namespace mission_manager;
 
 WaypointBehavior::WaypointBehavior() : Behavior("waypoint", BEHAVIOR_TYPE_MSG, "/mngr/waypoint", "")
 {
@@ -125,7 +109,7 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
   // Make sure the longitude is between -180.00 .. 179.9
   // (JOQ: this is broken for Long < -180, do a real normalize)
 
-  double LongTemp = (Long + 180) - int((Long + 180) / 360) * 360 - 180;
+  double LongTemp = (Long + 180) - static_cast<int>((Long + 180) / 360) * 360 - 180;
 
   double LatRad = degreesToRadians(Lat);
 
@@ -133,7 +117,7 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
 
   double LongOriginRad;
 
-  zone = int((LongTemp + 180) / 6) + 1;
+  zone = static_cast<int>((LongTemp + 180) / 6) + 1;
 
   if (Lat >= 56.0 && Lat < 64.0 && LongTemp >= 3.0 && LongTemp < 12.0) zone = 32;
 
@@ -161,14 +145,6 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
 
   LongOriginRad = degreesToRadians(LongOrigin);
 
-#if 0
-
-     if (to.band == ' ')
-
-       throw std::range_error;
-
-#endif
-
   eccPrimeSquared = (eccSquared) / (1 - eccSquared);
   N = a / sqrt(1 - eccSquared * sin(LatRad) * sin(LatRad));
   T = tan(LatRad) * tan(LatRad);
@@ -184,13 +160,13 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
                sin(4 * LatRad) -
            (35 * eccSquared * eccSquared * eccSquared / 3072) * sin(6 * LatRad));
 
-  easting = (double)
+  easting = static_cast<double>(
 
       (k0 * N *
            (A + (1 - T + C) * A * A * A / 6 +
             (5 - 18 * T + T * T + 72 * C - 58 * eccPrimeSquared) * A * A * A * A * A / 120) +
-       500000.0);
-  northing = (double)(k0 * (M + N * tan(LatRad) *
+       500000.0));
+  northing = static_cast<double>(k0 * (M + N * tan(LatRad) *
                                     (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24 +
                                      (61 - 58 * T + T * T + 600 * C - 330 * eccPrimeSquared) * A *
                                          A * A * A * A * A / 720)));
@@ -326,6 +302,6 @@ bool WaypointBehavior::checkCorrectedData(const pose_estimator::CorrectedData& d
     return true;
   }
 
-  // TODO: check shaft speed?
+  // TODO(QNA): check shaft speed?
   return false;
 }

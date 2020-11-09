@@ -34,31 +34,17 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/* Behavioral fixed rudder
-
-        <fixed_rudder>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="deg">10.0</depth>
-            <rudder unit="deg">180.0</rudder>
-            <speed_knots>0.0</speed_knots>
-        </fixed_rudder>
-*/
-
-#include "behaviors/fixed_rudder.h"
+#include "mission_manager/behaviors/fixed_rudder.h"
 
 #include <ros/console.h>
 #include <ros/ros.h>
-#include <string.h>
-
+#include <map>
+#include <list>
 #include <string>
 
 #include "mission_manager/FixedRudder.h"
-
-using namespace mission_manager;
+using mission_manager::FixedRudder;
+using mission_manager::FixedRudderBehavior;
 
 FixedRudderBehavior::FixedRudderBehavior()
     : Behavior("fixed_rudder", BEHAVIOR_TYPE_MSG, "/mngr/fixed_rudder", "")
@@ -81,10 +67,10 @@ bool FixedRudderBehavior::getParams(ros::NodeHandle nh)
   double f = 0.0;
 
   nh.getParam("/mission_manager_node/fixed_rudder_depth_tol", f);
-  if (f != 0.0) m_depth_tol = (float)f;
+  if (f != 0.0) m_depth_tol = static_cast<float>(f);
   f = 0.0;
   nh.getParam("/mission_manager_node/fixed_rudder_rudder_tol", f);
-  if (f != 0.0) m_rudder_tol = (float)f;
+  if (f != 0.0) m_rudder_tol = static_cast<float>(f);
 
   return true;
 }
@@ -183,9 +169,9 @@ void FixedRudderBehavior::publishMsg()
 bool FixedRudderBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our depth matches, note: rudder is not part of corrected data.
-  // TODO: put back in when depth working 	if (m_depth_ena && (abs(m_depth - data.depth) >
+  // TODO(QNA): put back in when depth working  if (m_depth_ena && (abs(m_depth - data.depth) >
   // m_depth_tol)) return false;
-  // TODO: check shaft speed?
+  // TODO(QNA): check shaft speed?
   ROS_INFO("corrected data returning true");
 
   return true;

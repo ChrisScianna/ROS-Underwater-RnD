@@ -34,43 +34,54 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PINGER_H
-#define __PINGER_H
+/*  Behavioral podlog
+  <podlog>
+      <description>
+          Turn on logging for the servocntl.
+      </description>
+      <when unit="sec">0</when>
+      <log_id state="on">servocntl</log_id>
+  </podlog>
+*/
 
-#include "../behavior.h"
-#include "mission_manager/Ping.h"
+#ifndef MISSION_MANAGER_BEHAVIORS_PODLOG_H
+#define MISSION_MANAGER_BEHAVIORS_PODLOG_H
+
+#include <string>
+#include "mission_manager/behavior.h"
+
+#undef USE_PODLOG
+#define USE_LOGBASE
+
+#ifdef USE_PODLOG
+#undef USE_LOGBASE
+#else
+#define USE_LOGBASE
+#endif
+
+#ifdef USE_PODLOG
+#include "podlog/SetLogState.h"
+#else
+
+#endif
 
 namespace mission_manager
 {
-class PingerBehavior : public Behavior
+
+class PodlogBehavior : public Behavior
 {
  public:
-  PingerBehavior();
-  virtual ~PingerBehavior();
+  PodlogBehavior();
+  virtual ~PodlogBehavior();
+
   virtual bool parseMissionFileParams();
-
-  bool getParams(ros::NodeHandle nh);
-
-  virtual void publishMsg();
+  virtual void callService(ros::NodeHandle node_handle);
 
  private:
-  ros::Publisher fixed_rudder_behavior_pub;
-
-  bool m_pingenabled;
-  uint8_t m_waveform_select;
-  float m_waveform_amp;
-  float m_waveform_freq;
-  float m_waveform_on;
-  float m_waveform_off;
-
-  bool m_pingenabled_ena;
-  bool m_waveform_select_ena;
-  bool m_waveform_amp_ena;
-  bool m_waveform_freq_ena;
-  bool m_waveform_on_ena;
-  bool m_waveform_off_ena;
+  bool m_logging;
+  std::string m_logid;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_PODLOG_H

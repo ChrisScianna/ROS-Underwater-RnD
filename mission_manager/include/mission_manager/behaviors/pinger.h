@@ -34,43 +34,61 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PODLOG_H
-#define __PODLOG_H
+/*  Behavioral Pinger
+  <pinger>
+      <description>
+          00:00:00 - .
+      </description>
+      <when unit="sec">0</when>
+      <timeout unit="sec">20</timeout>
+      <ping_enabled>1</ping_enabled>
+      <waveform_select>0</waveform_select>
+      <waveform_amplitude>100.0</waveform_amplitude>
+      <waveform_frequency>2.0</waveform_frequency>
+      <waveform_ON_time_sec>10.0</waveform_ON_time_sec>
+      <waveform_OFF_time_sec>10.0</waveform_OFF_time_sec>
+  </pinger>
+*/
+
+#ifndef MISSION_MANAGER_BEHAVIORS_PINGER_H
+#define MISSION_MANAGER_BEHAVIORS_PINGER_H
 
 #include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/Ping.h"
 
-#include "../behavior.h"
+namespace mission_manager
+{
 
-#undef USE_PODLOG
-#define USE_LOGBASE
-
-#ifdef USE_PODLOG
-#undef USE_LOGBASE
-#else
-#define USE_LOGBASE
-#endif
-
-#ifdef USE_PODLOG
-#include "podlog/SetLogState.h"
-#else
-
-#endif
-
-namespace mission_manager {
-
-class PodlogBehavior : public Behavior {
+class PingerBehavior : public Behavior
+{
  public:
-  PodlogBehavior();
-  virtual ~PodlogBehavior();
-
+  PingerBehavior();
+  virtual ~PingerBehavior();
   virtual bool parseMissionFileParams();
-  virtual void callService(ros::NodeHandle node_handle);
+
+  bool getParams(ros::NodeHandle nh);
+
+  virtual void publishMsg();
 
  private:
-  bool m_logging;
-  std::string m_logid;
+  ros::Publisher fixed_rudder_behavior_pub;
+
+  bool m_pingenabled;
+  uint8_t m_waveform_select;
+  float m_waveform_amp;
+  float m_waveform_freq;
+  float m_waveform_on;
+  float m_waveform_off;
+
+  bool m_pingenabled_ena;
+  bool m_waveform_select_ena;
+  bool m_waveform_amp_ena;
+  bool m_waveform_freq_ena;
+  bool m_waveform_on_ena;
+  bool m_waveform_off_ena;
 };
 
-}  // namespace mission_manager
+}  //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_PINGER_H

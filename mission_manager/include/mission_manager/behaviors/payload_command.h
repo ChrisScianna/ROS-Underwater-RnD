@@ -34,35 +34,46 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __BEHAVIOR_FACTORY_H
-#define __BEHAVIOR_FACTORY_H
+/* Behavioral payload
+  <payload>
+    <description>Payload Msg</description>
+    <when unit="sec">30</when>
+    <timeout unit="sec">35</timeout>
+    <command>Go,500</command>
+  </payload>
+*/
 
-#include <map>
+#ifndef MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H
+#define MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H
+
 #include <string>
-
-#include "behaviors/altitude_heading.h"
-#include "behaviors/attitude_servo.h"
-#include "behaviors/depth_heading.h"
-#include "behaviors/fixed_rudder.h"
-#include "behaviors/payload_command.h"
-#include "behaviors/pinger.h"
-#include "behaviors/podlog.h"
-#include "behaviors/waypoint.h"
+#include "mission_manager/behavior.h"
+#include "payload_manager/PayloadCommand.h"  // this is the ROS Message
 
 namespace mission_manager
 {
-class BehaviorFactory
+
+class PayloadCommandBehavior : public Behavior
 {
  public:
-  BehaviorFactory();
-  BehaviorFactory(const std::string& behavior_dir);
-  virtual ~BehaviorFactory();
+  PayloadCommandBehavior();
+  virtual ~PayloadCommandBehavior();
 
-  Behavior* createBehavior(const std::string& name);
+  virtual bool parseMissionFileParams();
+
+  bool getParams(ros::NodeHandle nh);
+
+  virtual void publishMsg();
+  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
  private:
+  ros::Publisher payload_command_behavior_pub;
+
+  std::string m_command_str;
+
+  bool m_command_str_ena;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H
