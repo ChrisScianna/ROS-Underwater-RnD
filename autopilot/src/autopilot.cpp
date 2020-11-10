@@ -88,7 +88,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<double>("/autopilot_node/depth_imin", depthIMin, 0.0);
   nh.param<double>("/autopilot_node/depth_d", depthDGain, 0.0);
 
-  nh.param<double>("/autopilot_node/max_ctrl_plane_angle", maxCtrlPlaneAngle, 10.0);  // degrees
+  nh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 10.0);  // degrees
   nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);       // degrees
 
   rollPIDController.initPid(rollPGain, rollIGain, rollDGain, rollIMax, rollIMin);
@@ -104,10 +104,11 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<bool>("/autopilot_node/fixed_rudder", fixedRudder, true);
   nh.param<double>("/autopilot_node/desired_rudder", desiredRudder, 0.0);
   nh.param<double>("/autopilot_node/desired_speed", desiredSpeed, 0.0);
-  nh.param<bool>("/autopilot_node/allow_reverse_thruster_autopilot", allowReverseThrusterAutopilot,
-                 false);
+  nh.param<bool>("/autopilot_node/allow_reverse_thruster_autopilot",
+                 allowReverseThrusterAutopilot, false);
   nh.param<bool>("/autopilot_node/thruster_enabled", thrusterEnabled, false);
-  nh.param<double>("/autopilot_node/max_allowed_thruster_rpm", maxAllowedThrusterRpm, 0);
+
+  nh.param<double>("/thruster_control/max_allowed_motor_rpm", maxAllowedThrusterRpm, 0);
 
   jausRosSub = nh.subscribe("/jaus_ros_bridge/activate_manual_control", 1,
                               &AutoPilotNode::HandleActivateManualControl, this);
@@ -181,7 +182,8 @@ void AutoPilotNode::correctedDataCallback(const pose_estimator::CorrectedData& d
 
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
 {
-  if (data.execute_mission_state == 2)  // Mission Complete or Abort
+  using mission_manager::ReportExecuteMissionState;
+  if (data.execute_mission_state == ReportExecuteMissionState::COMPLETE)
   {
     boost::mutex::scoped_lock lock(m_mutex);
     missionMode = true;
@@ -189,7 +191,7 @@ void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMi
     desiredRoll = 0;
 
     // surface
-    desiredPitch = -maxCtrlPlaneAngle;
+    desiredPitch = -maxCtrlFinAngle;
     depthControl = false;
 
     desiredRudder = 0;  // straight
@@ -246,12 +248,12 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw)
   d3 = -pitch - yaw + roll;
   d4 = -pitch + yaw + roll;
 
-  double maxOptions[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), maxCtrlPlaneAngle};
+  double maxOptions[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), maxCtrlFinAngle};
   double maxAngle = *std::max_element(maxOptions, maxOptions + 5);
-  d1 = d1 * maxCtrlPlaneAngle / maxAngle;
-  d2 = d2 * maxCtrlPlaneAngle / maxAngle;
-  d3 = d3 * maxCtrlPlaneAngle / maxAngle;
-  d4 = d4 * maxCtrlPlaneAngle / maxAngle;
+  d1 = d1 * maxCtrlFinAngle / maxAngle;
+  d2 = d2 * maxCtrlFinAngle / maxAngle;
+  d3 = d3 * maxCtrlFinAngle / maxAngle;
+  d4 = d4 * maxCtrlFinAngle / maxAngle;
 
   fin_control::SetAngles setAnglesMsg;
 

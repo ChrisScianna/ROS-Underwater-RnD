@@ -167,7 +167,7 @@ class AutoPilotNode
 
   bool allowReverseThrusterAutopilot;  // allow negative RPM if true
 
-  double maxCtrlPlaneAngle;  // Max fin angle (degrees)
+  double maxCtrlFinAngle;  // Max fin angle (degrees)
   double maxDepthCommand;    // Max amount the depth affects the fin angle (degrees)
 
   boost::shared_ptr<boost::thread> m_thread;
