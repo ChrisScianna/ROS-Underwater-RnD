@@ -100,9 +100,8 @@ class FinControl
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
   void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
 
-  double maxCtrlFinSwing;
-  double maxCtrlPlaneSwing;
-  double ctrlFinOffet;
+  double maxCtrlFinAngle;
+  double ctrlFinOffset;
   double ctrlFinScaleFactor;
 
   double reportAngleRate;

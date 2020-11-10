@@ -57,8 +57,8 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   fincontrolEnabled = false;
   std::string serial_dev = "/dev/ttyUSB0";
   int serial_baud = 57600;
-  maxCtrlFinSwing = 10.0;
-  ctrlFinOffet = 0;
+  maxCtrlFinAngle = 10.0;
+  ctrlFinOffset = 0;
   ctrlFinScaleFactor = 1.0;
   servosON = false;
   const char *log;
@@ -80,11 +80,10 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   ROS_INFO("Serial Port: [%s]", serial_dev.c_str());
   ROS_INFO("baud: [%d]", serial_baud);
 
-  nh.getParam("/fin_control/max_ctrl_fin_swing", maxCtrlFinSwing);
-  ROS_INFO("max cf swing: [%f]", maxCtrlFinSwing);
-
-  nh.getParam("/fin_control/ctrl_fin_offset", ctrlFinOffet);
-  ROS_INFO("cf offset: [%f]", ctrlFinOffet);
+  nh.getParam("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle);
+  ROS_INFO("max cf angle: [%f]", maxCtrlFinAngle);
+  nh.getParam("/fin_control/ctrl_fin_offset", ctrlFinOffset);
+  ROS_INFO("cf offset: [%f]", ctrlFinOffset);
 
   nh.getParam("/fin_control/ctrl_fin_scale_factor", ctrlFinScaleFactor);
   ROS_INFO("cf scale: [%f]", ctrlFinScaleFactor);
@@ -95,8 +94,6 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   nh.getParam("/fin_control/report_angle_rate", reportAngleRate);
   nh.getParam("/fin_control/min_report_angle_rate", minReportAngleRate);
   nh.getParam("/fin_control/max_report_angle_rate", maxReportAngleRate);
-
-  nh.getParam("/fin_control/max_ctrl_plane_swing", maxCtrlPlaneSwing);
 
   ROS_INFO("fin control constructor enter");
 
@@ -111,15 +108,15 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
       nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
 
   finAngleCheck = diagnostic_tools::create_health_check<double>(
-      "Fin swing within range", [this](double angle) -> diagnostic_tools::Diagnostic
+      "Fin angle within range", [this](double angle) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
-        if (std::abs(angle) > maxCtrlPlaneSwing)
+        if (std::abs(angle) > maxCtrlFinAngle)
         {
           using health_monitor::ReportFault;
           Diagnostic diagnostic{Diagnostic::WARN, ReportFault::FIN_DATA_THRESHOLD_REACHED};
-          return diagnostic.description("Fin angle above maximum swing value: |%f rad| > %f rad",
-                                        angle, maxCtrlPlaneSwing);
+          return diagnostic.description("Fin angle beyond limits: |%f| rad > %f rad",
+                                        angle, maxCtrlFinAngle);
         }
         return Diagnostic::OK;
       }
@@ -224,7 +221,7 @@ void FinControl::reportAngle(uint8_t id)
   if (myWorkBench.getRadian(id, &message.angle_in_radians, &log))
   {
     message.angle_in_radians = static_cast<float>(
-        round(((message.angle_in_radians / ctrlFinScaleFactor) - degreesToRadians(ctrlFinOffet)) *
+        round(((message.angle_in_radians / ctrlFinScaleFactor) - degreesToRadians(ctrlFinOffset)) *
               100.0) /
         100.0);
     finAngleCheck.test(message.angle_in_radians);
@@ -256,10 +253,10 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
   angle3_in_degrees = radiansToDegrees(msg->f3_angle_in_radians);
   angle4_in_degrees = radiansToDegrees(msg->f4_angle_in_radians);
 
-  if ((fabs(angle1_in_degrees) > (maxCtrlFinSwing / 2.0)) ||
-      (fabs(angle2_in_degrees) > (maxCtrlFinSwing / 2.0)) ||
-      (fabs(angle3_in_degrees) > (maxCtrlFinSwing / 2.0)) ||
-      (fabs(angle4_in_degrees) > (maxCtrlFinSwing / 2.0))
+  if ((fabs(angle1_in_degrees) > maxCtrlFinAngle) ||
+      (fabs(angle2_in_degrees) > maxCtrlFinAngle) ||
+      (fabs(angle3_in_degrees) > maxCtrlFinAngle) ||
+      (fabs(angle4_in_degrees) > maxCtrlFinAngle)
 
   )
   {
@@ -277,7 +274,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin1
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f1_angle_in_radians + degreesToRadians(ctrlFinOffet));
+      ctrlFinScaleFactor * (msg->f1_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(1, "Goal_Position",
                                       myWorkBench.convertRadian2Value(1, angle_plus_offset), &log)))
@@ -288,7 +285,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin2
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f2_angle_in_radians + degreesToRadians(ctrlFinOffet));
+      ctrlFinScaleFactor * (msg->f2_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(2, "Goal_Position",
                                       myWorkBench.convertRadian2Value(2, angle_plus_offset), &log)))
@@ -299,7 +296,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin3
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f3_angle_in_radians + degreesToRadians(ctrlFinOffet));
+      ctrlFinScaleFactor * (msg->f3_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(3, "Goal_Position",
                                       myWorkBench.convertRadian2Value(3, angle_plus_offset), &log)))
@@ -310,7 +307,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin4
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f4_angle_in_radians + degreesToRadians(ctrlFinOffet));
+      ctrlFinScaleFactor * (msg->f4_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(4, "Goal_Position",
                                       myWorkBench.convertRadian2Value(4, angle_plus_offset), &log)))
@@ -357,24 +354,21 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
 void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
 {
-  const char *log;
   // check for max angle the fins can mechanically handle
-  float angle_in_degrees;
-  angle_in_degrees = radiansToDegrees(msg->angle_in_radians);
-  if ((angle_in_degrees < (-1.0 * maxCtrlFinSwing / 2.0)) ||
-      (angle_in_degrees > (maxCtrlFinSwing / 2.0)))
+  float angle_in_degrees = radiansToDegrees(msg->angle_in_radians);
+  if (fabs(angle_in_degrees) > maxCtrlFinAngle)
   {
     ROS_ERROR("Set Angle [%f] degrees out of Range", angle_in_degrees);
     return;
   }
 
   float angle_plus_offet =
-      ctrlFinScaleFactor * (msg->angle_in_radians + degreesToRadians(ctrlFinOffet));
+      ctrlFinScaleFactor * (msg->angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   // Call dynamixel service
-
   boost::mutex::scoped_lock lock(m_mutex);
 
+  const char *log;
   if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
     ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
 }
