@@ -297,6 +297,7 @@ class Keller9lxPressureSensorDriverNode(object):
                 request=self.FUNCTION73_TEMPERATURE_REQUEST,
                 timeout=timeout
             )
+            response = response[5:]  # skip command echo i.e. first 5 bytes
             temperature_in_celsius = bytes_to_float(response[2:6])
             temperature_in_fahrenheit = temperature_in_celsius * 9 / 5 + 32
             rospy.logdebug('Temperature is %d F', temperature_in_fahrenheit)
@@ -310,6 +311,7 @@ class Keller9lxPressureSensorDriverNode(object):
                 request=self.FUNCTION73_PRESSURE_REQUEST,
                 timeout=timeout
             )
+            response = response[5:]  # skip command echo i.e. first 5 bytes
             pressure_in_bars = bytes_to_float(response[2:6])
             pressure_in_absolute_bars = pressure_in_bars + 1.01325
             pressure_in_pascals = pressure_in_absolute_bars * 100000
