@@ -34,35 +34,8 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-
-#include <boost/thread/mutex.hpp>
-
-#include "pose_estimator/CorrectedData.h"
-#include "ros/ros.h"
-#include "sensor_msgs/FluidPressure.h"
-#include "sensor_msgs/Imu.h"
-#include "sensor_msgs/NavSatFix.h"
-#include "tf/transform_datatypes.h"
-#include "thruster_control/ReportRPM.h"
-#include <cmath>
-#include <diagnostic_tools/diagnosed_publisher.h>
-#include <diagnostic_tools/health_check.h>
-#include <diagnostic_updater/diagnostic_updater.h>
-
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
-
-#include <health_monitor/ReportFault.h>
 #include "pose_estimator/pose_estimator.h"
 
-#define saltwater_density 1023.6     // kg/m^3
-#define freshwater_density 997.0474  // kg/m^3
-#define gravity 9.80665              // m/s^2
-
-#define NODE_VERSION "2.01x"
-// Version log
-// 2.0 Initial MK-IV version
-// 2.01 Updating the roll positive direction
 using namespace std;
 using namespace pose_estimator;
 using namespace qna;
@@ -102,7 +75,6 @@ using namespace robot;
                                                    &PoseEstimatorNode::pressureDataCallback, this);
     sub_ahrs_data =
         pose_node_handle.subscribe("/vectornav/IMU", 1, &PoseEstimatorNode::ahrsDataCallback, this);
-    sub_gps_data = pose_node_handle.subscribe("/fix", 1, &PoseEstimatorNode::gpsDataCallback, this);
 
     // Advertise all topics and services
     pub_corrected_data = diagnostic_tools::create_publisher<pose_estimator::CorrectedData>(
@@ -252,17 +224,7 @@ using namespace robot;
     cur_rpy_ang[CorrectedData::ROLL] = roll * -1.0;
     cur_rpy_ang[CorrectedData::PITCH] = pitch * -1.0;
     cur_rpy_ang[CorrectedData::YAW] = yaw;
-    // ROS_INFO("RPY: [%f,%f,%f]",roll*180.0/M_PI,pitch*180.0/M_PI,yaw*180.0/M_PI);
     ahrs_ok = true;
-  }
-
-  void PoseEstimatorNode::gpsDataCallback(const sensor_msgs::NavSatFix data) {
-    if (data.status.status >= 0) {
-      boost::mutex::scoped_lock lock(m_mutDataLock);
-      cur_latitude = data.latitude;
-      cur_longitude = data.longitude;
-      cur_gps_time = data.header.stamp.toSec();
-    }
   }
 
   void PoseEstimatorNode::rpmDataCallback(const thruster_control::ReportRPM data) {
