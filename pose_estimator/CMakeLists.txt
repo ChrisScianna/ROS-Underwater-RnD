@@ -47,6 +47,7 @@ include_directories(
 
 add_executable(${NODE_APP_NAME} 
   src/pose_estimator.cpp
+  src/pose_estimator_main.cpp
 )
 
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

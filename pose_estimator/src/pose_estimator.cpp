@@ -53,9 +53,7 @@
 #include <diagnostic_tools/periodic_message_status.h>
 
 #include <health_monitor/ReportFault.h>
-
-namespace qna {
-namespace robot {
+#include "pose_estimator/pose_estimator.h"
 
 #define saltwater_density 1023.6     // kg/m^3
 #define freshwater_density 997.0474  // kg/m^3
@@ -67,72 +65,11 @@ namespace robot {
 // 2.01 Updating the roll positive direction
 using namespace std;
 using namespace pose_estimator;
+using namespace qna;
+using namespace robot;
 
-class PoseEstimatorNode  //: public LogBase
-{
- public:
-  ros::NodeHandle node_handle;
-  ros::NodeHandle private_node_handle;
-  ros::Subscriber sub_ahrs_data;
-  ros::Subscriber sub_pressure_data;
-  ros::Subscriber sub_gps_data;
-  ros::Subscriber sub_rpm_data;
-
- private:
-  bool running, data_valid;
-  // Vars holding runtime params
-  double pub_rate;
-  double min_rate;
-  double max_rate;
-
-  double maxDepth;
-  double maxRollAng;
-  double maxPitchAng;
-  double maxYawAng;
-  double rpmPerKnot;
-
-  // Vars for holding current sensor/calculated values
-  double cur_latitude, cur_longitude, cur_gps_time;
-  double cur_rpy_ang[3];
-  double cur_pressure;
-  double cur_depth;
-  double cur_speed = 0;
-
-  // Flags for signaling if we have received essential data
-  bool pressure_ok;
-  bool ahrs_ok;
-
-  // Enviornmental Flags
-  bool saltwater_flag;
-
-  CorrectedData m_correctedData{};
-
-  ros::Timer m_timerPub;
-  boost::mutex m_mutDataLock;
-
-  diagnostic_tools::DiagnosedPublisher<pose_estimator::CorrectedData> pub_corrected_data;
-  diagnostic_tools::HealthCheck<double> depthCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationRollCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationPitchCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationYawCheck;
-  diagnostic_updater::Updater diagnosticsUpdater;
-
- public:
   // assumes that the pressure is in absolute pascal and a true flag indicates saltwater
-  double calculateDepth(double pressure, bool flag) {
-    double depth;
-    pressure = pressure - 101325;  // Absolute Pascal to Gauge Pascal
-    // Calculate Depth
-    if (flag)  // if saltwater
-    {
-      depth = pressure / gravity / saltwater_density;
-    } else {
-      depth = pressure / gravity / freshwater_density;
-    }
-    return depth;
-  }
-
-  PoseEstimatorNode(ros::NodeHandle h)
+  PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
       : node_handle(h),
         private_node_handle("~"),
         running(false),
@@ -260,9 +197,22 @@ class PoseEstimatorNode  //: public LogBase
     m_correctedData.header.frame_id = "corrected_data";
   }
 
-  ~PoseEstimatorNode() { stop(); }
+  PoseEstimatorNode::~PoseEstimatorNode() { stop(); }
 
-  int start() {
+  double PoseEstimatorNode::calculateDepth(double pressure, bool flag) {
+    double depth;
+    pressure = pressure - 101325;  // Absolute Pascal to Gauge Pascal
+    // Calculate Depth
+    if (flag)  // if saltwater
+    {
+      depth = pressure / gravity / saltwater_density;
+    } else {
+      depth = pressure / gravity / freshwater_density;
+    }
+    return depth;
+  }
+
+  int PoseEstimatorNode::start() {
     stop();
     running = true;
     // Start data publishing timer
@@ -272,7 +222,7 @@ class PoseEstimatorNode  //: public LogBase
     return 0;
   }
 
-  int stop() {
+  int PoseEstimatorNode::stop() {
     if (running) {
       running = false;
       m_timerPub.stop();
@@ -280,7 +230,7 @@ class PoseEstimatorNode  //: public LogBase
     return 0;
   }
 
-  bool spin() {
+  bool PoseEstimatorNode::spin() {
     while (!ros::isShuttingDown()) {
       if (start() == 0) {
         while (node_handle.ok()) {
@@ -292,7 +242,7 @@ class PoseEstimatorNode  //: public LogBase
     return true;
   }
 
-  void ahrsDataCallback(const sensor_msgs::Imu data) {
+  void PoseEstimatorNode::ahrsDataCallback(const sensor_msgs::Imu data) {
     boost::mutex::scoped_lock lock(m_mutDataLock);
     tf::Quaternion quat(data.orientation.x, data.orientation.y, data.orientation.z,
                         data.orientation.w);
@@ -306,7 +256,7 @@ class PoseEstimatorNode  //: public LogBase
     ahrs_ok = true;
   }
 
-  void gpsDataCallback(const sensor_msgs::NavSatFix data) {
+  void PoseEstimatorNode::gpsDataCallback(const sensor_msgs::NavSatFix data) {
     if (data.status.status >= 0) {
       boost::mutex::scoped_lock lock(m_mutDataLock);
       cur_latitude = data.latitude;
@@ -315,42 +265,42 @@ class PoseEstimatorNode  //: public LogBase
     }
   }
 
-  void rpmDataCallback(const thruster_control::ReportRPM data) {
+  void PoseEstimatorNode::rpmDataCallback(const thruster_control::ReportRPM data) {
     boost::mutex::scoped_lock lock(m_mutDataLock);
     cur_speed = (double)data.rpms / rpmPerKnot;
   }
 
-  void pressureDataCallback(const sensor_msgs::FluidPressure data) {
+  void PoseEstimatorNode::pressureDataCallback(const sensor_msgs::FluidPressure data) {
     boost::mutex::scoped_lock lock(m_mutDataLock);
     cur_pressure = data.fluid_pressure;
     pressure_ok = true;
   }
 
-  void processDynPos() {
+  void PoseEstimatorNode::processDynPos() {
     boost::mutex::scoped_lock data_lock(m_mutDataLock);
     m_correctedData.rpy_ang.x = cur_rpy_ang[CorrectedData::ROLL];
     m_correctedData.rpy_ang.y = cur_rpy_ang[CorrectedData::PITCH];
     m_correctedData.rpy_ang.z = cur_rpy_ang[CorrectedData::YAW];
   }
 
-  void processLatLong() {
+  void PoseEstimatorNode::processLatLong() {
     boost::mutex::scoped_lock data_lock(m_mutDataLock);
     m_correctedData.position.latitude = cur_latitude;
     m_correctedData.position.longitude = cur_longitude;
   }
 
-  void processDepth() {
+  void PoseEstimatorNode::processDepth() {
     boost::mutex::scoped_lock data_lock(m_mutDataLock);
     cur_depth = calculateDepth(cur_pressure, saltwater_flag);
     m_correctedData.depth = cur_depth;
   }
 
-  void processSpeed() {
+  void PoseEstimatorNode::processSpeed() {
     boost::mutex::scoped_lock data_lock(m_mutDataLock);
     m_correctedData.speed = cur_speed;
   }
 
-  void publishData() {
+  void PoseEstimatorNode::publishData() {
     // Ensure that we have started getting data from all critical sensors
     // before we start publishing data
     if (!data_valid) {
@@ -376,17 +326,3 @@ class PoseEstimatorNode  //: public LogBase
       diagnosticsUpdater.update();
     }
   }
-};
-
-}  // namespace robot
-}  // namespace qna
-
-int main(int argc, char **argv) {
-  ros::init(argc, argv, "pose_estimator_node");
-  ros::NodeHandle n;
-  ROS_INFO("Starting Pose Estimator node Version: [%s]", NODE_VERSION);
-  n.setParam("/version_numbers/pose_estimator", NODE_VERSION);
-  qna::robot::PoseEstimatorNode poseObject(n);
-  poseObject.spin();
-  return 0;
-}
