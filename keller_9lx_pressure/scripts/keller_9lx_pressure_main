@@ -161,11 +161,11 @@ class Keller9lxPressureSensorDriverNode(object):
 
         # Create publishers
         self.__temperature_pub = rospy.Publisher(
-            '~/temperature', Temperature, queue_size=1
+            '~temperature', Temperature, queue_size=1
         )
 
         self.__pressure_pub = diagnostic_tools.DiagnosedPublisher(
-            '~/pressure', FluidPressure, queue_size=1
+            '~pressure', FluidPressure, queue_size=1
         )
 
         # Create diagnostics updater
