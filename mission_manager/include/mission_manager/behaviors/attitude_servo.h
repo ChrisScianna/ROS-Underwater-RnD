@@ -34,59 +34,63 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __ALTITUDE_HEADING_H
-#define __ALTITUDE_HEADING_H
+/* Behavioral Attitude Servo
+        <attitude_servo>
+            <description>
+                00:00:00 - At the beginning of the mission, set everything to initial conditions.
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">5</timeout>
+            <roll unit="deg">0.0</roll>
+            <pitch unit="deg">0.0</pitch>
+            <yaw unit="deg">0.0</yaw>
+            <speed_knots>0.0</speed_knots>
+        </attitude_servo>
+*/
 
-#include "../behavior.h"
-#include "mission_manager/AltitudeHeading.h"
+#ifndef MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H
+#define MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H
 
-namespace mission_manager {
+#include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/AttitudeServo.h"
 
-class AltitudeHeadingBehavior : public Behavior {
+namespace mission_manager
+{
+
+class AttitudeServoBehavior : public Behavior
+{
  public:
-  AltitudeHeadingBehavior();
-  virtual ~AltitudeHeadingBehavior();
+  AttitudeServoBehavior();
+  virtual ~AttitudeServoBehavior();
 
   virtual bool parseMissionFileParams();
-
-  //	bool parseXml(xmlNodePtr node);
   bool getParams(ros::NodeHandle nh);
-
   virtual void publishMsg();
-
-  //	void populateMsg(ros::Message *msg);
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<DepthHeading>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<DepthHeading>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<DepthHeading>(msg);
-          }
-  */
  private:
-  ros::Publisher altitude_heading_behavior_pub;
+  ros::Publisher attitude_servo_behavior_pub;
 
-  float m_altitude;
-  float m_heading;
+  float m_roll;
+  float m_pitch;
+  float m_yaw;
   float m_speed_knots;
 
-  std::string m_altitude_unit;
-  std::string m_heading_unit;
+  std::string m_roll_unit;
+  std::string m_pitch_unit;
+  std::string m_yaw_unit;
 
-  bool m_altitude_ena;
-  bool m_heading_ena;
+  bool m_roll_ena;
+  bool m_pitch_ena;
+  bool m_yaw_ena;
   bool m_speed_knots_ena;
 
-  float m_altitude_tol;
-  float m_heading_tol;
+  float m_roll_tol;
+  float m_pitch_tol;
+  float m_yaw_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_ATTITUDE_SERVO_H

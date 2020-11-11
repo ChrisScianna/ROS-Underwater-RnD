@@ -34,62 +34,61 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __WAYPOINT_H
-#define __WAYPOINT_H
+/*  Behavioral Pinger
+  <pinger>
+      <description>
+          00:00:00 - .
+      </description>
+      <when unit="sec">0</when>
+      <timeout unit="sec">20</timeout>
+      <ping_enabled>1</ping_enabled>
+      <waveform_select>0</waveform_select>
+      <waveform_amplitude>100.0</waveform_amplitude>
+      <waveform_frequency>2.0</waveform_frequency>
+      <waveform_ON_time_sec>10.0</waveform_ON_time_sec>
+      <waveform_OFF_time_sec>10.0</waveform_OFF_time_sec>
+  </pinger>
+*/
 
-#include "../behavior.h"
-#include "mission_manager/Waypoint.h"  // this is the ROS Message
+#ifndef MISSION_MANAGER_BEHAVIORS_PINGER_H
+#define MISSION_MANAGER_BEHAVIORS_PINGER_H
 
-namespace mission_manager {
+#include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/Ping.h"
 
-class WaypointBehavior : public Behavior {
+namespace mission_manager
+{
+
+class PingerBehavior : public Behavior
+{
  public:
-  WaypointBehavior();
-  virtual ~WaypointBehavior();
-
+  PingerBehavior();
+  virtual ~PingerBehavior();
   virtual bool parseMissionFileParams();
 
-  //	bool parseXml(xmlNodePtr node);
   bool getParams(ros::NodeHandle nh);
 
   virtual void publishMsg();
-  //	void populateMsg(ros::Message *msg);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<Waypoint>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<Waypoint>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<Waypoint>(msg);
-          }
-  */
  private:
-  ros::Publisher waypoint_behavior_pub;
+  ros::Publisher fixed_rudder_behavior_pub;
 
-  float m_altitude;
-  float m_depth;
-  float m_lat;
-  float m_long;
-  float m_speed_knots;
-  double m_wp_radius;
+  bool m_pingenabled;
+  uint8_t m_waveform_select;
+  float m_waveform_amp;
+  float m_waveform_freq;
+  float m_waveform_on;
+  float m_waveform_off;
 
-  bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_lat_ena;
-  bool m_long_ena;
-  bool m_speed_knots_ena;
-  bool m_wp_radius_ena;
-
-  float m_depth_tol;
-  void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-  double degreesToRadians(double degrees);
+  bool m_pingenabled_ena;
+  bool m_waveform_select_ena;
+  bool m_waveform_amp_ena;
+  bool m_waveform_freq_ena;
+  bool m_waveform_on_ena;
+  bool m_waveform_off_ena;
 };
 
-}  // namespace mission_manager
+}  //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_PINGER_H

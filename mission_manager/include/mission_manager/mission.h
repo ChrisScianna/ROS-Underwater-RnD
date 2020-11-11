@@ -34,16 +34,18 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __MISSION_H
-#define __MISSION_H
+#ifndef MISSION_MANAGER_MISSION_H
+#define MISSION_MANAGER_MISSION_H
 
 #include <vector>
+#include <string>
+#include "mission_manager/behavior.h"
 
-#include "behavior.h"
+namespace mission_manager
+{
 
-namespace mission_manager {
-
-class Mission {
+class Mission
+{
  public:
   Mission();
   virtual ~Mission();
@@ -54,7 +56,15 @@ class Mission {
   void addAbortBehavior(Behavior *behavior);
   Behavior *getNextAbortBehavior(bool reset = false);
 
-  enum MissionState { READY, EXECUTING, ABORTING, STOPPED, PAUSED, COMPLETE };
+  enum MissionState
+  {
+    READY,
+    EXECUTING,
+    ABORTING,
+    STOPPED,
+    PAUSED,
+    COMPLETE
+  };
   void SetState(MissionState state);
   MissionState GetState();
   boost::mutex m_MissionStateLock;
@@ -109,6 +119,6 @@ class Mission {
   int current_abort_behavior_id;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_MISSION_H

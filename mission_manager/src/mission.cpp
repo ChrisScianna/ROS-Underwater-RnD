@@ -35,28 +35,32 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "mission.h"
+#include "mission_manager/mission.h"
+#include "mission_manager/behavior.h"
+using mission_manager::Mission;
+using mission_manager::Behavior;
 
-#include "behavior.h"
-
-using namespace mission_manager;
-
-Mission::Mission()
-    : missionState(MissionState::READY), m_current_behavior(NULL), elasped_time(0.0) {
+Mission::Mission() : missionState(MissionState::READY), m_current_behavior(NULL), elasped_time(0.0)
+{
   current_abort_behavior_id = 0;
   current_behavior_id = 0;
 }
 
-Mission::~Mission() {
-  if (m_behaviors.size() > 0) {
-    for (int x = 0; x < m_behaviors.size(); x++) {
+Mission::~Mission()
+{
+  if (m_behaviors.size() > 0)
+  {
+    for (int x = 0; x < m_behaviors.size(); x++)
+    {
       delete m_behaviors[x];
     }
     m_behaviors.clear();
   }
 
-  if (m_aborts.size() > 0) {
-    for (int x = 0; x < m_aborts.size(); x++) {
+  if (m_aborts.size() > 0)
+  {
+    for (int x = 0; x < m_aborts.size(); x++)
+    {
       delete m_aborts[x];
     }
     m_aborts.clear();
@@ -66,8 +70,10 @@ Mission::~Mission() {
   current_behavior_id = 0;
 }
 
-void Mission::Stop() {
-  if (GetState() == MissionState::EXECUTING) {
+void Mission::Stop()
+{
+  if (GetState() == MissionState::EXECUTING)
+  {
     SetState(MissionState::STOPPED);
 
     // Wait for the mission processing thread to finish
@@ -78,12 +84,15 @@ void Mission::Stop() {
     // Clean up all of the behavior publishers and messages
     ROS_INFO("Stopping and cleaning up active behaviors");
     Behavior* cur_behavior = getNextBehavior(true);
-    do {
+    do
+    {
       cur_behavior->stopBehavior();
       cur_behavior = getNextBehavior();
-
-    } while (cur_behavior != NULL);
-  } else if (GetState() == MissionState::ABORTING) {
+    }
+    while (cur_behavior != NULL);
+  }
+  else if (GetState() == MissionState::ABORTING)
+  {
     SetState(MissionState::STOPPED);
 
     ROS_INFO("Stopping abort mission thread");
@@ -93,24 +102,28 @@ void Mission::Stop() {
     // Clean up all of the behavior publishers and messages
     ROS_INFO("Stopping and cleaning up active behaviors");
     Behavior* cur_behavior = getNextAbortBehavior(true);
-    do {
+    do
+    {
       cur_behavior->stopBehavior();
       cur_behavior = getNextAbortBehavior();
-
-    } while (cur_behavior != NULL);
+    }
+    while (cur_behavior != NULL);
   }
 }
 
 void Mission::addBehavior(Behavior* behavior) { m_behaviors.push_back(behavior); }
 
-Behavior* Mission::getNextBehavior(bool reset) {
+Behavior* Mission::getNextBehavior(bool reset)
+{
   static bool firsttime = true;
-  if (reset || (firsttime == true)) {
+  if (reset || (firsttime == true))
+  {
     m_behavior_iterator = m_behaviors.begin();
     firsttime = false;
   }
 
-  if (m_behavior_iterator == m_behaviors.end()) {
+  if (m_behavior_iterator == m_behaviors.end())
+  {
     return NULL;
   }
 
@@ -119,21 +132,25 @@ Behavior* Mission::getNextBehavior(bool reset) {
 
 void Mission::addAbortBehavior(Behavior* behavior) { m_aborts.push_back(behavior); }
 
-Behavior* Mission::getNextAbortBehavior(bool reset) {
+Behavior* Mission::getNextAbortBehavior(bool reset)
+{
   static bool abortfirsttime = true;
-  if (reset || (abortfirsttime == true)) {
+  if (reset || (abortfirsttime == true))
+  {
     m_abort_behavior_iterator = m_aborts.begin();
     abortfirsttime = false;
   }
 
-  if (m_abort_behavior_iterator == m_aborts.end()) {
+  if (m_abort_behavior_iterator == m_aborts.end())
+  {
     return NULL;
   }
 
   return *m_abort_behavior_iterator++;
 }
 
-void Mission::ProcessCorrectedPoseData(const pose_estimator::CorrectedData& data) {
+void Mission::ProcessCorrectedPoseData(const pose_estimator::CorrectedData& data)
+{
   if (m_current_behavior == NULL) return;
 
   if ((GetState() != MissionState::ABORTING) && (GetState() != MissionState::EXECUTING)) return;
@@ -141,32 +158,17 @@ void Mission::ProcessCorrectedPoseData(const pose_estimator::CorrectedData& data
   boost::mutex::scoped_lock callback_lock(m_mutCallbacks);
   if (m_current_behavior->checkCorrectedData(data)) callBackTmr.stop();
   callback_lock.unlock();
-
-  /*                return;
-                  vector<corrected_data_callback_t>::iterator callback_iter =
-     m_correctedDataCallbacks.begin(); vector<ros::Timer>::iterator timer_iter =
-     m_correctedDataTimers.begin();
-
-                  // Iterate through all corrected data callbacks from the behaviors
-                  boost::mutex::scoped_lock lock(m_mutCallbacks);
-                  for (; callback_iter != m_correctedDataCallbacks.end(); ++callback_iter,
-     ++timer_iter) { if ((*callback_iter)(data)) {
-                                  // Behavior was satisfactorily completed, stop the timeout timer
-                                  timer_iter->stop();
-
-                                  // Remove the callback and the timer from the callback handling
-     vectors m_correctedDataCallbacks.erase(callback_iter); m_correctedDataTimers.erase(timer_iter);
-                          }
-                  }*/
 }
 
-void Mission::SetState(MissionState state) {
+void Mission::SetState(MissionState state)
+{
   boost::mutex::scoped_lock run_lock(m_MissionStateLock);
   missionState = state;
   run_lock.unlock();
 }
 
-Mission::MissionState Mission::GetState() {
+Mission::MissionState Mission::GetState()
+{
   MissionState temp;
 
   boost::mutex::scoped_lock run_lock(m_MissionStateLock);
@@ -176,14 +178,17 @@ Mission::MissionState Mission::GetState() {
   return temp;
 }
 
-void Mission::AbortMissionWrapper(ros::NodeHandle nh) {
+void Mission::AbortMissionWrapper(ros::NodeHandle nh)
+{
   node_handle = nh;
 
   AbortMission();
 }
 
-void Mission::ExecuteMission(ros::NodeHandle nh) {
-  if ((GetState() == MissionState::EXECUTING) || (GetState() == MissionState::ABORTING)) {
+void Mission::ExecuteMission(ros::NodeHandle nh)
+{
+  if ((GetState() == MissionState::EXECUTING) || (GetState() == MissionState::ABORTING))
+  {
     ROS_WARN("Mission is already executing or aborting");
     return;
   }
@@ -195,7 +200,8 @@ void Mission::ExecuteMission(ros::NodeHandle nh) {
       new boost::thread(boost::bind(&Mission::processMission, this)));
 }
 
-void Mission::processMission() {
+void Mission::processMission()
+{
   ROS_INFO("Processing mission");
 
   SetState(MissionState::EXECUTING);
@@ -205,8 +211,10 @@ void Mission::processMission() {
 
   bool firsttime = true;
 
-  try {
-    while (1) {
+  try
+  {
+    while (1)
+    {
       ROS_INFO("Mission Execution Loop");
 
       if (GetState() != MissionState::EXECUTING) break;
@@ -220,7 +228,8 @@ void Mission::processMission() {
       lock.unlock();
       firsttime = false;
 
-      if (m_current_behavior == NULL) {
+      if (m_current_behavior == NULL)
+      {
         ROS_INFO("Mission Complete - no more behaviors");
         SetState(MissionState::COMPLETE);
         break;  // no more behaviors
@@ -234,60 +243,58 @@ void Mission::processMission() {
 
       // Sleep until we need to execute the behavior
       int success = 0;
-      try {
+      try
+      {
         success = m_current_behavior->WaitForExecutionTimeSlot();
-      } catch (boost::thread_interrupted) {
+      }
+      catch (boost::thread_interrupted)
+      {
         break;
       }
 
-      if (success == -1) {
+      if (success == -1)
+      {
         ROS_WARN("Aborting mission - WaitForExecutionTimeSlot failed");
         AbortMission();
         break;
       }
 
-      if (true == m_current_behavior->getTimeoutEna()) {
+      if (true == m_current_behavior->getTimeoutEna())
+      {
         int behaviorTime = m_current_behavior->computeExecutionTimeForBehavior();
-        if (behaviorTime == -1) {
+        if (behaviorTime == -1)
+        {
           ROS_WARN("Aborting mission - computeExecutionTimeForBehavior failed");
           AbortMission();
           break;
         }
 
         ROS_INFO("registering abort callback in %d seconds", behaviorTime);
-        // Create a one-shot timeout timer and start it
-        // ros::Timer t = node_handle.createTimer(ros::Duration(nsec),
-        // boost::bind(&MissionManagerNode::abortMission, this), true);
         callBackTmr = node_handle.createTimer(ros::Duration(behaviorTime),
                                               boost::bind(&Mission::AbortMission, this), true);
         // t.start();
         callBackTmr.start();
-        // Add the callback and timeout timer to the callback handling vectors
-        //		boost::mutex::scoped_lock callback_lock(m_mutCallbacks);
-        //		m_correctedDataCallbacks.push_back(boost::bind(&Behavior::checkCorrectedData,
-        //cur_behavior, _1)); 		m_correctedDataTimers.push_back(t);
       }
 
       m_current_behavior->ExecuteBehavior(node_handle);
 
       unsigned int loop_delay_usec = 1000;
       float time_elapsed = 0;
-      while ((GetState() == MissionState::EXECUTING) && (!m_current_behavior->getBehaviorDone())) {
-        //						cur_behavior->publishMsg(pub_iter->second,
-        //msg_iter->second);
+      while ((GetState() == MissionState::EXECUTING) && (!m_current_behavior->getBehaviorDone()))
+      {
         usleep(loop_delay_usec);
         int behaviorDuration = m_current_behavior->getBehaviorDuration();
         if (behaviorDuration == 0.0) break;
-        if (behaviorDuration > 0.0) {
+        if (behaviorDuration > 0.0)
+        {
           time_elapsed += loop_delay_usec / 1000000.0;  // add seconds passed
           if (time_elapsed >= behaviorDuration) break;
         }
       }
-      // Register the corrected data callback and start a timeout timer
-      // if ((!disable_abort) && cur_behavior->getTimeoutEna())
-      // registerBehaviorCallback(cur_behavior);
     }
-  } catch (...) {
+  }
+  catch (...)
+  {
     ROS_WARN("Mission Execution failed because of an execption");
     AbortMission();
   }
@@ -295,7 +302,8 @@ void Mission::processMission() {
   ROS_INFO("Leaving ProcessMission");
 }
 
-void Mission::AbortMission() {
+void Mission::AbortMission()
+{
   if ((GetState() == MissionState::ABORTING) || (GetState() == MissionState::COMPLETE)) return;
 
   ROS_WARN("Aborting mission");
@@ -305,7 +313,8 @@ void Mission::AbortMission() {
       new boost::thread(boost::bind(&Mission::processAbort, this)));
 }
 
-void Mission::processAbort() {
+void Mission::processAbort()
+{
   m_threadProcMission->interrupt();
   m_threadProcMission->join();
 
@@ -314,15 +323,18 @@ void Mission::processAbort() {
 
   bool abortfirsttime = true;
 
-  try {
-    while (1) {
+  try
+  {
+    while (1)
+    {
       // Get the next abort behavior
       boost::mutex::scoped_lock lock(m_mutCallbacks);
       m_current_behavior = getNextAbortBehavior(abortfirsttime);
       lock.unlock();
       abortfirsttime = false;
 
-      if (m_current_behavior == NULL) {
+      if (m_current_behavior == NULL)
+      {
         SetState(MissionState::COMPLETE);
         ROS_INFO("Done with abort behaviors");
         break;  // no more behaviors
@@ -336,18 +348,23 @@ void Mission::processAbort() {
 
       // Sleep until we need to execute the behavior
       int success = 0;
-      try {
+      try
+      {
         success = m_current_behavior->WaitForExecutionTimeSlot();
-      } catch (boost::thread_interrupted) {
+      }
+      catch (boost::thread_interrupted)
+      {
         break;
       }
 
-      if (success == -1) {
+      if (success == -1)
+      {
         continue;  // go on to the next abort behavior
       }
 
       int behaviorTime = m_current_behavior->computeExecutionTimeForBehavior();
-      if (behaviorTime == -1) {
+      if (behaviorTime == -1)
+      {
         continue;  // go on to the next abort behavior
       }
 
@@ -355,17 +372,21 @@ void Mission::processAbort() {
 
       unsigned int loop_delay_usec = 1000;
       float time_elapsed = 0;
-      while (!m_current_behavior->getBehaviorDone()) {
+      while (!m_current_behavior->getBehaviorDone())
+      {
         usleep(loop_delay_usec);
         int behaviorDuration = m_current_behavior->getBehaviorDuration();
         if (behaviorDuration == 0.0) break;
-        if (behaviorDuration > 0.0) {
+        if (behaviorDuration > 0.0)
+        {
           time_elapsed += loop_delay_usec / 1000000.0;  // add seconds passed
           if (time_elapsed >= behaviorDuration) break;
         }
       }
     }
-  } catch (...) {
+  }
+  catch (...)
+  {
     ROS_WARN("Mission Abort Execution failed because of an execption");
   }
 

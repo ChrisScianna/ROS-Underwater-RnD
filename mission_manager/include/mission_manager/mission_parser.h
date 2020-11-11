@@ -34,37 +34,35 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __MISSION_PARSER_H
-#define __MISSION_PARSER_H
+#ifndef MISSION_MANAGER_MISSION_PARSER_H
+#define MISSION_MANAGER_MISSION_PARSER_H
 
 #include <ros/node_handle.h>
 #include <string>
 
-#include "behavior_factory.h"
-#include "mission.h"
+#include "mission_manager/behavior_factory.h"
+#include "mission_manager/mission.h"
 #include "tinyxml/tinyxml.h"
 
-namespace mission_manager {
+namespace mission_manager
+{
 
-class MissionParser {
+class MissionParser
+{
  public:
   MissionParser();
-  MissionParser(ros::NodeHandle nh);
+  explicit MissionParser(ros::NodeHandle nh);
   virtual ~MissionParser();
 
   bool parseMissionFile(Mission& mission, const std::string& mission_file);
-  //	bool parseMissionFile(Mission& mission, const std::string& mission_file, const std::string&
-  //schema_file); 	int validateMissionDoc(xmlDocPtr mission_doc, const std::string& schema_file);
 
   void cleanupMission(Mission& mission);
 
  protected:
-  //	static xmlNodePtr findNodeChildElement(xmlNodePtr parent, const char *name);
-
   BehaviorFactory m_factory;
   ros::NodeHandle node_handle;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_MISSION_PARSER_H

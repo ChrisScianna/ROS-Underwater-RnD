@@ -34,41 +34,41 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __FIXED_RUDDER_H
-#define __FIXED_RUDDER_H
+/* Behavioral fixed rudder
 
-#include "../behavior.h"
+        <fixed_rudder>
+            <description>
+                00:00:00 - .
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">50</timeout>
+            <depth unit="deg">10.0</depth>
+            <rudder unit="deg">180.0</rudder>
+            <speed_knots>0.0</speed_knots>
+        </fixed_rudder>
+*/
+
+#ifndef MISSION_MANAGER_BEHAVIORS_FIXED_RUDDER_H
+#define MISSION_MANAGER_BEHAVIORS_FIXED_RUDDER_H
+
+#include <string>
+#include "mission_manager/behavior.h"
 #include "mission_manager/FixedRudder.h"
 
-namespace mission_manager {
+namespace mission_manager
+{
 
-class FixedRudderBehavior : public Behavior {
+class FixedRudderBehavior : public Behavior
+{
  public:
   FixedRudderBehavior();
   virtual ~FixedRudderBehavior();
-
   virtual bool parseMissionFileParams();
-
-  //	bool parseXml(xmlNodePtr node);
-  bool getParams(ros::NodeHandle nh);
-
   virtual void publishMsg();
 
-  //	void populateMsg(ros::Message *msg);
+  bool getParams(ros::NodeHandle nh);
   bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-  /*
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<FixedRudder>(nh, m_topic, queue_size);
-          }
 
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<FixedRudder>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<FixedRudder>(msg);
-          }
-  */
  private:
   ros::Publisher fixed_rudder_behavior_pub;
 
@@ -91,6 +91,6 @@ class FixedRudderBehavior : public Behavior {
   float m_altitude_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_FIXED_RUDDER_H

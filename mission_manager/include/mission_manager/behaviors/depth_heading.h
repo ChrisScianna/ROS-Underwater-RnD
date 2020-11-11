@@ -34,81 +34,59 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PODLOG_H
-#define __PODLOG_H
+/*  Behavioral - Depth Heading
+
+        <depth_heading>
+            <description>
+                00:00:00 - .
+            </description>
+            <when unit="sec">0</when>
+            <timeout unit="sec">50</timeout>
+            <depth unit="deg">10.0</depth>
+            <heading unit="deg">180.0</heading>
+            <speed_knots>0.0</speed_knots>
+        </depth_heading>
+*/
+
+#ifndef MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H
+#define MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H
 
 #include <string>
+#include "mission_manager/behavior.h"
+#include "mission_manager/DepthHeading.h"
 
-#include "../behavior.h"
+namespace mission_manager
+{
 
-#undef USE_PODLOG
-#define USE_LOGBASE
-
-#ifdef USE_PODLOG
-#undef USE_LOGBASE
-#else
-#define USE_LOGBASE
-#endif
-
-#ifdef USE_PODLOG
-#include "podlog/SetLogState.h"
-#else
-//#include "logbase.h"
-#endif
-
-namespace mission_manager {
-
-class PodlogBehavior : public Behavior {
+class DepthHeadingBehavior : public Behavior
+{
  public:
-  PodlogBehavior();
-  virtual ~PodlogBehavior();
-
+  DepthHeadingBehavior();
+  virtual ~DepthHeadingBehavior();
   virtual bool parseMissionFileParams();
-  //	bool parseXml(xmlNodePtr node);
+  virtual void publishMsg();
 
-  virtual void callService(ros::NodeHandle node_handle);
-  /*
-          ros::ServiceClient createServiceClient(bool persistent) {
-  #ifdef USE_PODLOG
-                  return Behavior::createServiceClient<podlog::SetLogState>(m_service, persistent);
-  #else
-                  return ros::ServiceClient();
-  #endif
-          }
+  bool getParams(ros::NodeHandle nh);
+  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
 
-          void *createSrv() {
-  #ifdef USE_PODLOG
-                  return Behavior::createSrv<podlog::SetLogState>();
-  #else
-                  return Behavior::createSrv<logbase::SetLogState>();
-  #endif
-          }
-
-          void destroySrv(void *srv) {
-  #ifdef USE_PODLOG
-                  return Behavior::destroySrv<podlog::SetLogState>(srv);
-  #else
-                  return Behavior::destroySrv<logbase::SetLogState>(srv);
-  #endif
-          }
-
-          void populateSrv(void *srv);
-
-          void callSrv(ros::ServiceClient srvcli, void *srv) {
-  #ifdef USE_PODLOG
-                  return Behavior::callSrv<podlog::SetLogState>(srvcli, srv);
-  #else
-                  std::string s = "/" + m_logid + "/set_log_state";
-                  srvcli = Behavior::createServiceClient<logbase::SetLogState>(s, false);
-                  return Behavior::callSrv<logbase::SetLogState>(srvcli, srv);
-  #endif
-          }
-  */
  private:
-  bool m_logging;
-  std::string m_logid;
+  ros::Publisher depth_heading_behavior_pub;
+
+  float m_depth;
+  float m_heading;
+  float m_speed_knots;
+
+  std::string m_depth_unit;
+  std::string m_heading_unit;
+
+  bool m_depth_ena;
+  bool m_heading_ena;
+  bool m_speed_knots_ena;
+
+  float m_depth_tol;
+  float m_heading_tol;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_DEPTH_HEADING_H

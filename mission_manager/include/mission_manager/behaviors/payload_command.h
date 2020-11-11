@@ -34,17 +34,26 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PAYLOAD_COMMAND_H
-#define __PAYLOAD_COMMAND_H
+/* Behavioral payload
+  <payload>
+    <description>Payload Msg</description>
+    <when unit="sec">30</when>
+    <timeout unit="sec">35</timeout>
+    <command>Go,500</command>
+  </payload>
+*/
 
-#include "../behavior.h"
+#ifndef MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H
+#define MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H
 
+#include <string>
+#include "mission_manager/behavior.h"
 #include "payload_manager/PayloadCommand.h"  // this is the ROS Message
 
-namespace mission_manager 
+namespace mission_manager
 {
 
-class PayloadCommandBehavior : public Behavior 
+class PayloadCommandBehavior : public Behavior
 {
  public:
   PayloadCommandBehavior();
@@ -65,6 +74,6 @@ class PayloadCommandBehavior : public Behavior
   bool m_command_str_ena;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIORS_PAYLOAD_COMMAND_H

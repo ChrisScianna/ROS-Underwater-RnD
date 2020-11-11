@@ -34,8 +34,8 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __BEHAVIOR_FACTORY_H
-#define __BEHAVIOR_FACTORY_H
+#ifndef MISSION_MANAGER_BEHAVIOR_FACTORY_H
+#define MISSION_MANAGER_BEHAVIOR_FACTORY_H
 
 #include <map>
 #include <string>
@@ -49,53 +49,21 @@
 #include "behaviors/podlog.h"
 #include "behaviors/waypoint.h"
 
-namespace mission_manager {
+namespace mission_manager
+{
 
-/*
-typedef Behavior *create_obj_fn_t(void);
-typedef void destroy_obj_fn_t(Behavior *behavior);
-typedef const char *get_xml_tag_fn_t(void);
-typedef behavior_type_t get_type_fn_t(void);
-
-typedef const char *get_topic_fn_t(void);
-typedef ros::Publisher create_pub_fn_t(ros::NodeHandle nh, int queue_size);
-typedef ros::Message *create_msg_fn_t();
-typedef void destroy_msg_fn_t(ros::Message *msg);
-
-typedef const char *get_service_fn_t(void);
-typedef ros::ServiceClient create_srv_client_fn_t(bool persistent);
-*/
-/*
-class IFactory {
-public:
-        IFactory();
-        ~IFactory();
-
-        void *lib_handle;
-
-        // Common hooks
-        create_obj_fn_t *create_obj_fn;
-        destroy_obj_fn_t *destroy_obj_fn;
-};
-*/
-class BehaviorFactory {
+class BehaviorFactory
+{
  public:
   BehaviorFactory();
-  BehaviorFactory(const std::string& behavior_dir);
+  explicit BehaviorFactory(const std::string& behavior_dir);
   virtual ~BehaviorFactory();
 
-  /*
-          bool addSubFactory(const std::string& xml_tag);
-          IFactory *findSubFactory(const std::string& xml_tag);
-  */
   Behavior* createBehavior(const std::string& name);
-  //	void destroyBehavior(const std::string& name, Behavior *behavior);
 
  private:
-  //	typedef std::map<std::string, IFactory *> factory_map_t;
-  //	factory_map_t m_factories;
 };
 
-}  // namespace mission_manager
+}   //  namespace mission_manager
 
-#endif
+#endif  //  MISSION_MANAGER_BEHAVIOR_FACTORY_H

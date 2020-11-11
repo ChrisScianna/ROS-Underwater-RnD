@@ -34,57 +34,54 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef __PINGER_H
-#define __PINGER_H
+/*  Behavioral podlog
+  <podlog>
+      <description>
+          Turn on logging for the servocntl.
+      </description>
+      <when unit="sec">0</when>
+      <log_id state="on">servocntl</log_id>
+  </podlog>
+*/
 
-#include "../behavior.h"
-#include "mission_manager/Ping.h"
+#ifndef MISSION_MANAGER_BEHAVIORS_PODLOG_H
+#define MISSION_MANAGER_BEHAVIORS_PODLOG_H
 
-namespace mission_manager {
+#include <string>
+#include "mission_manager/behavior.h"
 
-class PingerBehavior : public Behavior {
- public:
-  PingerBehavior();
-  virtual ~PingerBehavior();
+#undef USE_PODLOG
+#define USE_LOGBASE
 
-  virtual bool parseMissionFileParams();
-  //	bool parseXml(xmlNodePtr node);
-  bool getParams(ros::NodeHandle nh);
+#ifdef USE_PODLOG
+#undef USE_LOGBASE
+#else
+#define USE_LOGBASE
+#endif
 
-  virtual void publishMsg();
-  /*
-          void populateMsg(ros::Message *msg);
-
-          ros::Publisher createPublisher(ros::NodeHandle nh, int queue_size) {
-                  return Behavior::createPublisher<Ping>(nh, m_topic, queue_size);
-          }
-
-          ros::Message *createMsg() {
-                  return Behavior::createMsg<Ping>();
-          }
-
-          void destroyMsg(ros::Message *msg) {
-                  return Behavior::destroyMsg<Ping>(msg);
-          }
-  */
- private:
-  ros::Publisher fixed_rudder_behavior_pub;
-
-  bool m_pingenabled;
-  uint8_t m_waveform_select;
-  float m_waveform_amp;
-  float m_waveform_freq;
-  float m_waveform_on;
-  float m_waveform_off;
-
-  bool m_pingenabled_ena;
-  bool m_waveform_select_ena;
-  bool m_waveform_amp_ena;
-  bool m_waveform_freq_ena;
-  bool m_waveform_on_ena;
-  bool m_waveform_off_ena;
-};
-
-}  // namespace mission_manager
+#ifdef USE_PODLOG
+#include "podlog/SetLogState.h"
+#else
 
 #endif
+
+namespace mission_manager
+{
+
+class PodlogBehavior : public Behavior
+{
+ public:
+  PodlogBehavior();
+  virtual ~PodlogBehavior();
+
+  virtual bool parseMissionFileParams();
+  virtual void callService(ros::NodeHandle node_handle);
+
+ private:
+  bool m_logging;
+  std::string m_logid;
+};
+
+}   //  namespace mission_manager
+
+#endif  //  MISSION_MANAGER_BEHAVIORS_PODLOG_H
