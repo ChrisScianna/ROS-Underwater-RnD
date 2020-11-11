@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   diagnostic_tools
   health_monitor
   roscpp
+  roslint
   rospy
   sensor_msgs
   std_msgs
@@ -56,6 +57,12 @@ target_link_libraries(${NODE_APP_NAME}
   ${catkin_LIBRARIES}
 )
 
+roslint_cpp(
+  src/pose_estimator.cpp
+  src/pose_estimator_main.cpp
+  include/pose_estimator/pose_estimator.h
+)
+
 #############
 ## Install ##
 #############
@@ -74,3 +81,5 @@ install(FILES
 #############
 ## Testing ##
 #############
+
+roslint_add_test()

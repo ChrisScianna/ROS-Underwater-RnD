@@ -34,39 +34,44 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
+#ifndef POSE_ESTIMATOR_POSE_ESTIMATOR_H
+#define POSE_ESTIMATOR_POSE_ESTIMATOR_H
 
 #include <boost/thread/mutex.hpp>
+#include <cmath>
 
-#include "pose_estimator/CorrectedData.h"
 #include "ros/ros.h"
+#include "pose_estimator/CorrectedData.h"
 #include "sensor_msgs/FluidPressure.h"
 #include "sensor_msgs/Imu.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "tf/transform_datatypes.h"
 #include "thruster_control/ReportRPM.h"
-#include <cmath>
+#include <health_monitor/ReportFault.h>
+
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
-
 #include <diagnostic_tools/message_stagnation_check.h>
 #include <diagnostic_tools/periodic_message_status.h>
 
-#include <health_monitor/ReportFault.h>
 
-namespace qna {
-namespace robot {
+namespace qna
+{
+namespace robot
+{
 
-#define saltwater_density 1023.6     // kg/m^3
-#define freshwater_density 997.0474  // kg/m^3
-#define gravity 9.80665              // m/s^2
+#define SALTWATER_DENSITY                 1023.6    // kg/m^3
+#define FRESHWATER_DENSITY                997.0474  // kg/m^3
+#define GRAVITY                           9.80665   // m/s^2
+#define ABSOLUTE_PASCAL_TO_GAUGE_PASCAL   101325
 
 #define NODE_VERSION "2.01x"
 // Version log
 // 2.0 Initial MK-IV version
 // 2.01 Updating the roll positive direction
-using namespace std;
-using namespace pose_estimator;
+
+using pose_estimator::CorrectedData;
 
 class PoseEstimatorNode  //: public LogBase
 {
@@ -75,15 +80,15 @@ class PoseEstimatorNode  //: public LogBase
   ros::NodeHandle private_node_handle;
   ros::Subscriber sub_ahrs_data;
   ros::Subscriber sub_pressure_data;
-  ros::Subscriber sub_gps_data;
   ros::Subscriber sub_rpm_data;
+  ros::Subscriber sub_gps_data;
 
  private:
   bool running, data_valid;
   // Vars holding runtime params
-  double pub_rate;
-  double min_rate;
-  double max_rate;
+  double pubRate;
+  double minRate;
+  double maxRate;
 
   double maxDepth;
   double maxRollAng;
@@ -120,16 +125,16 @@ class PoseEstimatorNode  //: public LogBase
  public:
   // assumes that the pressure is in absolute pascal and a true flag indicates saltwater
   double calculateDepth(double pressure, bool flag);
-  PoseEstimatorNode(ros::NodeHandle h);
+  explicit PoseEstimatorNode(ros::NodeHandle h);
   ~PoseEstimatorNode();
 
   int start();
   int stop();
   bool spin();
-  void ahrsDataCallback(const sensor_msgs::Imu data);
-  void gpsDataCallback(const sensor_msgs::NavSatFix data);
-  void rpmDataCallback(const thruster_control::ReportRPM data);
-  void pressureDataCallback(const sensor_msgs::FluidPressure data);
+  void ahrsDataCallback(const sensor_msgs::Imu &data);
+  void rpmDataCallback(const thruster_control::ReportRPM &data);
+  void gpsDataCallback(const sensor_msgs::NavSatFix &data);
+  void pressureDataCallback(const sensor_msgs::FluidPressure &data);
   void processDynPos();
   void processLatLong();
   void processDepth();
@@ -139,3 +144,5 @@ class PoseEstimatorNode  //: public LogBase
 
 }  // namespace robot
 }  // namespace qna
+
+#endif  //  POSE_ESTIMATOR_POSE_ESTIMATOR_H
