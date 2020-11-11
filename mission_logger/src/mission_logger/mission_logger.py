@@ -9,6 +9,7 @@ from mission_manager.msg import ReportExecuteMissionState
 class MissionLogger(object):
 
     ACTIVE_MISSION_STATES = (
+        ReportExecuteMissionState.ABORTING,
         ReportExecuteMissionState.EXECUTING,
         ReportExecuteMissionState.PAUSED
     )
