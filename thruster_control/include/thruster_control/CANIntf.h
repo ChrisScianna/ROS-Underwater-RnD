@@ -36,40 +36,70 @@
 
 
 
+#ifndef THRUSTER_CONTROL_CANINTF_H
+#define THRUSTER_CONTROL_CANINTF_H
 
-#ifndef _DATA_OBJECT_H
-#define _DATA_OBJECT_H
+#include <pthread.h>
+#include <unistd.h>
+#include <vector>
+#include <string>
 
-#include <thread>
-#include <mutex>
+#include "canfestival/canfestival.h"
 
-template <class T>
-class DataObject
+#include "CO_VehicleSBC.h"
+#include "DataObject.h"
+
+
+class CANIntf
 {
     public:
-        DataObject();
+        CANIntf();
+        ~CANIntf();
 
-        void Set(T value) 
-        { 
-            std::lock_guard<std::mutex> guard(dataItemMutex);
-            dataItem = value;
-        };
+        bool Init();
 
-        T Get()
-        { 
-            std::lock_guard<std::mutex> guard(dataItemMutex);
-            return dataItem;
-        };
-        
+        DataObject<double> velocity_radsec;
+        DataObject<double> velocity_feedback_radsec;
+        DataObject<double> motor_tempC;
+        DataObject<double> last_set_rpm_time;		// in seconds
+
+        bool IsInitialized() {return isInitialized;}
+        void SetVehicleCommandData();
+        void GetVehicleStatusData();
+
+        void SetMotorTimeoutSeconds(double timeout) {motorTimeoutSeconds = timeout;}
+        double GetMotorTiemoutSeconds() {return motorTimeoutSeconds; }
+
+        void SetEnableCANLogging(bool enableLogging) {enableCANBusLogging = enableLogging;}
+
+        void AddCanNodeIdToList(std::string nodeId) {canNodeIdList.push_back(nodeId);}
+        std::vector<std::string> & GetCanNodeIdList(){return canNodeIdList;}
+
+
     protected:
+        // Threaded functions:
+        pthread_t heartbeatUpdateThread;
+        static void* UpdateHeartbeat(void *data);
+
+        pthread_t nodeStatusMonitorThread;
+        static void* MonitorNodeStatus(void *data);
+        void MonitorHeartbeat();
+        unsigned short previousHeartbeat; 
+
+        pthread_t vehicleInfoUpdateThread;
+        static void* UpdateVehicleInfo(void *data);
+
     private:
-        T dataItem;
-        std::mutex  dataItemMutex;
+        bool SetupCANBus();
+        bool isInitialized;
+
+        bool DMCHeartbeatTimeout;
+        double motorTimeoutSeconds;
+
+        bool enableCANBusLogging;
+
+        std::vector<std::string> canNodeIdList;
+
 };
 
-template <class T>
-inline DataObject<T>::DataObject()
-{
-}
-
-#endif // _DATA_OBJECT_H
+#endif // THRUSTER_CONTROL_CANINTF_H

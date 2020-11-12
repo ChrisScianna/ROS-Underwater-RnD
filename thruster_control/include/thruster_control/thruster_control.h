@@ -34,39 +34,35 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-
 /*
  * thruster_control.h
  */
 
-#ifndef _THRUSTER_CONTROL_H_
-#define _THRUSTER_CONTROL_H_
-
-#include <std_msgs/String.h>
-#include <std_msgs/UInt16.h>
-#include <std_msgs/UInt8.h>
-#include "std_msgs/Header.h"
+#ifndef THRUSTER_CONTROL_THRUSTER_CONTROL_H
+#define THRUSTER_CONTROL_THRUSTER_CONTROL_H
 
 #include <ros/ros.h>
 #include <cmath>
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
 #include <diagnostic_updater/diagnostic_updater.h>
-
+#include <health_monitor/ReportFault.h>
 #include <thruster_control/ReportMotorTemperature.h>
 #include <thruster_control/ReportRPM.h>
 #include <thruster_control/SetRPM.h>
+#include "thruster_control/CANIntf.h"
 
-#include <health_monitor/ReportFault.h>
 
-#include "CANIntf.h"
-
-namespace qna {
-namespace robot {
-
-class ThrusterControl {
+namespace qna
+{
+namespace robot
+{
+class ThrusterControl
+{
  public:
-  ThrusterControl(ros::NodeHandle& nodeHandle);
+  explicit ThrusterControl(ros::NodeHandle& nodeHandle);
   virtual ~ThrusterControl();
 
   ros::Timer reportRPMTimer;
@@ -111,4 +107,4 @@ class ThrusterControl {
 }  // namespace robot
 }  // namespace qna
 
-#endif  // _THRUSTER_CONTROL_H_
+#endif  // THRUSTER_CONTROL_THRUSTER_CONTROL_H
