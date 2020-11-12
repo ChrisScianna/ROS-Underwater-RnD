@@ -8,6 +8,7 @@ import rospy
 from .common import textindent
 from .mission_logger import MissionLogger
 
+
 class MissionBagRecorder(MissionLogger):
 
     Recording = collections.namedtuple('Recording', ['subprocess'])
