@@ -2,8 +2,6 @@
 	<!-- mission manager -->
 	<node pkg="mission_manager" type="mission_manager_node" name="mission_manager_node" output="screen">
 		<param name="mission_path" type="string" value="/home/dev/missions"/>
-		<param name="schema_path" type="string" value="/home/pod-devel/ros/mission_manager/missions/mission.xsd"/>
-		<param name="behavior_dir" type="string" value="/home/pod-devel/ros/mission_manager/lib"/>
 		<param name="disable_abort" type="boolean" value="true"/>
 		<param name="attitude_servo_roll_tol" type="double" value="1.0"/>
 		<param name="attitude_servo_pitch_tol" type="double" value="1.0"/>

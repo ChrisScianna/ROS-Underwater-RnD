@@ -102,7 +102,7 @@ class MissionManagerNode
 
  private:
   // Vars holding runtime params
-  std::string mission_path, behavior_dir;
+  std::string mission_path;
   bool disable_abort;
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
