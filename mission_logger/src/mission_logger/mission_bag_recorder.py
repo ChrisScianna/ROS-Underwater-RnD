@@ -27,7 +27,8 @@ class MissionBagRecorder(MissionLogger):
             subprocess.Popen(
                 cmd, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                cwd=self._log_directory
+                cwd=self._log_directory,
+                preexec_fn=os.setsid,
             )
         )
 
@@ -37,7 +38,8 @@ class MissionBagRecorder(MissionLogger):
     def _stop(self, recording):
         p = recording.subprocess
         if p.poll() is None:
-            p.send_signal(signal.SIGINT)
+            pgrp = os.getpgid(p.pid)
+            os.killpg(pgrp, signal.SIGINT)
         stdout, stderr = p.communicate()
         if p.returncode != 0:
             rospy.logerr('rosbag record finished with nonzero exit code %d', p.returncode)
