@@ -49,7 +49,7 @@ class MissionLogger(object):
 
     def spin(self):
         mission_state_subscriber = rospy.Subscriber(
-            "/mission_manager/report_execute_mission_state",
+            "/mngr/report_mission_execute_state",
             ReportExecuteMissionState, self._on_mission_state_change
         )
         try:
