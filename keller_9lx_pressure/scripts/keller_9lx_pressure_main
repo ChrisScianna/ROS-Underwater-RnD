@@ -325,6 +325,7 @@ class Keller9lxPressureSensorDriverNode(object):
             self.__diagnostics_updater.update()
             rate.sleep()
 
+
 def main():
     """
     Main driver application.
@@ -338,31 +339,31 @@ def main():
 if __name__ == '__main__':
     main()
 
-# Open serial connection to sensor
-#	baudrate=9600
-#	parity=none
-#	stopbits=1
-#	bytesize=8
-#	stopbits=1
-#	bytesize=8
-# On start up initialize
-#	code 48 setup [DevAddress, 48, Check Sum H, Check Sum L] ex:[250,48,4,67]
-#	single unit device adress is 250
-#	read data response. Should start [250,48,...]
-# Requesting data
-#	code 73: Request Data
-#	code 73 setup [DevAddress, 73, Channel*,Check Sum H, Check Sum L]
-#	****Channels:
-#     1:Pressure Sensor 1,
-#     2:Pressure Sensor 2,
-#     3:Additional Temp Sensor,
-#     4:Temp Sensor 1,
-#     5:Temp Sensor 2)
-#	ex: Pressure Request: 	[250,73,1,161,167]
-#	ex: Temperature Request:[250,73,4,162,103]
-# Processing Data
-#	returned message will be in the form [DevAddress,73,B3,B2,B1,B0,Stat,Check Sum H, Check Sum L]
-#	The most significant bit of B3 is the sign
-#	The 7 least significant of B3 concatinated with the most significant of B2 is the exponent
-#   and the remaining 23 bits of B2,B1,B0 make up the Mantis
-#	To convert to decimal for the following equation is used:
+#    Open serial connection to sensor
+#       baudrate=9600
+#       parity=none
+#       stopbits=1
+#       bytesize=8
+#       stopbits=1
+#       bytesize=8
+#    On start up initialize
+#       code 48 setup [DevAddress, 48, Check Sum H, Check Sum L] ex:[250,48,4,67]
+#       single unit device adress is 250
+#       read data response. Should start [250,48,...]
+#    Requesting data
+#       code 73: Request Data
+#       code 73 setup [DevAddress, 73, Channel*,Check Sum H, Check Sum L]
+#       ****Channels:
+#        1:Pressure Sensor 1,
+#        2:Pressure Sensor 2,
+#        3:Additional Temp Sensor,
+#        4:Temp Sensor 1,
+#        5:Temp Sensor 2)
+#       ex: Pressure Request: 	[250,73,1,161,167]
+#       ex: Temperature Request:[250,73,4,162,103]
+#    Processing Data
+#       returned message will be in the form [DevAddress,73,B3,B2,B1,B0,Stat,Check Sum H, Check Sum L]
+#       The most significant bit of B3 is the sign
+#       The 7 least significant of B3 concatinated with the most significant of B2 is the exponent
+#       and the remaining 23 bits of B2,B1,B0 make up the Mantis
+#       To convert to decimal for the following equation is used:
