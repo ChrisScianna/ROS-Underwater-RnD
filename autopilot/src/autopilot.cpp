@@ -408,7 +408,7 @@ void AutoPilotNode::workerFunc()
       if (missionMode)
         mixActuators(rollCmdPos, pitchCmdPos, yawCmdPos);
       else
-        mixActuators(0, 0, 0);
+        mixActuators(0, -maxCtrlFinAngle, 0);    //fin to surface
 
       // SPEED
       setRPM.commanded_rpms = desiredSpeed * rpmPerKnot;
