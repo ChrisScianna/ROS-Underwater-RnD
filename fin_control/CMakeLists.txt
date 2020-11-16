@@ -39,7 +39,7 @@ catkin_package(
 roslint_cpp(
   src/fin_control.cpp
   src/fin_control_main.cpp
-  include/fin_control.h
+  include/fin_control/fin_control.h
 )
 
 roslint_add_test()

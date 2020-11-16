@@ -49,6 +49,8 @@
 #include <diagnostic_tools/periodic_message_status.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <health_monitor/ReportFault.h>
+#include <rosmon_msgs/State.h>
+#include <mission_manager/ReportExecuteMissionState.h>
 #include <thruster_control/ReportMotorTemperature.h>
 #include <thruster_control/ReportRPM.h>
 #include <thruster_control/SetRPM.h>
@@ -88,14 +90,17 @@ class ThrusterControl
   double maxAllowedMotorRPM;
 
   void handle_SetRPM(const thruster_control::SetRPM::ConstPtr& msg);
+  void handle_rosmonFaults(const rosmon_msgs::State& msg);
 
   ros::NodeHandle& nodeHandle;
 
   ros::Subscriber subscriber_setRPM;
+  ros::Subscriber subscriber_rosmonFaults;
 
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportRPM> publisher_reportRPM;
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportMotorTemperature>
       publisher_reportMotorTemp;
+  ros::Publisher publisher_MissionStateAbort;
 
   diagnostic_tools::HealthCheck<double> motorRPMCheck;
   diagnostic_tools::HealthCheck<double> motorTemperatureCheck;

@@ -411,5 +411,25 @@ void FinControl::Stop()
   m_thread->join();
 }
 
+void FinControl::handle_rosmonFaults(const rosmon_msgs::State& msg)
+{
+  for (int i = 0; i < msg.nodes.size(); i++)
+  {
+    if (msg.nodes[i].state == rosmon_msgs::NodeState::CRASHED)
+    {
+      if (msg.nodes[i].name == "autopilot_node")
+      {
+        double maxCtrlFinAngleRadians = degreesToRadians(maxCtrlFinAngle);
+        fin_control::SetAngles::Ptr finAnglesToSurface;
+        finAnglesToSurface->f1_angle_in_radians = maxCtrlFinAngleRadians;
+        finAnglesToSurface->f2_angle_in_radians = maxCtrlFinAngleRadians;
+        finAnglesToSurface->f3_angle_in_radians = -maxCtrlFinAngleRadians;
+        finAnglesToSurface->f4_angle_in_radians = -maxCtrlFinAngleRadians;
+        handleSetAngles(finAnglesToSurface);
+      }
+    }
+  }
+}
+
 }  // namespace robot
 }  // namespace qna

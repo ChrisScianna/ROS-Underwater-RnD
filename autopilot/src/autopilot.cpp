@@ -183,7 +183,8 @@ void AutoPilotNode::correctedDataCallback(const pose_estimator::CorrectedData& d
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
 {
   using mission_manager::ReportExecuteMissionState;
-  if (data.execute_mission_state == ReportExecuteMissionState::COMPLETE)
+  if (data.execute_mission_state == ReportExecuteMissionState::COMPLETE ||
+      data.execute_mission_state == ReportExecuteMissionState::ABORTING)
   {
     boost::mutex::scoped_lock lock(m_mutex);
     missionMode = true;

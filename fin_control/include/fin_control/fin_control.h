@@ -38,8 +38,8 @@
  * fin_control.h
  */
 
-#ifndef FIN_CONTROL_H
-#define FIN_CONTROL_H
+#ifndef FIN_CONTROL_FIN_CONTROL_H
+#define FIN_CONTROL_FIN_CONTROL_H
 
 #define NUM_FINS 4
 #define NODE_VERSION "1.8x"
@@ -63,6 +63,7 @@
 #include <fin_control/SetAngle.h>
 #include <fin_control/SetAngles.h>
 #include <health_monitor/ReportFault.h>
+#include <rosmon_msgs/State.h>
 
 #include "dynamixel_workbench_msgs/DynamixelCommand.h"
 #include "dynamixel_workbench_msgs/DynamixelInfo.h"
@@ -99,6 +100,7 @@ class FinControl
   void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
   void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
+  void handle_rosmonFaults(const rosmon_msgs::State& msg);
 
   double maxCtrlFinAngle;
   double ctrlFinOffset;
@@ -112,6 +114,7 @@ class FinControl
   ros::Subscriber subscriber_setAngle;
   ros::Subscriber subscriber_setAngles;
   ros::Subscriber subscriber_enableReportAngles;
+  ros::Subscriber subscriber_rosmonFaults;
   ros::Publisher publisher_reportAngle;
 
   DynamixelWorkbench myWorkBench;
@@ -128,4 +131,4 @@ class FinControl
 }  // namespace robot
 }  // namespace qna
 
-#endif  // FIN_CONTROL_H
+#endif  // FIN_CONTROL_FIN_CONTROL_H

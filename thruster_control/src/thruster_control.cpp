@@ -100,6 +100,9 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   subscriber_setRPM =
       nodeHandle.subscribe("/thruster_control/set_rpm", 1, &ThrusterControl::handle_SetRPM, this);
 
+  subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/state", 1,
+                                                   &ThrusterControl::handle_rosmonFaults, this);
+
   canIntf.SetMotorTimeoutSeconds(setRPMTimeout);
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
   canIntf.AddCanNodeIdToList(canNodeId1);
@@ -107,6 +110,10 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
+
+  publisher_MissionStateAbort =
+      nodeHandle.advertise<mission_manager::ReportExecuteMissionState>(
+          "/mngr/report_mission_execute_state", 1, true);
 
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
   paramsReportsRPMCheckPeriod.min_acceptable_period(minReportRPMRate);
@@ -221,6 +228,26 @@ void ThrusterControl::handle_SetRPM(const thruster_control::SetRPM::ConstPtr& ms
 double ThrusterControl::convertRPMToRadSec(double rpms) { return (rpms * RPM_TO_RADSEC); }
 
 double ThrusterControl::convertRadSecToRPM(double radsec) { return (radsec * RADSEC_TO_RPM); }
+
+void ThrusterControl::handle_rosmonFaults(const rosmon_msgs::State& msg)
+{
+  for (int i = 0; i < msg.nodes.size(); i++)
+  {
+    if (msg.nodes[i].state == rosmon_msgs::NodeState::CRASHED)
+    {
+      if (msg.nodes[i].name == "mission_manager_node" || msg.nodes[i].name == "health_monitor_node")
+      {
+        mission_manager::ReportExecuteMissionState abortMissionMsg;
+        abortMissionMsg.header.stamp = ros::Time::now();
+        abortMissionMsg.execute_mission_state = mission_manager::ReportExecuteMissionState::ABORTING;
+        publisher_MissionStateAbort.publish(abortMissionMsg);
+
+        canIntf.velocity_radsec.Set(0.0);
+        canIntf.last_set_rpm_time.Set(ros::Time::now().toSec());
+      }
+    }
+  }
+}
 
 }  // namespace robot
 }  // namespace qna
