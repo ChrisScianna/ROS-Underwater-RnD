@@ -39,8 +39,10 @@ class MissionTextLogger(MissionLogger):
             output_filename = topic.strip('/').replace('/', '_') + '.txt'
             output_filepath = os.path.join(output_directory, output_filename)
             output_file = open(output_filepath, 'w')
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'  # avoid output buffering
             recording.subprocesses.append(subprocess.Popen(
-                ['rostopic', 'echo', '-p', topic],
+                ['rostopic', 'echo', '-p', topic], env=env,
                 stdout=output_file, stderr=subprocess.PIPE,
             ))
             recording.files.append(output_file)
