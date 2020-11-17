@@ -300,7 +300,8 @@ void CANIntf::GetVehicleStatusData()
     // set these values outside of the can mutex because they are mutexed also
     velocity_feedback_radsec.Set(velfeedback_radpersec);
     motor_tempC.Set(tempC);
-
+    battery_voltage.Set(batteryVoltage_mV);
+    motor_current.Set(motorCurrentFeedback_mA);
 	if (true == enableCANBusLogging)
 		ROS_INFO("{ThrusterData,%lf,%hu,%d,%hu}", velfeedback_radpersec, tempC, motorCurrentFeedback_mA, batteryVoltage_mV);
 }

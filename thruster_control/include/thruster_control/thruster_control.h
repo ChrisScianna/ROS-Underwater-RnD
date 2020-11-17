@@ -48,6 +48,7 @@
 #include <diagnostic_tools/message_stagnation_check.h>
 #include <diagnostic_tools/periodic_message_status.h>
 #include <diagnostic_updater/diagnostic_updater.h>
+#include <sensor_msgs/BatteryState.h>
 #include <health_monitor/ReportFault.h>
 #include <thruster_control/ReportMotorTemperature.h>
 #include <thruster_control/ReportRPM.h>
@@ -71,6 +72,9 @@ class ThrusterControl
   ros::Timer reportMotorTempTimer;
   void reportMotorTempSendTimeout(const ros::TimerEvent& timer);
 
+  ros::Timer reportBatteryHealthTimer;
+  void reportBatteryHealthSendTimeout(const ros::TimerEvent& timer);
+
   CANIntf canIntf;
 
  private:
@@ -80,6 +84,9 @@ class ThrusterControl
   double reportRPMRate;
   double minReportRPMRate;
   double maxReportRPMRate;
+  double reportBatteryHealthRate;
+  double minReportBatteryHealthRate;
+  double maxReportBatteryHealthRate;
   double reportMotorTemperatureRate;
   double minReportMotorTemperatureRate;
   double maxReportMotorTemperatureRate;
@@ -94,6 +101,8 @@ class ThrusterControl
   ros::Subscriber subscriber_setRPM;
 
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportRPM> publisher_reportRPM;
+  diagnostic_tools::DiagnosedPublisher<sensor_msgs::BatteryState> 
+      publisher_reportBatteryHealth;
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportMotorTemperature>
       publisher_reportMotorTemp;
 
