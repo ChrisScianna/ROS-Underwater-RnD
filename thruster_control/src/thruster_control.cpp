@@ -59,6 +59,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 
   reportRPMRate = 0.1;
   reportMotorTemperatureRate = 0.5;
+  reportBatteryHealthRate = 1.0;
   minReportRPMRate = reportRPMRate / 2.0;
   maxReportRPMRate = reportRPMRate * 2.0;
   minReportMotorTemperatureRate = reportMotorTemperatureRate / 2.0;
@@ -81,6 +82,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       minReportMotorTemperatureRate);
   nodeHandle.getParam("/thruster_control_node/max_report_motor_temperature_rate",
                       maxReportMotorTemperatureRate);
+  nodeHandle.getParam("/thruster_control_node/report_battery_health_rate",
+                      reportBatteryHealthRate);
   nodeHandle.getParam("/thruster_control_node/set_rpm_timeout_seconds", setRPMTimeout);
   nodeHandle.getParam("/thruster_control_node/current_logging_enabled", currentLoggingEnabled);
   nodeHandle.getParam("/thruster_control_node/can_node_id_1", canNodeId1);
@@ -92,6 +95,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       motorTemperatureSteadyBand);
   ROS_DEBUG_STREAM("report_rpm_rate set to " << reportRPMRate);
   ROS_DEBUG_STREAM("report_motor_temperatuere_rate set to  " << reportMotorTemperatureRate);
+  ROS_DEBUG_STREAM("report_battery_health_rate set to  " << reportBatteryHealthRate);
   ROS_DEBUG_STREAM("set_rpm_timeout_seconds set to  " << setRPMTimeout);
   ROS_DEBUG_STREAM("current_logging_enabled set to  " << currentLoggingEnabled ? "true" : "false");
   ROS_DEBUG_STREAM("CAN Node 1 Id =  " << canNodeId1);
@@ -104,10 +108,10 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
   canIntf.AddCanNodeIdToList(canNodeId1);
   canIntf.AddCanNodeIdToList(canNodeId2);
-
+  publisher_reportBatteryHealth = diagnostic_tools::create_publisher<sensor_msgs::BatteryState>(
+      nodeHandle, "/thruster_control/report_battery_health", 1);
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
-
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
   paramsReportsRPMCheckPeriod.min_acceptable_period(minReportRPMRate);
   paramsReportsRPMCheckPeriod.max_acceptable_period(maxReportRPMRate);
@@ -181,7 +185,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                                           &ThrusterControl::reportRPMSendTimeout, this);
   reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(reportMotorTemperatureRate),
                                                 &ThrusterControl::reportMotorTempSendTimeout, this);
-
+  reportBatteryHealthTimer = nodeHandle.createTimer(ros::Duration(reportBatteryHealthRate),
+                                                &ThrusterControl::reportBatteryHealthSendTimeout, this);
   canIntf.Init();
 }
 
@@ -208,6 +213,24 @@ void ThrusterControl::reportMotorTempSendTimeout(const ros::TimerEvent& timer)
   motorTemperatureCheck.test(message.motor_temp);
 
   publisher_reportMotorTemp.publish(message);
+  diagnosticsUpdater.update();
+}
+
+void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& timer)
+{
+  sensor_msgs::BatteryState message;
+
+  message.header.stamp = ros::Time::now();
+  message.voltage = canIntf.battery_voltage.Get()/1000.0;
+  //message.temperature = canIntf.motor_tempC.Get();
+  message.current = canIntf.motor_current.Get()/-1000.0;
+  message.power_supply_status = 0;
+  message.power_supply_health = 0;
+  message.power_supply_technology = 0;
+  message.present = 1;
+  message.location = "A";
+  message.serial_number = "1";
+  publisher_reportBatteryHealth.publish(message);
   diagnosticsUpdater.update();
 }
 

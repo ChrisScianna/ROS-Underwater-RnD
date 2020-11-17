@@ -62,6 +62,8 @@ class CANIntf
         DataObject<double> velocity_feedback_radsec;
         DataObject<double> motor_tempC;
         DataObject<double> last_set_rpm_time;		// in seconds
+	DataObject<double> motor_current;		// in A
+	DataObject<double> battery_voltage;		// in V
 
         bool IsInitialized() {return isInitialized;}
         void SetVehicleCommandData();
