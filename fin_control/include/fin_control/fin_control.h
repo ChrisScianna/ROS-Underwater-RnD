@@ -38,8 +38,8 @@
  * fin_control.h
  */
 
-#ifndef FIN_CONTROL_H
-#define FIN_CONTROL_H
+#ifndef FIN_CONTROL_FIN_CONTROL_H
+#define FIN_CONTROL_FIN_CONTROL_H
 
 #define NUM_FINS 4
 #define NODE_VERSION "1.8x"
@@ -128,4 +128,4 @@ class FinControl
 }  // namespace robot
 }  // namespace qna
 
-#endif  // FIN_CONTROL_H
+#endif  // FIN_CONTROL_FIN_CONTROL_H
