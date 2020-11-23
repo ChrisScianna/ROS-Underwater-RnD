@@ -59,6 +59,9 @@
 #include <mission_manager/AbortMission.h>
 #include <mission_manager/ExecuteMission.h>
 
+#include <health_monitor/ClearFault.h>
+
+
 bool debug_mode = false;
 
 JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
@@ -83,6 +86,10 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
       "/jaus_ros_bridge/activate_manual_control", 1, true);
   _publisher_EnableLogging = _nodeHandle.advertise<jaus_ros_bridge::EnableLogging>(
       "/jaus_ros_bridge/enable_logging", 1, true);
+
+  _publisher_ClearFault = _nodeHandle.advertise<health_monitor::ClearFault>(
+              "/health_monitor/ClearFault", 1, true);
+
   _udp = udp;
 
   _subscriber_reportRPM = _nodeHandle.subscribe("/thruster_control/report_rpm", 1,
@@ -136,7 +143,8 @@ void JausDataManager::SetBatteryPack(string batterypack) {
   _reportBatteryInfo.SetBatteryPack(batterypack);
 }
 
-void JausDataManager::ProcessReceivedData(char* buffer) {
+void JausDataManager::ProcessReceivedData(char* buffer)
+{
   if (strcmp(buffer, CONNECT_COMMAND) == 0) {
     _reportFin1State.Refresh();
     _reportFin2State.Refresh();
@@ -144,12 +152,14 @@ void JausDataManager::ProcessReceivedData(char* buffer) {
     _reportFin4State.Refresh();
     ROS_INFO(CONNECT_COMMAND);
     ResetAll();
-  } else if (strcmp(buffer, DISCONNECT_COMMAND) == 0) {
+  }
+  else if (strcmp(buffer, DISCONNECT_COMMAND) == 0) {
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = false;
     _publisher_ActivateManualControl.publish(msg);
     ROS_INFO(DISCONNECT_COMMAND);
-  } else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
+  }
+  else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = true;
     _publisher_ActivateManualControl.publish(msg);
@@ -157,7 +167,8 @@ void JausDataManager::ProcessReceivedData(char* buffer) {
 
     //_needTimerUpdate = true;
     ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
-  } else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
+  }
+  else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = false;
     _publisher_ActivateManualControl.publish(msg);
@@ -165,17 +176,26 @@ void JausDataManager::ProcessReceivedData(char* buffer) {
     //_needTimerUpdate = false;
     ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
     ResetAll();
-  } else if (strcmp(buffer, ENABLE_LOGGING) == 0) {
+  }
+  else if (strcmp(buffer, ENABLE_LOGGING) == 0) {
     jaus_ros_bridge::EnableLogging msg;
     msg.enable_logging = true;
     _publisher_EnableLogging.publish(msg);
     ROS_INFO(ENABLE_LOGGING);
-  } else if (strcmp(buffer, DISABLE_LOGGING) == 0) {
-    jaus_ros_bridge::EnableLogging msg;
-    msg.enable_logging = false;
-    _publisher_EnableLogging.publish(msg);
-    ROS_INFO(DISABLE_LOGGING);
-  } else {
+  }
+  else if (strcmp(buffer, DISABLE_LOGGING) == 0) {
+      jaus_ros_bridge::EnableLogging msg;
+      msg.enable_logging = false;
+      _publisher_EnableLogging.publish(msg);
+      ROS_INFO(DISABLE_LOGGING);
+  }
+  else if (strcmp(buffer, CLEAR_FAULT) == 0) {
+    health_monitor::ClearFault msg;
+    msg.fault_id = health_monitor::ClearFault::ALL_FAULTS; // 0
+    _publisher_ClearFault.publish(msg);
+    ROS_INFO(CLEAR_FAULT);
+  }
+  else {
     JausCommandID commandID = (JausCommandID) * ((long*)buffer);
     // thruster control
     if (commandID == JAUS_COMMAND_PowerPlantControl) {
