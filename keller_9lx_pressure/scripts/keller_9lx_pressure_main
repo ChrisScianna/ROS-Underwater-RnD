@@ -232,7 +232,7 @@ class Keller9lxPressureSensorDriverNode(object):
             Check if two fluid pressure messages are equal.
             """
             pressure_delta = first.fluid_pressure - second.fluid_pressure
-            return pressure_delta < pressure_steady_band
+            return abs(pressure_delta) < pressure_steady_band
 
         check = self.__pressure_pub.add_check(
             diagnostic_tools.MessageStagnationCheck(
