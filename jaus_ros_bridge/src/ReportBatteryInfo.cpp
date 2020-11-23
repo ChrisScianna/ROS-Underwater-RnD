@@ -46,7 +46,11 @@ void ReportBatteryInfo::init(ros::NodeHandle *nodeHandle, udpserver *udp) {
       nodeHandle->subscribe("/health_monitor/report_fault", 1,
                             &ReportBatteryInfo::handleReportFaultID, this);
     _subscriber_reportBatteryInfo = nodeHandle->subscribe(
-      "/battery_monitor/report_battery_info", 1, &ReportBatteryInfo::handleReportBatteryInfo, this);
+      "/thruster_control/report_battery_health", 1, &ReportBatteryInfo::handleReportBatteryInfo, this);
+
+    _subscriber_reportTemperature = nodeHandle->subscribe(
+      "/thruster_control/report_motor_temperature", 1, &ReportBatteryInfo::handleReportTemperature, this);
+
     Reset();
 }
 
@@ -113,18 +117,27 @@ void ReportBatteryInfo::Reset() {
 }
 
 bool ReportBatteryInfo::HasNewBatteryInfoData(
+        const sensor_msgs::BatteryState::ConstPtr &msg)
+{
+    if(_batteryInfo.batteryPacksTotalCurrent != (float)msg->current
+                || _batteryInfo.batteryVoltage != (float)msg->voltage)
+                //|| _batteryInfo.systemThermocouple1 != (unsigned short)msg->systemThermocouple1 )
+        return true;
+    else
+        return false;
+}
 
-    const battery_monitor::ReportBatteryInfo::ConstPtr &msg) {
-    if(_batteryInfo.batteryPacksTotalCurrent != (float)msg->batteryPackA.current
-                || _batteryInfo.batteryVoltage != (float)msg->batteryPackA.voltage
-                || _batteryInfo.systemThermocouple1 != (unsigned short)msg->systemThermocouple1 )
+bool ReportBatteryInfo::HasNewTemperatureData(
+        const thruster_control::ReportMotorTemperature::ConstPtr& msg)
+{
+    if(_batteryInfo.systemThermocouple1 != (unsigned short)msg->motor_temp )
         return true;
     else
         return false;
 }
 
 void ReportBatteryInfo::handleReportBatteryInfo(
-    const battery_monitor::ReportBatteryInfo::ConstPtr &msg) {
+    const sensor_msgs::BatteryState::ConstPtr &msg) {
 
     if (!_udpserver->IsConnected())
       return;
@@ -135,10 +148,30 @@ void ReportBatteryInfo::handleReportBatteryInfo(
     if (!HasNewBatteryInfoData(msg))
       return;
 
-    _batteryInfo.batteryPacksTotalCurrent = (float)msg->batteryPackA.current;
-    _batteryInfo.batteryVoltage = (float)msg->batteryPackA.voltage;
-    _batteryInfo.systemThermocouple1 = (unsigned short)msg->systemThermocouple1;
+    _batteryInfo.batteryPacksTotalCurrent = (float)msg->current;
+    _batteryInfo.batteryVoltage = (float)msg->voltage;
+    //_batteryInfo.systemThermocouple1 = (unsigned short)msg->systemThermocouple1;
 
+    DataInfo info = GetPackedMessageForBatteryInfo(&_batteryInfo);
+    _udpserver->RequestSendingMessage(_myID+"handleReportBatteryInfo", info._data, info._size);
+    delete [] info._data;
+
+    _beginTime = clock();
+}
+
+void ReportBatteryInfo::handleReportTemperature(
+        const thruster_control::ReportMotorTemperature::ConstPtr& msg)
+{
+    if (!_udpserver->IsConnected())
+      return;
+
+    if (!TimeToSend1(_beginTime, clock()))
+      return;
+
+    if (!HasNewTemperatureData(msg))
+      return;
+
+    _batteryInfo.systemThermocouple1 = (unsigned short)msg->motor_temp;
 
     DataInfo info = GetPackedMessageForBatteryInfo(&_batteryInfo);
     _udpserver->RequestSendingMessage(_myID+"handleReportBatteryInfo", info._data, info._size);

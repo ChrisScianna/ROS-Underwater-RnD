@@ -52,7 +52,7 @@ void ReportPowerPlantStatus::init(ros::NodeHandle* nodeHandle, udpserver* udp) {
   _subscriber_reportRPM = nodeHandle->subscribe("/thruster_control/report_rpm", 1,
                                                 &ReportPowerPlantStatus::handleReportRPM, this);
   _subscriber_reportMotorTemp =
-      nodeHandle->subscribe("/thruster_control/report_motor_temperature", 1,
+      nodeHandle->subscribe("/thruster_control/report_motor_temp", 1,
                             &ReportPowerPlantStatus::handleReportMotorTemp, this);
   _myID = "ReportPowerPlantStatus";
   Reset();

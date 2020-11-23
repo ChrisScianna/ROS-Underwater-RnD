@@ -73,6 +73,8 @@
 #define MISSION_START "StartMission"
 #define MISSION_ABORT "AbortMission"
 
+#define CLEAR_FAULT "ClearFault"
+
 enum ROS_DISP_TYPE { ROS_DEBUG = 0, ROS_INFO = 1, ROS_WARN = 2, ROS_ERROR = 3, ROS_FATAL = 4 };
 
 extern bool debug_mode;
@@ -114,6 +116,8 @@ class JausDataManager {
   ros::Publisher _publisher_EnableLogging;
   ros::Publisher _publisher_StartMission;
   ros::Publisher _publisher_AbortMission;
+  ros::Publisher _publisher_ClearFault;
+
   bool _activateManualControlEnabled;
 
   ros::Timer ActivateManualControl_timer;

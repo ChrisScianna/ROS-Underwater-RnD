@@ -39,9 +39,9 @@
 
 #include "JausMessageOut.h"
 
-#include <battery_monitor/ReportBatteryInfo.h>
-#include <battery_monitor/ReportLeakDetected.h>
 #include <health_monitor/ReportFault.h>
+#include <thruster_control/ReportMotorTemperature.h>
+#include <sensor_msgs/BatteryState.h>
 
 struct BatteryInfoData {
     float batteryPacksTotalCurrent;
@@ -54,6 +54,7 @@ class ReportBatteryInfo : public JausMessageOut {
   uint8_t* Int16ToByteArray(int16_t inVal);
   ros::Subscriber _subscriber_reportFaultID;
   ros::Subscriber _subscriber_reportBatteryInfo;
+  ros::Subscriber _subscriber_reportTemperature;
 
   uint64_t _fault_id;
   //bool _leakDetected;
@@ -62,7 +63,13 @@ class ReportBatteryInfo : public JausMessageOut {
 
   BatteryInfoData _batteryInfo;
 
-  bool HasNewBatteryInfoData(const battery_monitor::ReportBatteryInfo::ConstPtr& msg);
+  bool HasNewBatteryInfoData(const sensor_msgs::BatteryState::ConstPtr& msg);
+  bool HasNewTemperatureData(const thruster_control::ReportMotorTemperature::ConstPtr& msg);
+
+  bool TimeToSend1(clock_t beginTime, clock_t endTime) {
+    int difference = (((int)endTime) - ((int)beginTime));
+    return difference >= _sendInterval;
+  }
 
  public:
   // ReportBatteryInfo();
@@ -71,7 +78,8 @@ class ReportBatteryInfo : public JausMessageOut {
   void SetBatteryPack(string batterypack) { _batterypack = batterypack; }
 
   void handleReportFaultID(const health_monitor::ReportFault::ConstPtr& msg);
-  void handleReportBatteryInfo(const battery_monitor::ReportBatteryInfo::ConstPtr& msg);
+  void handleReportTemperature(const thruster_control::ReportMotorTemperature::ConstPtr& msg);
+  void handleReportBatteryInfo(const sensor_msgs::BatteryState::ConstPtr& msg);
 
   virtual DataInfo GetPackedMessage(void* data){};
   virtual void Reset();
