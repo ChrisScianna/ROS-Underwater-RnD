@@ -1,5 +1,6 @@
 import os
 import collections
+import datetime
 import subprocess
 import signal
 
@@ -17,12 +18,19 @@ class MissionBagRecorder(MissionLogger):
         super(MissionBagRecorder, self).__init__(name, anonymous=anonymous)
 
     def _start(self, mission_id):
-        bag_prefix = 'mission_{}'.format(mission_id)
-        cmd = ['rosbag', 'record', '-o', bag_prefix]
+        now = datetime.datetime.now()
+        bag_name = 'mission_{}_{}.bag'.format(
+            mission_id, now.strftime('%Y%m%d_%H%M%S')
+        )
+        cmd = ['rosbag', 'record', '-O', bag_name]
         if self._topics:
             cmd.extend(self._topics)
         else:
             cmd.append('--all')
+        rospy.loginfo(
+            "Bagfile '%s' for mission %d to be written to '%s'",
+            bag_name, mission_id, self._log_directory
+        )
         return MissionBagRecorder.Recording(
             subprocess.Popen(
                 cmd, stdout=subprocess.PIPE,
