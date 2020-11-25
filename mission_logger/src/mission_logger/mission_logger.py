@@ -17,6 +17,10 @@ class MissionLogger(object):
     def __init__(self, *args, **kwargs):
         rospy.init_node(*args, **kwargs)
         self._topics = rospy.get_param('~topics', [])
+        self._topics = [
+            rospy.resolve_name(topic_name)
+            for topic_name in self._topics
+        ]
         self._check_period = rospy.get_param('~check_period', 0.1)
         self._log_directory = rospy.get_param(
             '~log_directory', rospkg.get_log_dir()

@@ -5,28 +5,33 @@ import signal
 import subprocess
 
 import rosgraph
+import roslib.message
+from rostopic import _str_plot as message_to_csv
+from rostopic import _str_plot_fields as message_fields_to_csv
+
 import rospy
 
-from .common import textindent
 from .mission_logger import MissionLogger
 
 
 class MissionTextLogger(MissionLogger):
 
     Recording = collections.namedtuple(
-        'Recording', ['subprocesses', 'files']
+        'Recording', ['subscribers', 'files', 'errors']
     )
 
     def __init__(self, name='mission_text_logger', anonymous=True):
         super(MissionTextLogger, self).__init__(name, anonymous=anonymous)
 
     def _start(self, mission_id):
-        if not self._topics:
-            master = rosgraph.Master(rospy.get_name())
-            pubs, _, _ = master.getSystemState()
-            topics = [topic for topic, _ in pubs]
-        else:
-            topics = self._topics
+        master = rosgraph.Master(rospy.get_name())
+        topics = master.getPublishedTopics('')
+        if self._topics:
+            topics = [
+                (topic_name, topic_type)
+                for topic_name, topic_type in topics
+                if topic_name in self._topics
+            ]
         now = datetime.datetime.now()
         output_directory = os.path.join(
             self._log_directory, 'mission_{}_{}'.format(
@@ -34,29 +39,49 @@ class MissionTextLogger(MissionLogger):
             )
         )
         os.makedirs(output_directory)
-        recording = MissionTextLogger.Recording(subprocesses=[], files=[])
-        for topic in topics:
-            output_filename = topic.strip('/').replace('/', '_') + '.txt'
-            output_filepath = os.path.join(output_directory, output_filename)
-            output_file = open(output_filepath, 'w')
-            recording.subprocesses.append(subprocess.Popen(
-                ['rostopic', 'echo', '-p', topic],
-                stdout=output_file, stderr=subprocess.PIPE,
-            ))
-            recording.files.append(output_file)
+        rospy.loginfo(
+            "Text logs for mission %d to be written to '%s'",
+            mission_id, output_directory
+        )
+        recording = MissionTextLogger.Recording(
+            subscribers=[], files=[], errors=[]
+        )
+        try:
+            for topic_name, topic_type in topics:
+                msg_class = roslib.message.get_message_class(topic_type)
+                output_filename = topic_name.strip('/').replace('/', '_') + '.txt'
+                output_filepath = os.path.join(output_directory, output_filename)
+                output_file = open(output_filepath, 'w')
+                recording.files.append(output_file)
+                output_file.write('%' + message_fields_to_csv(
+                    msg_class(), 'field', None
+                ) + '\n')
+                recording.subscribers.append(rospy.Subscriber(
+                    topic_name, msg_class, self._write_message, (recording, output_file)
+                ))
+        except Exception:
+            self._stop(recording)
+            raise
         return recording
 
+    def _write_message(self, data, args):
+        recording, output_file = args
+        try:
+            if not os.path.exists(output_file.name):
+                raise RuntimeError('{} does not exist'.format(output_file.name))
+            output_file.write(message_to_csv(data) + '\n')
+        except Exception as e:
+            recording.errors.append(e)
+
     def _check(self, recording):
-        return all(p.poll() is None for p in recording.subprocesses)
+        return not recording.errors
 
     def _stop(self, recording):
-        for p in recording.subprocesses:
-            if p.poll() is None:
-                p.send_signal(signal.SIGINT)
-        for p, f in zip(recording.subprocesses, recording.files):
-            _, stderr = p.communicate()
-            if p.returncode != 0:
-                rospy.logerr('rostopic record finished with nonzero exit code %d', p.returncode)
-                rospy.logdebug('rostopic captured stderr')
-                rospy.logdebug(textindent(stderr))
+        for sub in recording.subscribers:
+            sub.unregister()
+        for f in recording.files:
             f.close()
+        if recording.errors:
+            rospy.logerr('%d errors while writing messages', len(recording.errors))
+            for error in recording.errors:
+                rospy.logdebug(error)
