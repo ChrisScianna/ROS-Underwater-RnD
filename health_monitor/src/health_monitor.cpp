@@ -114,7 +114,6 @@ void HealthMonitor::handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr
     if (errorValues != 0)
     {
         setFault(errorValues);
-        sendFaults();
     }
 }
 
@@ -140,7 +139,6 @@ void HealthMonitor::handle_rosmonFaults(const rosmon_msgs::State &msg)
     if (errorValues != 0)
     {
         setFault(errorValues);
-        sendFaults();
     }
 }
 
