@@ -108,7 +108,7 @@ void HealthMonitor::handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr
             (msg->status[i].values.size() > 0) &&
             (msg->status[i].values[0].key == "Code"))
         {
-            errorValues |= stoi(msg->status[i].values[0].value);
+            errorValues |= stoll(msg->status[i].values[0].value);
         }
     }
     if (errorValues != 0)
