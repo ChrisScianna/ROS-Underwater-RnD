@@ -299,7 +299,7 @@ void CANIntf::GetVehicleStatusData()
 
     // set these values outside of the can mutex because they are mutexed also
     velocity_feedback_radsec.Set(velfeedback_radpersec);
-    motor_tempC.Set(tempC);
+    motor_tempC.Set(tempC-60.0);
     battery_voltage.Set(batteryVoltage_mV);
     motor_current.Set(motorCurrentFeedback_mA);
 	if (true == enableCANBusLogging)
