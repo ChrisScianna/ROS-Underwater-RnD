@@ -16,9 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
-  battery_monitor
   message_generation
   mission_manager
+  thruster_control
 )
 
 #find_package(catkin REQUIRED COMPONENTS

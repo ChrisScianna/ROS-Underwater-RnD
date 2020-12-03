@@ -148,7 +148,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
           [batteryCurrentSteadyBand](const sensor_msgs::BatteryState& a,
                                      const sensor_msgs::BatteryState& b)
           {
-            return std::fabs(a.current - b.current < batteryCurrentSteadyBand);
+            return std::fabs(a.current - b.current) < batteryCurrentSteadyBand;
           }
           , paramsBatteryMessageStagnationcheck));
 
