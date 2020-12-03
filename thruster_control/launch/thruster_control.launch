@@ -12,6 +12,12 @@
   <arg name="canNodeId2" default="0x08"/>
   <arg name="motorTemperatureThreshold" default="50.0"/>
   <arg name="maxAllowedMotorRPM" default="0.0"/>
+  <arg name="reportBatteryHealthRate" default="1.0"/>
+  <arg name="minReportBatteryHealthRate" default="0.5"/>
+  <arg name="maxReportBatteryHealthRate" default="2.0"/>
+  <arg name="minBatteryTotalCurrent" default="1"/>
+  <arg name="minBatteryCellVoltage" default="1"/>
+  <arg name="batteryTotalCurrentSteadyBand" default="0.0"/>
 
   <node name="thruster_control_node" pkg="thruster_control" type="thruster_control_node" output="screen">
     <param name="report_rpm_rate" type="double" value="$(arg rpmRate)" />
@@ -27,6 +33,12 @@
     <param name="can_node_id_2" type="string" value="$(arg canNodeId2)" />
     <param name="motor_temperature_threshold" type="double" value="$(arg motorTemperatureThreshold)" />
     <param name="max_allowed_motor_rpm" type="double" value="$(arg maxAllowedMotorRPM)" />
+    <param name="report_battery_health_rate" type="double" value="$(arg reportBatteryHealthRate)" />
+    <param name="battery_total_current_steady_band" type="double" value="$(arg batteryTotalCurrentSteadyBand)"/>
+    <param name="min_report_battery_health_rate" type="double" value="$(arg minReportBatteryHealthRate)" />
+    <param name="max_report_battery_health_rate" type="double" value="$(arg maxReportBatteryHealthRate)" />
+    <param name="min_battery_total_current" type="double" value="$(arg minBatteryTotalCurrent)"/>
+    <param name="min_battery_cell_voltage" type="double" value="$(arg minBatteryCellVoltage)"/>
   </node>
 
 </launch>

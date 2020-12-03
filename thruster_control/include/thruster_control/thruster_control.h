@@ -93,6 +93,7 @@ class ThrusterControl
   bool currentLoggingEnabled;
   double motorTemperatureThreshold;
   double maxAllowedMotorRPM;
+  double minBatteryTotalCurrent;
 
   void handle_SetRPM(const thruster_control::SetRPM::ConstPtr& msg);
 
@@ -101,13 +102,15 @@ class ThrusterControl
   ros::Subscriber subscriber_setRPM;
 
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportRPM> publisher_reportRPM;
-  diagnostic_tools::DiagnosedPublisher<sensor_msgs::BatteryState> 
+  diagnostic_tools::DiagnosedPublisher<sensor_msgs::BatteryState>
       publisher_reportBatteryHealth;
   diagnostic_tools::DiagnosedPublisher<thruster_control::ReportMotorTemperature>
       publisher_reportMotorTemp;
 
   diagnostic_tools::HealthCheck<double> motorRPMCheck;
   diagnostic_tools::HealthCheck<double> motorTemperatureCheck;
+  diagnostic_tools::HealthCheck<double> batteryCurrentCheck;
+  diagnostic_tools::HealthCheck<double> batteryVoltageCheck;
   diagnostic_updater::Updater diagnosticsUpdater;
 
   double convertRadSecToRPM(double radsec);

@@ -59,19 +59,23 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 
   reportRPMRate = 0.1;
   reportMotorTemperatureRate = 0.5;
-  reportBatteryHealthRate = 1.0;
   minReportRPMRate = reportRPMRate / 2.0;
   maxReportRPMRate = reportRPMRate * 2.0;
   minReportMotorTemperatureRate = reportMotorTemperatureRate / 2.0;
   maxReportMotorTemperatureRate = reportMotorTemperatureRate * 2.0;
-
+  reportBatteryHealthRate = 1.0;
+  minReportBatteryHealthRate = reportBatteryHealthRate / 2.0;
+  maxReportBatteryHealthRate = reportBatteryHealthRate * 2.0;
   setRPMTimeout = 0.5;  // 0.5 seconds, 500 milliseconds
   currentLoggingEnabled = false;
   std::string canNodeId1 = "";  // TODO(QNA) what should the default be??
   std::string canNodeId2 = "";
   motorTemperatureThreshold = 50;
   maxAllowedMotorRPM = 0;
+  minBatteryTotalCurrent = 5000;
   double motorTemperatureSteadyBand = 0.0;
+  double batteryCurrentSteadyBand = 0.0;
+  double minBatteryCellVoltage = 30;  // in V
 
   nodeHandle.getParam("/thruster_control_node/report_rpm_rate", reportRPMRate);
   nodeHandle.getParam("/thruster_control_node/min_report_rpm_rate", minReportRPMRate);
@@ -84,6 +88,12 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       maxReportMotorTemperatureRate);
   nodeHandle.getParam("/thruster_control_node/report_battery_health_rate",
                       reportBatteryHealthRate);
+  nodeHandle.getParam("/thruster_control_node/min_report_battery_health_rate",
+                      minReportBatteryHealthRate);
+  nodeHandle.getParam("/thruster_control_node/max_report_battery_health_rate",
+                      maxReportBatteryHealthRate);
+  nodeHandle.getParam("/thruster_control_node/battery_current_steady_band",
+                      batteryCurrentSteadyBand);
   nodeHandle.getParam("/thruster_control_node/set_rpm_timeout_seconds", setRPMTimeout);
   nodeHandle.getParam("/thruster_control_node/current_logging_enabled", currentLoggingEnabled);
   nodeHandle.getParam("/thruster_control_node/can_node_id_1", canNodeId1);
@@ -93,6 +103,9 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       motorTemperatureThreshold);
   nodeHandle.getParam("/thruster_control_node/motor_temperature_steady_band",
                       motorTemperatureSteadyBand);
+  nodeHandle.getParam("/thruster_control_node/min_battery_total_current", minBatteryTotalCurrent);
+  nodeHandle.getParam("/thruster_control_node/min_battery_cell_voltage", minBatteryCellVoltage);
+
   ROS_DEBUG_STREAM("report_rpm_rate set to " << reportRPMRate);
   ROS_DEBUG_STREAM("report_motor_temperatuere_rate set to  " << reportMotorTemperatureRate);
   ROS_DEBUG_STREAM("report_battery_health_rate set to  " << reportBatteryHealthRate);
@@ -100,6 +113,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   ROS_DEBUG_STREAM("current_logging_enabled set to  " << currentLoggingEnabled ? "true" : "false");
   ROS_DEBUG_STREAM("CAN Node 1 Id =  " << canNodeId1);
   ROS_DEBUG_STREAM("CAN Node 2 Id =  " << canNodeId2);
+  ROS_DEBUG_STREAM("Minimum Battery Total Current = " << minBatteryTotalCurrent);
+  ROS_INFO("Minimum Battery Cell Voltage:[%lf]", minBatteryCellVoltage);
 
   subscriber_setRPM =
       nodeHandle.subscribe("/thruster_control/set_rpm", 1, &ThrusterControl::handle_SetRPM, this);
@@ -108,8 +123,67 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
   canIntf.AddCanNodeIdToList(canNodeId1);
   canIntf.AddCanNodeIdToList(canNodeId2);
+
   publisher_reportBatteryHealth = diagnostic_tools::create_publisher<sensor_msgs::BatteryState>(
       nodeHandle, "/thruster_control/report_battery_health", 1);
+
+  diagnostic_tools::PeriodicMessageStatusParams paramsReportsBatteryHealthCheckPeriod{};
+  paramsReportsBatteryHealthCheckPeriod.min_acceptable_period(minReportBatteryHealthRate);
+  paramsReportsBatteryHealthCheckPeriod.max_acceptable_period(maxReportBatteryHealthRate);
+  diagnostic_tools::Diagnostic diagnosticBatteryHealthInfoStale(diagnostic_tools::Diagnostic::WARN,
+                                                                ReportFault::BATTERY_INFO_STALE);
+  paramsReportsBatteryHealthCheckPeriod.abnormal_diagnostic(diagnosticBatteryHealthInfoStale);
+  diagnosticsUpdater.add(
+      publisher_reportBatteryHealth.add_check<diagnostic_tools::PeriodicMessageStatus>(
+          "rate check", paramsReportsBatteryHealthCheckPeriod));
+
+  diagnostic_tools::MessageStagnationCheckParams paramsBatteryMessageStagnationcheck;
+  diagnostic_tools::Diagnostic diagnosticBatteryInfoStagnate(
+      diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STAGNATED);
+  paramsBatteryMessageStagnationcheck.stagnation_diagnostic(diagnosticBatteryInfoStagnate);
+
+  diagnosticsUpdater.add(
+      publisher_reportBatteryHealth.add_check<diagnostic_tools::MessageStagnationCheck>(
+          "stagnation check",
+          [batteryCurrentSteadyBand](const sensor_msgs::BatteryState& a,
+                                     const sensor_msgs::BatteryState& b)
+          {
+            return std::fabs(a.current - b.current < batteryCurrentSteadyBand);
+          }
+          , paramsBatteryMessageStagnationcheck));
+
+
+  batteryCurrentCheck = diagnostic_tools::create_health_check<double>(
+      "Battery Current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
+      {
+        using diagnostic_tools::Diagnostic;
+        if (batteryCurrent < minBatteryTotalCurrent)
+        {
+          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED)
+              .description("Total current - NOT OK (%f mA < %f mA)", batteryCurrent,
+                           minBatteryTotalCurrent);
+        }
+        return Diagnostic::OK;
+      }
+);
+  diagnosticsUpdater.add(batteryCurrentCheck);
+
+  batteryVoltageCheck = diagnostic_tools::create_health_check<double>(
+      "Battery Voltage check",
+      [minBatteryCellVoltage](double batteryVoltage) -> diagnostic_tools::Diagnostic
+      {
+        using diagnostic_tools::Diagnostic;
+        if (batteryVoltage < minBatteryCellVoltage)
+        {
+          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED)
+              .description("Battery Votlage - NOT OK (%f V < %f V)", batteryVoltage,
+                           minBatteryCellVoltage);
+        }
+        return Diagnostic::OK;
+      }
+);
+  diagnosticsUpdater.add(batteryVoltageCheck);
+
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
@@ -185,8 +259,9 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                                           &ThrusterControl::reportRPMSendTimeout, this);
   reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(reportMotorTemperatureRate),
                                                 &ThrusterControl::reportMotorTempSendTimeout, this);
-  reportBatteryHealthTimer = nodeHandle.createTimer(ros::Duration(reportBatteryHealthRate),
-                                                &ThrusterControl::reportBatteryHealthSendTimeout, this);
+  reportBatteryHealthTimer =
+      nodeHandle.createTimer(ros::Duration(reportBatteryHealthRate),
+                             &ThrusterControl::reportBatteryHealthSendTimeout, this);
   canIntf.Init();
 }
 
@@ -222,7 +297,7 @@ void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& time
 
   message.header.stamp = ros::Time::now();
   message.voltage = canIntf.battery_voltage.Get()/1000.0;
-  //message.temperature = canIntf.motor_tempC.Get();
+  //  message.temperature = canIntf.motor_tempC.Get();
   message.current = canIntf.motor_current.Get()/-1000.0;
   message.power_supply_status = 0;
   message.power_supply_health = 0;
@@ -230,6 +305,8 @@ void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& time
   message.present = 1;
   message.location = "A";
   message.serial_number = "1";
+  batteryCurrentCheck.test(message.voltage);
+  batteryVoltageCheck.test(message.current);
   publisher_reportBatteryHealth.publish(message);
   diagnosticsUpdater.update();
 }
