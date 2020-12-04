@@ -6,6 +6,7 @@
 #define _DIAGNOSTIC_TOOLS__PERIODIC_EVENT_STATUS_H_
 
 #include <mutex>
+#include <limits>
 
 #include <diagnostic_updater/diagnostic_updater.h>
 
@@ -86,8 +87,8 @@ class PeriodicEventStatus : public PeriodicDiagnosticTask {
 
  private:
   PeriodicEventStatusParams params_;
-  SampledStatistics<double> last_cycle_period_;
-  SampledStatistics<double> historic_period_;
+  SampledStatistics<double> last_cycle_period_{100};
+  SampledStatistics<double> historic_period_{std::numeric_limits<size_t>::max()};
   ros::Time last_stamp_;
   std::mutex mutex_;
 };
