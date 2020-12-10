@@ -65,18 +65,26 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
     double reportFaultsRate = 1.0;
     double minReportFaultRate = minReportFaultRate / 2.0;
     double maxReportFaultRate = minReportFaultRate * 2.0;
+    int lastCyclePeriodAverageWindow = 100;
+    int historicPeriodAverageWindow = 1000;
     nodeHandle.getParam("/health_monitor_node/report_faults_rate", reportFaultsRate);
     nodeHandle.getParam("/health_monitor_node/min_report_faults_rate", minReportFaultRate);
     nodeHandle.getParam("/health_monitor_node/max_report_faults_rate", maxReportFaultRate);
+    nodeHandle.getParam("/health_monitor_node/last_cycle_period_avg_window",
+                        lastCyclePeriodAverageWindow);
+    nodeHandle.getParam("/health_monitor_node/historic_period_avg_window",
+                        historicPeriodAverageWindow);
 
     ROS_INFO("Report Faults Rate:[%lf]", reportFaultsRate);
     reportFaultsTimer = nodeHandle.createTimer(ros::Duration(reportFaultsRate),
                                                &HealthMonitor::reportFaultsTimeout, this);
 
+    diagnostic_tools::PeriodicMessageStatusParams paramsReportsHealthMonitorCheckPeriod{};
+    paramsReportsHealthMonitorCheckPeriod.min_acceptable_period(minReportFaultRate);
+    paramsReportsHealthMonitorCheckPeriod.max_acceptable_period(maxReportFaultRate);
     diagnosticsUpdater.add(publisher_reportFault.add_check<diagnostic_tools::PeriodicMessageStatus>(
-        "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                          .min_acceptable_period(minReportFaultRate)
-                          .max_acceptable_period(maxReportFaultRate)));
+        "rate check", paramsReportsHealthMonitorCheckPeriod, lastCyclePeriodAverageWindow,
+        historicPeriodAverageWindow));
 }
 
 HealthMonitor::~HealthMonitor()
