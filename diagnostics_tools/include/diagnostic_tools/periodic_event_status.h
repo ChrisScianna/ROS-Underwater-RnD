@@ -6,7 +6,6 @@
 #define _DIAGNOSTIC_TOOLS__PERIODIC_EVENT_STATUS_H_
 
 #include <mutex>
-#include <limits>
 
 #include <diagnostic_updater/diagnostic_updater.h>
 
@@ -77,9 +76,12 @@ class PeriodicEventStatusParams final {
 
 class PeriodicEventStatus : public PeriodicDiagnosticTask {
  public:
-  PeriodicEventStatus(const std::string &name);
+  PeriodicEventStatus(const std::string &name, const size_t &last_cycle_period_avg_window,
+                      const size_t &historic_period_avg_window);
 
-  PeriodicEventStatus(const std::string &name, PeriodicEventStatusParams params);
+  PeriodicEventStatus(const std::string &name, PeriodicEventStatusParams params,
+                      const size_t &last_cycle_period_avg_window,
+                      const size_t &historic_period_avg_window);
 
   void tick(const ros::Time &stamp) override;
 
@@ -87,8 +89,8 @@ class PeriodicEventStatus : public PeriodicDiagnosticTask {
 
  private:
   PeriodicEventStatusParams params_;
-  SampledStatistics<double> last_cycle_period_{100};
-  SampledStatistics<double> historic_period_{std::numeric_limits<size_t>::max()};
+  SampledStatistics<size_t> last_cycle_period_;
+  SampledStatistics<size_t> historic_period_;
   ros::Time last_stamp_;
   std::mutex mutex_;
 };

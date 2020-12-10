@@ -4,12 +4,19 @@
 
 namespace qna {
 namespace diagnostic_tools {
+PeriodicEventStatus::PeriodicEventStatus(const std::string& name,
+                                         const size_t& last_cycle_period_avg_window,
+                                         const size_t& historic_period_avg_window)
+    : PeriodicEventStatus(name, PeriodicEventStatusParams{}, last_cycle_period_avg_window,
+                          historic_period_avg_window){}
 
-PeriodicEventStatus::PeriodicEventStatus(const std::string& name)
-    : PeriodicEventStatus(name, PeriodicEventStatusParams{}) {}
-
-PeriodicEventStatus::PeriodicEventStatus(const std::string& name, PeriodicEventStatusParams params)
-    : PeriodicDiagnosticTask(name), params_(std::move(params)) {}
+PeriodicEventStatus::PeriodicEventStatus(const std::string& name, PeriodicEventStatusParams params,
+                                         const size_t& last_cycle_period_avg_window,
+                                         const size_t& historic_period_avg_window)
+    : PeriodicDiagnosticTask(name),
+      params_(std::move(params)),
+      last_cycle_period_(last_cycle_period_avg_window),
+      historic_period_(historic_period_avg_window){}
 
 void PeriodicEventStatus::tick(const ros::Time& stamp) {
   std::lock_guard<std::mutex> guard(mutex_);
