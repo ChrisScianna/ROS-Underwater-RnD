@@ -20,16 +20,12 @@ using PeriodicMessageStatusParams = PeriodicEventStatusParams;
 template <typename MessageT>
 class PeriodicMessageStatus : public TopicDiagnosticTask<MessageT> {
  public:
-  PeriodicMessageStatus(const std::string &name, const size_t &last_cycle_period_avg_window,
-                        const size_t &historic_period_avg_window)
-      : PeriodicMessageStatus(name, PeriodicMessageStatusParams{}, last_cycle_period_avg_window,
-                              historic_period_avg_window) {}
+  PeriodicMessageStatus(const std::string &name)
+      : PeriodicMessageStatus(name, PeriodicMessageStatusParams{}) {}
 
-  PeriodicMessageStatus(const std::string &name, PeriodicMessageStatusParams params,
-                        const size_t &last_cycle_period_avg_window,
-                        const size_t &historic_period_avg_window)
+  PeriodicMessageStatus(const std::string &name, PeriodicMessageStatusParams params)
       : TopicDiagnosticTask<MessageT>(name),
-        impl_(name, std::move(params), last_cycle_period_avg_window, historic_period_avg_window) {}
+        impl_(name, std::move(params)) {}
 
   void tick(const ros::Time &stamp, const MessageT &) override { this->tick(stamp); }
 

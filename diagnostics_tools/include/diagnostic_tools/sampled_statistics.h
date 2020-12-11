@@ -14,17 +14,20 @@ namespace diagnostic_tools
 template <typename T>
 class SampledStatistics
 {
- public:
-  explicit SampledStatistics(size_t windows_size) { windows_size_ = windows_size; }
+public:
+  explicit SampledStatistics(T windows_size) { windows_size_ = windows_size; }
 
   void reset()
   {
     average_ = T{};
     minimum_ = T{};
     maximum_ = T{};
+
+    std::queue<T> empty;
+    std::swap(buffer_, empty);
   }
 
-  void update(const T& sample)
+  void update(const T &sample)
   {
     if (buffer_.size() > 0)
     {
@@ -50,7 +53,6 @@ class SampledStatistics
     buffer_.push(sample);
     accumulate_ += sample;
     average_ = (accumulate_ / buffer_.size());
-
   }
 
   size_t sample_count() const { return buffer_.size(); }
@@ -61,13 +63,13 @@ class SampledStatistics
 
   T minimum() const { return minimum_; }
 
- private:
+private:
   T average_{};
   T minimum_{};
   T maximum_{};
   T accumulate_{0};
   std::queue<T> buffer_;
-  size_t windows_size_{};
+  T windows_size_{};
 };
 
 }  // namespace diagnostic_tools
