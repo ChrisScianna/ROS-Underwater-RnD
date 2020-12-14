@@ -334,9 +334,9 @@ int run(int argc, char *argv[])
     int async_output_rate;
 
     // Sensor IMURATE (800Hz by default, used to configure device)
-    int SensorImuRate;
-    int minImuRate;
-    int maxImuRate;
+    double SensorImuRate;
+    double minImuRate;
+    double maxImuRate;
 
     double orientationSteadyBand = 0.0;
 
@@ -347,18 +347,18 @@ int run(int argc, char *argv[])
     pn.param<int>("async_output_rate", async_output_rate, 40);
     pn.param<std::string>("serial_port", SensorPort, "/dev/ttyUSB0");
     pn.param<int>("serial_baud", SensorBaudrate, 115200);
-    pn.param<int>("fixed_imu_rate", SensorImuRate, 800);
+    pn.param<double>("fixed_imu_rate", SensorImuRate, 800.0);
     minImuRate = SensorImuRate / 2;
     maxImuRate = SensorImuRate * 2;
-    pn.param<int>("min_imu_rate", minImuRate);
-    pn.param<int>("max_imu_rate", maxImuRate);
+    pn.param<double>("min_imu_rate", minImuRate);
+    pn.param<double>("max_imu_rate", maxImuRate);
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
     //The minimal rate is the same as sensor imu rate.
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                          .min_acceptable_period(1.0 / minImuRate)
-                          .max_acceptable_period(1.0 / maxImuRate)
+                          .min_acceptable_period(1.0 / maxImuRate)
+                          .max_acceptable_period(1.0 / minImuRate)
                           .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR,
                                                 health_monitor::ReportFault::AHRS_DATA_STALE})));
 
@@ -464,7 +464,7 @@ int run(int argc, char *argv[])
     // Configure binary output message
     BinaryOutputRegister bor(
             ASYNCMODE_PORT1,
-            SensorImuRate / async_output_rate,  // update rate [ms]
+            static_cast<uint16_t>(SensorImuRate / async_output_rate),  // update rate [ms]
             COMMONGROUP_QUATERNION
             | COMMONGROUP_ANGULARRATE
             | COMMONGROUP_POSITION

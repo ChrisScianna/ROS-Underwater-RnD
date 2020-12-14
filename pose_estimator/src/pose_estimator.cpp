@@ -88,8 +88,8 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
     diagnostic_tools::Diagnostic::ERROR, ReportFault::POSE_DATA_STALE
   };
   diagnostic_tools::PeriodicMessageStatusParams paramsCorrectedDataCheckPeriod;
-  paramsCorrectedDataCheckPeriod.min_acceptable_period(1.0 / minRate);
-  paramsCorrectedDataCheckPeriod.max_acceptable_period(1.0 / maxRate);
+  paramsCorrectedDataCheckPeriod.min_acceptable_period(1.0 / maxRate);
+  paramsCorrectedDataCheckPeriod.max_acceptable_period(1.0 / minRate);
   paramsCorrectedDataCheckPeriod.abnormal_diagnostic(diagnosticCorrectedDataInfoStale);
   diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::PeriodicMessageStatus>(
       "rate check", paramsCorrectedDataCheckPeriod));
