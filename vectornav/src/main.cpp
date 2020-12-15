@@ -332,11 +332,11 @@ int run(int argc, char *argv[])
     string SensorPort;
     int SensorBaudrate;
     int async_output_rate;
+    double max_async_output_rate;
+    double min_async_output_rate;
 
     // Sensor IMURATE (800Hz by default, used to configure device)
-    double SensorImuRate;
-    double minImuRate;
-    double maxImuRate;
+    int SensorImuRate;
 
     double orientationSteadyBand = 0.0;
 
@@ -347,18 +347,20 @@ int run(int argc, char *argv[])
     pn.param<int>("async_output_rate", async_output_rate, 40);
     pn.param<std::string>("serial_port", SensorPort, "/dev/ttyUSB0");
     pn.param<int>("serial_baud", SensorBaudrate, 115200);
-    pn.param<double>("fixed_imu_rate", SensorImuRate, 800.0);
-    minImuRate = SensorImuRate / 2;
-    maxImuRate = SensorImuRate * 2;
-    pn.param<double>("min_imu_rate", minImuRate);
-    pn.param<double>("max_imu_rate", maxImuRate);
+    pn.param<int>("fixed_imu_rate", SensorImuRate, 800);
+    
+    min_async_output_rate = static_cast<double>(async_output_rate) / 2;
+    max_async_output_rate = static_cast<double>(async_output_rate) * 2;
+
+    pn.param<double>("min_async_output_rate", min_async_output_rate);
+    pn.param<double>("max_async_output_rate", max_async_output_rate);
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
     //The minimal rate is the same as sensor imu rate.
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                          .min_acceptable_period(1.0 / maxImuRate)
-                          .max_acceptable_period(1.0 / minImuRate)
+                          .min_acceptable_period(1.0 / max_async_output_rate)
+                          .max_acceptable_period(1.0 / min_async_output_rate)
                           .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR,
                                                 health_monitor::ReportFault::AHRS_DATA_STALE})));
 
@@ -464,7 +466,7 @@ int run(int argc, char *argv[])
     // Configure binary output message
     BinaryOutputRegister bor(
             ASYNCMODE_PORT1,
-            static_cast<uint16_t>(SensorImuRate / async_output_rate),  // update rate [ms]
+            SensorImuRate / async_output_rate,  // update rate [ms]
             COMMONGROUP_QUATERNION
             | COMMONGROUP_ANGULARRATE
             | COMMONGROUP_POSITION
