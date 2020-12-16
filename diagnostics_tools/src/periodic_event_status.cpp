@@ -17,7 +17,7 @@ void PeriodicEventStatus::tick(const ros::Time& stamp) {
   std::lock_guard<std::mutex> guard(mutex_);
   if (!last_stamp_.isZero()) {
     if (stamp < last_stamp_) {
-      ROS_WARN_NAMED("diagnostics_tools", "Time went backwards from %f to %f, resetting.",
+      ROS_WARN_NAMED("diagnostics_tools", "Time went backwards from %f to %f",
                      last_stamp_.toSec(), stamp.toSec());
     } else {
       const double delta_in_seconds = (stamp - last_stamp_).toSec();
