@@ -24,7 +24,8 @@ class PeriodicMessageStatus : public TopicDiagnosticTask<MessageT> {
       : PeriodicMessageStatus(name, PeriodicMessageStatusParams{}) {}
 
   PeriodicMessageStatus(const std::string &name, PeriodicMessageStatusParams params)
-      : TopicDiagnosticTask<MessageT>(name), impl_(name, std::move(params)) {}
+      : TopicDiagnosticTask<MessageT>(name),
+        impl_(name, std::move(params)) {}
 
   void tick(const ros::Time &stamp, const MessageT &) override { this->tick(stamp); }
 

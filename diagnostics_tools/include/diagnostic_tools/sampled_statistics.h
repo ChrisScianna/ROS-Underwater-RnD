@@ -5,34 +5,57 @@
 #ifndef _DIAGNOSTIC_TOOLS__SAMPLED_STATISTICS_H_
 #define _DIAGNOSTIC_TOOLS__SAMPLED_STATISTICS_H_
 
-namespace qna {
-namespace diagnostic_tools {
+#include <queue>
 
+namespace qna
+{
+namespace diagnostic_tools
+{
 template <typename T>
-class SampledStatistics {
- public:
-  void reset() {
+class SampledStatistics
+{
+public:
+  explicit SampledStatistics(T windows_size) { windows_size_ = windows_size; }
+
+  void reset()
+  {
     average_ = T{};
     minimum_ = T{};
     maximum_ = T{};
-    sample_count_ = 0;
+
+    std::queue<T> empty;
+    std::swap(buffer_, empty);
   }
 
-  void update(const T& sample) {
-    average_ = (sample + average_ * sample_count_) / (sample_count_ + 1);
-    if (sample_count_ > 0) {
-      if (maximum_ < sample) {
+  void update(const T &sample)
+  {
+    if (buffer_.size() > 0)
+    {
+      if (maximum_ < sample)
+      {
         maximum_ = sample;
-      } else if (minimum_ > sample) {
+      }
+      else if (minimum_ > sample)
+      {
         minimum_ = sample;
       }
-    } else {
+    }
+    else
+    {
       minimum_ = maximum_ = sample;
     }
-    sample_count_++;
+
+    if (buffer_.size() == windows_size_)
+    {
+      accumulate_ -= buffer_.front();
+      buffer_.pop();
+    }
+    buffer_.push(sample);
+    accumulate_ += sample;
+    average_ = (accumulate_ / buffer_.size());
   }
 
-  size_t sample_count() const { return sample_count_; }
+  size_t sample_count() const { return buffer_.size(); }
 
   T average() const { return average_; }
 
@@ -40,11 +63,13 @@ class SampledStatistics {
 
   T minimum() const { return minimum_; }
 
- private:
+private:
   T average_{};
   T minimum_{};
   T maximum_{};
-  size_t sample_count_{0};
+  T accumulate_{0};
+  std::queue<T> buffer_;
+  T windows_size_{};
 };
 
 }  // namespace diagnostic_tools

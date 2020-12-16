@@ -66,9 +66,25 @@ class PeriodicEventStatusParams final {
 
   const Diagnostic &stale_diagnostic() const { return stale_diagnostic_; }
 
+  PeriodicEventStatusParams &short_term_avg_window(size_t short_term_avg_window) {
+    short_term_avg_window_ = short_term_avg_window;
+    return *this;
+  }
+
+  size_t short_term_avg_window() const { return short_term_avg_window_; }
+
+  PeriodicEventStatusParams &long_term_avg_window(size_t long_term_avg_window) {
+    long_term_avg_window_ = long_term_avg_window;
+    return *this;
+  }
+
+  size_t long_term_avg_window() const { return long_term_avg_window_; }
+
  private:
   double min_acceptable_period_{-1};
   double max_acceptable_period_{5};
+  size_t short_term_avg_window_{1};
+  size_t long_term_avg_window_{10000};
   Diagnostic normal_diagnostic_{Diagnostic::OK, "Rate within tolerance"};
   Diagnostic abnormal_diagnostic_{Diagnostic::WARN, "Rate too high or too low"};
   Diagnostic stale_diagnostic_{Diagnostic::STALE, "Not enough data since last update"};
@@ -86,8 +102,8 @@ class PeriodicEventStatus : public PeriodicDiagnosticTask {
 
  private:
   PeriodicEventStatusParams params_;
-  SampledStatistics<double> last_cycle_period_;
-  SampledStatistics<double> historic_period_;
+  SampledStatistics<double> short_term_period_;
+  SampledStatistics<double> long_term_period_;
   ros::Time last_stamp_;
   std::mutex mutex_;
 };
