@@ -193,46 +193,40 @@ void FinControl::reportAngles()
 {
   const char *log;
   fin_control::ReportAngle message;
+  bool servos_angles_info_complete = true;
+
+  message.header.stamp = ros::Time::now();
+  for (int i = 0; i < numOfIDs; i++) message.angles_in_radians.push_back(0.);
 
   if (!reportAnglesEnabled) return;  // do not interfere with fins updating
 
-  message.header.stamp = ros::Time::now();
-  message.angle_in_radians = 0;
-
-  boost::mutex::scoped_lock lock(m_mutex);
-
-  for (int x = 0; x < numOfIDs; x++)
+  for (int id = 0; id < numOfIDs; id++)
   {
-    reportAngle(ids[x]);
+    // get from dynamixel
+    if (myWorkBench.getRadian(id, &message.angles_in_radians[id], &log))
+    {
+      message.angles_in_radians[id] =
+          static_cast<float>(round(((message.angles_in_radians[id] / ctrlFinScaleFactor) -
+                                    degreesToRadians(ctrlFinOffset)) *
+                                   100.0) /
+                             100.0);
+    }
+    else
+    {
+      servos_angles_info_complete = false;
+      ROS_ERROR("Could not get servo angle for ID %d %s", id, log);
+    }
   }
-}
-void FinControl::reportAngle(uint8_t id)
-{
-  const char *log;
-  fin_control::ReportAngle message;
-
-  if (!reportAnglesEnabled) return;  // do not interfere with fins updating
-
-  message.header.stamp = ros::Time::now();
-  message.angle_in_radians = 0;
-
-  message.ID = id;
-  // get from dynamixel
-  if (myWorkBench.getRadian(id, &message.angle_in_radians, &log))
+  if (servos_angles_info_complete)
   {
-    message.angle_in_radians = static_cast<float>(
-        round(((message.angle_in_radians / ctrlFinScaleFactor) - degreesToRadians(ctrlFinOffset)) *
-              100.0) /
-        100.0);
-    finAngleCheck.test(message.angle_in_radians);
-
+    for (int i = 0; i < numOfIDs; i++)
+    {
+      finAngleCheck.test(message.angles_in_radians[i]);
+    }
     publisher_reportAngle.publish(message);
   }
-  else
-  {
-    ROS_ERROR("Could not get servo angle for ID %d %s", message.ID, log);
-  }
 }
+
 float FinControl::radiansToDegrees(float radians) { return (radians * (180.0 / M_PI)); }
 
 float FinControl::degreesToRadians(float degrees) { return ((degrees / 180.0) * M_PI); }
