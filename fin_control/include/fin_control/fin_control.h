@@ -93,8 +93,6 @@ class FinControl
   void workerFunc();
   void Start();
   void Stop();
-  float radiansToDegrees(float radians);
-  float degreesToRadians(float degrees);
   void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
   void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);

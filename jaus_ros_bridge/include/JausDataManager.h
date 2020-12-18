@@ -88,7 +88,7 @@ class JausDataManager {
   void SetBatteryPack(string batterypack);
 
   void ProcessReceivedData(char* buffer);
-  static float degreesToRadians(int8_t degrees) { return ((degrees / 180.0) * M_PI); };
+  static float degreesToRadians(int8_t degrees) { return ((static_cast<float>(degrees) / 180.0) * M_PI); };
 
   static float radiansToDegrees(float radians) { return (radians * (180.0 / M_PI)); };
 
