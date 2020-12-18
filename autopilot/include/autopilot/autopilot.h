@@ -134,8 +134,7 @@ class AutoPilotNode
   void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
 
   void mixActuators(double roll, double pitch, double yaw);
-  double radiansToDegrees(double radians);
-  double degreesToRadians(double degrees);
+  double degreesToRadians(const double &degrees);
   void missionMgrHeartbeatTimeout(const ros::TimerEvent& timer);
 
   void workerFunc();

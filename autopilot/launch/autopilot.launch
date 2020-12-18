@@ -23,27 +23,27 @@
 
     <param name="roll_p" type="double" value="1.0" />
     <param name="roll_i" type="double" value="0.0" />
-    <param name="roll_imax" type="double" value="20.0" />
-    <param name="roll_imin" type="double" value="-20.0" />
+    <param name="roll_imax" type="double" value="0.349066" />
+    <param name="roll_imin" type="double" value="-0.349066" />
     <param name="roll_d" type="double" value="0.0" />
 
     <param name="pitch_p" type="double" value="1.0" />
     <param name="pitch_i" type="double" value="0.0" />
-    <param name="pitch_imax" type="double" value="20.0" />
-    <param name="pitch_imin" type="double" value="-20.0" />
+    <param name="pitch_imax" type="double" value="0.349066" />
+    <param name="pitch_imin" type="double" value="-0.349066" />
     <param name="pitch_d" type="double" value="0.0" />
 
     <param name="yaw_p" type="double" value="1.0" />
     <param name="yaw_i" type="double" value="0.0" />
-    <param name="yaw_imax" type="double" value="20.0" />
-    <param name="yaw_imin" type="double" value="-20.0" />
+    <param name="yaw_imax" type="double" value="0.349066" />
+    <param name="yaw_imin" type="double" value="-0.349066" />
     <param name="yaw_d" type="double" value="0.0" />
 
     <param name="max_depth_command" type="double" value="10.0" />
     <param name="depth_p" type="double" value="1.0" />
     <param name="depth_i" type="double" value="0.0" />
-    <param name="depth_imax" type="double" value="20.0" />
-    <param name="depth_imin" type="double" value="-20.0" />
+    <param name="depth_imax" type="double" value="0.349066" />
+    <param name="depth_imin" type="double" value="-0.349066" />
     <param name="depth_d" type="double" value="0.0" />
   </node>
 

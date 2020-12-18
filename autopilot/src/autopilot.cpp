@@ -88,8 +88,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<double>("/autopilot_node/depth_imin", depthIMin, 0.0);
   nh.param<double>("/autopilot_node/depth_d", depthDGain, 0.0);
 
-  nh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 10.0);  // degrees
-  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);       // degrees
+  nh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 0.174533);  // degrees
+  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);
 
   rollPIDController.initPid(rollPGain, rollIGain, rollDGain, rollIMax, rollIMin);
   pitchPIDController.initPid(pitchPGain, rollIGain, pitchDGain, pitchIMax, pitchIMin);
@@ -165,19 +165,17 @@ void AutoPilotNode::missionMgrHeartbeatTimeout(const ros::TimerEvent& timer)
   }
 }
 
-double AutoPilotNode::radiansToDegrees(double radians) { return (radians * (180.0 / M_PI)); }
-
-double AutoPilotNode::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+double AutoPilotNode::degreesToRadians(const double &degrees) { return ((degrees / 180.0) * M_PI); }
 
 void AutoPilotNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   boost::mutex::scoped_lock lock(m_mutex);
 
   currentDepth = data.depth;
-  currentRoll = radiansToDegrees(data.rpy_ang.x);
-  currentPitch = radiansToDegrees(data.rpy_ang.y);
-  currentYaw = radiansToDegrees(data.rpy_ang.z);
-  currentYaw = fmod((currentYaw + 180.0), 360.0) - 180.0;  // translate from INS 0-360 to +/-180
+  currentRoll = data.rpy_ang.x;
+  currentPitch = data.rpy_ang.y;
+  currentYaw = data.rpy_ang.z;
+  currentYaw = fmod((currentYaw + M_PI), 2*M_PI) - M_PI;  // translate from INS 2*M_PI to +/-M_PI
 }
 
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
@@ -230,14 +228,13 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw)
 {
   // da = roll, ds = pitch, dr = yaw
 
-  yaw = fmod((yaw + 180.0), 360.0) - 180.0;  // translate from INS 0-360 to +/-180
+  yaw = fmod((yaw + M_PI), 2*M_PI) - M_PI;  // translate from INS 0-2 M_PI to +/-M_PI
   double d1;                                 // Fin 1 bottom stbd
   double d2;                                 // Fin 2 top stb
   double d3;                                 // Fin 3 bottom port
   double d4;                                 // Fin 4 top port
-  // ROS_INFO("ds: [%f] dr: [%f] da: [%f]",ds,dr,da);
 
-  double rollRadians = degreesToRadians(currentRoll);
+  double rollRadians = currentRoll;
   double newYaw = yaw * cos(rollRadians) - pitch * sin(rollRadians);
   double newPitch = yaw * sin(rollRadians) + pitch * cos(rollRadians);
   yaw = newYaw;
@@ -257,11 +254,10 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw)
 
   fin_control::SetAngles setAnglesMsg;
 
-  setAnglesMsg.f1_angle_in_radians = degreesToRadians(d1);
-  setAnglesMsg.f2_angle_in_radians = degreesToRadians(d2);
-  setAnglesMsg.f3_angle_in_radians = degreesToRadians(d3);
-  setAnglesMsg.f4_angle_in_radians = degreesToRadians(d4);
-  // ROS_INFO("F1,F2,F3,F4: [%f,%f,%f,%f]",d1,d2,d3,d4);
+  setAnglesMsg.f1_angle_in_radians = d1;
+  setAnglesMsg.f2_angle_in_radians = d2;
+  setAnglesMsg.f3_angle_in_radians = d3;
+  setAnglesMsg.f4_angle_in_radians = d4;
   finsControlPub.publish(setAnglesMsg);
 }
 
@@ -282,14 +278,14 @@ void AutoPilotNode::attitudeServoCallback(const mission_manager::AttitudeServo& 
   fixedRudder = true;  // this equate to fixed rudder with roll and pitch commands.
 
   ROS_INFO("Angle for roll: [%f]", msg.roll);
-  desiredRoll = msg.roll;
+  desiredRoll = degreesToRadians(msg.roll);
 
   ROS_INFO("Angle for pitch: [%f]", msg.pitch);
-  desiredPitch = msg.pitch;
+  desiredPitch = degreesToRadians(msg.pitch);
   depthControl = false;  // disable depth control setting pitch instead
 
   ROS_INFO("Angle for yaw: [%f]", msg.yaw);
-  desiredRudder = msg.yaw;  // yaw in attitude servo is really a fixedrudder
+  desiredRudder = degreesToRadians(msg.yaw);  // yaw in attitude servo is really a fixedrudder
 
   ROS_INFO("speed_knots: [%f]", msg.speed_knots);
 
@@ -397,7 +393,7 @@ void AutoPilotNode::workerFunc()
       if (!fixedRudder)
       {
         yawDiff = currentYaw - desiredYaw;
-        yawError = fmod((yawDiff + 180.0), 360.0) - 180.0;
+        yawError = fmod((yawDiff + M_PI), 2*M_PI) - M_PI;
         yawCmdPos = yawPidController.updatePid(yawError, ros::Duration(1.0 / controlLoopRate));
       }
       else  // overiding yaw with fixed rudder
@@ -408,7 +404,7 @@ void AutoPilotNode::workerFunc()
       if (missionMode)
         mixActuators(rollCmdPos, pitchCmdPos, yawCmdPos);
       else
-        mixActuators(0, -maxCtrlFinAngle, 0);    //fin to surface
+        mixActuators(0, -maxCtrlFinAngle, 0);    //  fin to surface
 
       // SPEED
       setRPM.commanded_rpms = desiredSpeed * rpmPerKnot;
