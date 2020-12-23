@@ -81,7 +81,6 @@ class FinControl
   ros::Timer reportAngleTimer;
   void reportAngleSendTimeout(const ros::TimerEvent& timer);
   void reportAngles();
-  void reportAngle(uint8_t id);
 
  private:
   boost::shared_ptr<boost::thread> m_thread;
