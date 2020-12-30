@@ -31,6 +31,8 @@ class HealthCheck {
 
   bool test(const Ts &... args) { return impl_->test(args...); }
 
+  explicit operator bool() const { return impl_->has_test(); }
+
   operator diagnostic_updater::DiagnosticTask &() { return *impl_; }
 
  private:
@@ -42,8 +44,8 @@ class HealthCheck {
         : diagnostic_updater::DiagnosticTask(name), test_function_(test_function) {}
 
     bool test(const Ts &... args) {
-      std::lock_guard<std::mutex> guard(mutex_);
       if (test_function_) {
+        std::lock_guard<std::mutex> guard(mutex_);
         diagnostic_ = test_function_(args...);
         if (diagnostic_.description().empty()) {
           diagnostic_.description(description_for(diagnostic_.status()));
@@ -51,6 +53,8 @@ class HealthCheck {
       }
       return diagnostic_.status() == Diagnostic::OK;
     }
+
+    bool has_test() const { return test_function_; }
 
     void run(diagnostic_updater::DiagnosticStatusWrapper &stat) override {
       std::lock_guard<std::mutex> guard(mutex_);
