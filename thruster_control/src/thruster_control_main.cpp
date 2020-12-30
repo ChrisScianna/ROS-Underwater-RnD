@@ -39,7 +39,8 @@
  */
 
 #include <ros/ros.h>
-#include <thruster_control/thruster_control.h>
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <thruster_control/thruster_control_ros.h>
 
 // Version log
 // 1.0 Initial version
@@ -50,14 +51,21 @@
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "thruster_control");
-  ros::Time::init();
 
-  ros::NodeHandle nodeHandle;
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
 
   ROS_INFO("Starting Thruster Control node Version: [%s]", NODE_VERSION);
-  nodeHandle.setParam("/version_numbers/thruster_control_node", NODE_VERSION);
+  nh.setParam("/version_numbers/thruster_control_node", NODE_VERSION);
 
-  qna::robot::ThrusterControl robot(nodeHandle);
+  diagnostic_updater::Updater updater(nh, pnh);
+  updater.setHardwareID("thruster");
+  ros::Timer diagnostics_timer = nh.createTimer(
+      ros::Duration(updater.getPeriod()),
+      [&updater](const ros::TimerEvent&) { updater.update(); });
+
+  qna::robot::ThrusterControlROS controller(nh, pnh);
+  controller.MonitorUsing(&updater);
 
   ros::spin();
 

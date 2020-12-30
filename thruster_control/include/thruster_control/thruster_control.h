@@ -42,79 +42,41 @@
 #define THRUSTER_CONTROL_THRUSTER_CONTROL_H
 
 #include <ros/ros.h>
-#include <cmath>
-#include <diagnostic_tools/diagnosed_publisher.h>
-#include <diagnostic_tools/health_check.h>
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
-#include <diagnostic_updater/diagnostic_updater.h>
 #include <sensor_msgs/BatteryState.h>
-#include <health_monitor/ReportFault.h>
 #include <thruster_control/ReportMotorTemperature.h>
 #include <thruster_control/ReportRPM.h>
 #include <thruster_control/SetRPM.h>
-#include "thruster_control/CANIntf.h"
 
+#include "thruster_control/CANIntf.h"
 
 namespace qna
 {
 namespace robot
 {
-class ThrusterControl
+
+class ThrusterControlInterface
+{
+public:
+  virtual ~ThrusterControlInterface() = default;
+
+  virtual thruster_control::ReportRPM GetMotorRPM() = 0;
+  virtual void SetMotorRPM(const thruster_control::SetRPM& message) = 0;
+  virtual thruster_control::ReportMotorTemperature GetMotorTemperature() = 0;
+  virtual sensor_msgs::BatteryState GetBatteryState() = 0;
+};
+
+class ThrusterControl : public ThrusterControlInterface
 {
  public:
-  explicit ThrusterControl(ros::NodeHandle& nodeHandle);
-  virtual ~ThrusterControl();
+  explicit ThrusterControl(std::unique_ptr<CANIntf> can_interface);
 
-  ros::Timer reportRPMTimer;
-  void reportRPMSendTimeout(const ros::TimerEvent& timer);
-
-  ros::Timer reportMotorTempTimer;
-  void reportMotorTempSendTimeout(const ros::TimerEvent& timer);
-
-  ros::Timer reportBatteryHealthTimer;
-  void reportBatteryHealthSendTimeout(const ros::TimerEvent& timer);
-
-  CANIntf canIntf;
+  thruster_control::ReportRPM GetMotorRPM() override;
+  void SetMotorRPM(const thruster_control::SetRPM& msg) override;
+  thruster_control::ReportMotorTemperature GetMotorTemperature() override;
+  sensor_msgs::BatteryState GetBatteryState() override;
 
  private:
-  double setRPMTimeout;
-  ros::Time lastSetRPMCommandTime;
-
-  double reportRPMRate;
-  double minReportRPMRate;
-  double maxReportRPMRate;
-  double reportBatteryHealthRate;
-  double minReportBatteryHealthRate;
-  double maxReportBatteryHealthRate;
-  double reportMotorTemperatureRate;
-  double minReportMotorTemperatureRate;
-  double maxReportMotorTemperatureRate;
-  bool currentLoggingEnabled;
-  double motorTemperatureThreshold;
-  double maxAllowedMotorRPM;
-  double minBatteryTotalCurrent;
-
-  void handle_SetRPM(const thruster_control::SetRPM::ConstPtr& msg);
-
-  ros::NodeHandle& nodeHandle;
-
-  ros::Subscriber subscriber_setRPM;
-
-  diagnostic_tools::DiagnosedPublisher<thruster_control::ReportRPM> publisher_reportRPM;
-  diagnostic_tools::DiagnosedPublisher<sensor_msgs::BatteryState>
-      publisher_reportBatteryHealth;
-  diagnostic_tools::DiagnosedPublisher<thruster_control::ReportMotorTemperature>
-      publisher_reportMotorTemp;
-
-  diagnostic_tools::HealthCheck<double> motorRPMCheck;
-  diagnostic_tools::HealthCheck<double> motorTemperatureCheck;
-  diagnostic_tools::HealthCheck<double> batteryCurrentCheck;
-  diagnostic_tools::HealthCheck<double> batteryVoltageCheck;
-  diagnostic_updater::Updater diagnosticsUpdater;
-
-  double convertRadSecToRPM(double radsec);
-  double convertRPMToRadSec(double rpms);
+  std::unique_ptr<CANIntf> can_interface_;
 };
 }  // namespace robot
 }  // namespace qna
