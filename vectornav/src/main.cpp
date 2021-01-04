@@ -356,6 +356,7 @@ int run(int argc, char *argv[])
     pn.param<double>("max_async_output_rate", max_async_output_rate);
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
+    diagnosticsUpdater.setHardwareID("imu");
     //The minimal rate is the same as sensor imu rate.
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
