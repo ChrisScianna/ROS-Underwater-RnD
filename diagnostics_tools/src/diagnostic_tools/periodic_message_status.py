@@ -14,8 +14,8 @@ class PeriodicMessageStatus(TopicDiagnosticTask):
         TopicDiagnosticTask.__init__(self, name, **kwargs)
         self._impl = PeriodicEventStatus(name, config=config, **kwargs)
 
-    def tick(self, time, message=None):
-        return self._impl.tick(time)
+    def tick(self, message=None, time=None):
+        return self._impl.tick(time=time)
 
     def run(self, stat):
         return self._impl.run(stat)

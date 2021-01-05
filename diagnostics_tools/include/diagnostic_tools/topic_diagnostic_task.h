@@ -19,6 +19,14 @@ class TopicDiagnosticTask : public PeriodicDiagnosticTask {
  public:
   using PeriodicDiagnosticTask::PeriodicDiagnosticTask;
 
+  void tick(const MessageT& message) {
+    tick(ros::Time::now(), message);
+  }
+
+  void tick(const boost::shared_ptr<MessageT const>& message) {
+    tick(ros::Time::now(), message);
+  }
+
   virtual void tick(const ros::Time& stamp, const MessageT& message) = 0;
 
   virtual void tick(const ros::Time& stamp, const boost::shared_ptr<MessageT const>& message) = 0;

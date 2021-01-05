@@ -12,9 +12,8 @@ class DiagnosedPublisher:
 
     def publish(self, message):
         self._pub.publish(message)
-        now = rospy.Time.now()
         for task in self._checks:
-            task.tick(now, message)
+            task.tick(message)
 
     def add_check(self, check):
         check.name = self._pub.name + ' publisher ' + check.name

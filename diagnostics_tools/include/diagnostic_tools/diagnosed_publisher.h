@@ -79,9 +79,8 @@ class DiagnosedPublisher {
 
     void publish(const boost::shared_ptr<MessageT const> &message) {
       pub_.publish(message);
-      auto now = ros::Time::now();
       for (const auto &task : checks_) {
-        task->tick(now, message);
+        task->tick(message);
       }
     }
 

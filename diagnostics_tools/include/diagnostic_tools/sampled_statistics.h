@@ -22,6 +22,7 @@ public:
     average_ = T{};
     minimum_ = T{};
     maximum_ = T{};
+    accumulate_ = T{};
 
     std::queue<T> empty;
     std::swap(buffer_, empty);
@@ -50,8 +51,9 @@ public:
       accumulate_ -= buffer_.front();
       buffer_.pop();
     }
-    buffer_.push(sample);
     accumulate_ += sample;
+    buffer_.push(sample);
+
     average_ = (accumulate_ / buffer_.size());
   }
 
@@ -67,7 +69,7 @@ private:
   T average_{};
   T minimum_{};
   T maximum_{};
-  T accumulate_{0};
+  T accumulate_{};
   std::queue<T> buffer_;
   T windows_size_{};
 };
