@@ -14,6 +14,8 @@ class PeriodicDiagnosticTask : public diagnostic_updater::DiagnosticTask {
  public:
   using diagnostic_updater::DiagnosticTask::DiagnosticTask;
 
+  void tick() { tick(ros::Time::now()); }
+
   virtual void tick(const ros::Time& t) = 0;
 };
 

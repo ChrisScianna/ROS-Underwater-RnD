@@ -9,9 +9,8 @@ class DiagnosedSubscriber:
         self._checks = []
 
     def _callback(self, message):
-        now = rospy.Time.now()
         for task in self._checks:
-            task.tick(now, message)
+            task.tick(message)
         self._user_callback(message)
 
     def __getattr__(self, name):

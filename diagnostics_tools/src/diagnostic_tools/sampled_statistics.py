@@ -1,32 +1,41 @@
+from collections import deque
 
 class SampledStatistics:
 
-    def __init__(self, zero):
-        self._zero = zero
+    def __init__(self, window_size, dtype=float):
+        self._window = deque()
+        self._window_size = window_size
+        self._dtype = dtype
         self.reset()
 
     def reset(self):
-        self._average = self._zero()
-        self._minimum = self._zero()
-        self._maximum = self._zero()
-        self._sample_count = 0
+        self._accumulate = self._dtype()
+        self._average = self._dtype()
+        self._minimum = self._dtype()
+        self._maximum = self._dtype()
+        self._window.clear()
 
     def update(self, sample):
-        self._average = (
-            sample + self._average * self._sample_count
-        ) / (self._sample_count + 1)
-        if self._sample_count > 0:
+        sample = self._dtype(sample)
+
+        if len(self._window) > 0:
             if self._maximum < sample:
                 self._maximum = sample
             elif self._minimum > sample:
                 self._minimum = sample
         else:
             self._minimum = self._maximum = sample
-        self._sample_count += 1
+
+        if len(self._window) == self._window_size:
+            self._accumulate -= self._window.popleft()
+        self._accumulate += sample
+        self._window.append(sample)
+
+        self._average = self._accumulate / len(self._window)
 
     @property
     def sample_count(self):
-        return self._sample_count
+        return len(self._window)
 
     @property
     def average(self):

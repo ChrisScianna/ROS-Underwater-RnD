@@ -9,5 +9,5 @@ class PeriodicDiagnosticTask(diagnostic_updater.DiagnosticTask):
         diagnostic_updater.DiagnosticTask.__init__(self, name)
         self._lock = threading.Lock()
 
-    def tick(self, time):
+    def tick(self, time=None):
         raise NotImplementedError()

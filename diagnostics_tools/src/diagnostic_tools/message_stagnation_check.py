@@ -44,7 +44,7 @@ class MessageStagnationCheck(TopicDiagnosticTask):
 
         self._message_window = collections.deque(maxlen=self._config.window_size)
 
-    def tick(self, time, message=None):
+    def tick(self, message=None, time=None):
         if not message:
             rospy.logwarn('No stagnation checks possible on null message')
             return

@@ -36,6 +36,19 @@ class PeriodicEventStatusParams final {
 
   double max_acceptable_period() const { return max_acceptable_period_; }
 
+  PeriodicEventStatusParams &max_reasonable_period(double max_reasonable_period) {
+    max_reasonable_period_ = max_reasonable_period;
+    has_max_reasonable_period_ = true;
+    return *this;
+  }
+
+  double max_reasonable_period() const {
+    if (!has_max_reasonable_period_) {
+      return 5 * max_acceptable_period_;
+    }
+    return max_reasonable_period_;
+  }
+
   PeriodicEventStatusParams &normal_diagnostic(Diagnostic diagnostic) {
     if (diagnostic.description().empty()) {
       diagnostic.description("Rate within tolerance");
@@ -83,6 +96,8 @@ class PeriodicEventStatusParams final {
  private:
   double min_acceptable_period_{-1};
   double max_acceptable_period_{5};
+  bool has_max_reasonable_period_{false};
+  double max_reasonable_period_{};
   size_t short_term_avg_window_{1};
   size_t long_term_avg_window_{10000};
   Diagnostic normal_diagnostic_{Diagnostic::OK, "Rate within tolerance"};

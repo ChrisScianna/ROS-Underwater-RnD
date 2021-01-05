@@ -73,9 +73,8 @@ class DiagnosedSubscriber {
 
    private:
     void callback(const typename MessageT::ConstPtr &message) {
-      auto now = ros::Time::now();
       for (const auto &task : checks_) {
-        task->tick(now, message);
+        task->tick(message);
       }
       user_callback_(message);
     }
