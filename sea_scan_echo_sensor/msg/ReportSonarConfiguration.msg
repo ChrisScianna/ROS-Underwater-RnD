@@ -1,0 +1,14 @@
+time stamp
+bool TransmitterEnabled
+float32 DetectionThreshold
+uint8 TriggerMode
+uint8 TriggerModeOnceRateHz
+float32 SpeedOfSoundInWaterMetersPerSecond
+float32 MaxListeningRangeMeters
+float32 LockoutRangeMeters
+uint16 SonarMajorSWVersion
+uint16 SonarMinorSWVersion
+uint16 SonarBetaSWVersion
+string SonarSerialNum
+uint16 FilterLength
+uint32 Baudrate

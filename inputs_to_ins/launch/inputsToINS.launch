@@ -1,0 +1,15 @@
+<launch>
+	<arg name="addressINS" default="192.168.36.185"/>
+	<arg name="portINS" default="8117"/>
+	<arg name="logging" default="True"/>
+	<node name="inputs_to_ins" pkg="inputs_to_ins" type="INSinterface.py" output="screen">
+		<param name="ipAddress" value="$(arg addressINS)"/>
+		<param name="port" value="$(arg portINS)"/>
+		<param name="logging" value="$(arg logging)"/>
+	</node>
+
+<?ignore
+	<node name="testOutputs" pkg="inputs_to_ins" type="INSinterfaceTest.py" output="screen"/>
+?>
+
+</launch>
