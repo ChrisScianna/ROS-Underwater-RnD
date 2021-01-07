@@ -57,8 +57,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   fincontrolEnabled = false;
   std::string serial_dev = "/dev/ttyUSB0";
   int serial_baud = 57600;
-  constexpr double degrees = M_PI / 180.0;
-  maxCtrlFinAngle = 10 * degrees;
+  maxCtrlFinAngle = 10;
   ctrlFinOffset = 0;
   ctrlFinScaleFactor = 1.0;
   servosON = false;
@@ -198,19 +197,20 @@ void FinControl::reportAngles()
   float radianAngleFromMyWorkBench = 0.;
 
   message.header.stamp = ros::Time::now();
-  
+
   if (!reportAnglesEnabled) return;  // do not interfere with fins updating
 
-  for (int id = 0; id < numOfIDs; ++id)
+  for (int id = 1; id <= numOfIDs; ++id)
   {
     // get from dynamixel
     if (myWorkBench.getRadian(id, &radianAngleFromMyWorkBench, &log))
     {
       message.angles_in_radians.push_back(
           static_cast<float>(
-              round((radianAngleFromMyWorkBench / ctrlFinScaleFactor) - ctrlFinOffset) * 100.0) /
-          100.0);
-      finAngleCheck.test(message.angles_in_radians[id]);
+        round(((radianAngleFromMyWorkBench / ctrlFinScaleFactor) - degreesToRadians(ctrlFinOffset)) *
+              100.0) /
+        100.0));
+      finAngleCheck.test(message.angles_in_radians.back());
     }
     else
     {
@@ -224,19 +224,27 @@ void FinControl::reportAngles()
   }
 }
 
+float FinControl::radiansToDegrees(float radians) { return (radians * (180.0 / M_PI)); }
+
+float FinControl::degreesToRadians(float degrees) { return ((degrees / 180.0) * M_PI); }
+
 void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 {
   const char *log;
   float angle_plus_offset;
 
   // check for max angle the fins can mechanically handle
-  if ((fabs(msg->f1_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f2_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f3_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f4_angle_in_radians) > maxCtrlFinAngle)
-  )
+  float angle1_in_degrees = fabs(radiansToDegrees(msg->f1_angle_in_radians));
+  float angle2_in_degrees = fabs(radiansToDegrees(msg->f2_angle_in_radians));
+  float angle3_in_degrees = fabs(radiansToDegrees(msg->f3_angle_in_radians));
+  float angle4_in_degrees = fabs(radiansToDegrees(msg->f4_angle_in_radians));
+
+  if ((angle1_in_degrees > maxCtrlFinAngle) ||
+      (angle2_in_degrees > maxCtrlFinAngle) ||
+      (angle3_in_degrees > maxCtrlFinAngle) ||
+      (angle4_in_degrees > maxCtrlFinAngle))
   {
-    ROS_ERROR("Set Angle out of Range");
+    ROS_ERROR("Set Angle degrees out of Range");
     return;
   }
 
@@ -250,7 +258,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin1
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f1_angle_in_radians + ctrlFinOffset);
+      ctrlFinScaleFactor * (msg->f1_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(1, "Goal_Position",
                                       myWorkBench.convertRadian2Value(1, angle_plus_offset), &log)))
@@ -261,7 +269,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin2
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f2_angle_in_radians + ctrlFinOffset);
+      ctrlFinScaleFactor * (msg->f2_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(2, "Goal_Position",
                                       myWorkBench.convertRadian2Value(2, angle_plus_offset), &log)))
@@ -272,7 +280,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin3
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f3_angle_in_radians + ctrlFinOffset);
+      ctrlFinScaleFactor * (msg->f3_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(3, "Goal_Position",
                                       myWorkBench.convertRadian2Value(3, angle_plus_offset), &log)))
@@ -283,7 +291,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
   // fin4
   angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f4_angle_in_radians + ctrlFinOffset);
+      ctrlFinScaleFactor * (msg->f4_angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   if (!(myWorkBench.addBulkWriteParam(4, "Goal_Position",
                                       myWorkBench.convertRadian2Value(4, angle_plus_offset), &log)))
@@ -330,15 +338,16 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
 
 void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
 {
-  // check for max angle the fins can mechanically handle
-  if (fabs(msg->angle_in_radians) > maxCtrlFinAngle)
+// check for max angle the fins can mechanically handle
+  float angle_in_degrees = radiansToDegrees(msg->angle_in_radians);
+  if (fabs(angle_in_degrees) > maxCtrlFinAngle)
   {
-    ROS_ERROR("Set Angle [%f] out of Range", msg->angle_in_radians);
+    ROS_ERROR("Set Angle [%f] degrees out of Range", angle_in_degrees);
     return;
   }
 
   float angle_plus_offet =
-      ctrlFinScaleFactor * (msg->angle_in_radians + ctrlFinOffset);
+      ctrlFinScaleFactor * (msg->angle_in_radians + degreesToRadians(ctrlFinOffset));
 
   // Call dynamixel service
   boost::mutex::scoped_lock lock(m_mutex);
