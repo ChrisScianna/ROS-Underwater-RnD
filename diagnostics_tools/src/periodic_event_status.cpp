@@ -34,6 +34,7 @@
 
 #include "diagnostic_tools/periodic_event_status.h"
 
+#include <cinttypes>
 #include <string>
 
 #include <diagnostic_msgs/DiagnosticStatus.h>
@@ -101,7 +102,7 @@ void PeriodicEventStatus::run(diagnostic_updater::DiagnosticStatusWrapper& stat)
                    params_.abnormal_diagnostic().description());
       if (params_.abnormal_diagnostic().has_code())
       {
-        stat.addf("Code", "%u", params_.abnormal_diagnostic().code());
+        stat.addf("Code", "%" PRIu64, params_.abnormal_diagnostic().code());
       }
     }
     else
@@ -110,7 +111,7 @@ void PeriodicEventStatus::run(diagnostic_updater::DiagnosticStatusWrapper& stat)
                    params_.normal_diagnostic().description());
       if (params_.normal_diagnostic().has_code())
       {
-        stat.addf("Code", "%u", params_.normal_diagnostic().code());
+        stat.addf("Code", "%" PRIu64, params_.normal_diagnostic().code());
       }
     }
     stat.addf("Average period (short term)", "%f", short_term_period_.average());
@@ -123,7 +124,7 @@ void PeriodicEventStatus::run(diagnostic_updater::DiagnosticStatusWrapper& stat)
                  params_.stale_diagnostic().description());
     if (params_.stale_diagnostic().has_code())
     {
-      stat.addf("Code", "%f", params_.stale_diagnostic().code());
+      stat.addf("Code", "%" PRIu64, params_.stale_diagnostic().code());
     }
   }
   if (long_term_period_.sample_count() > 0)

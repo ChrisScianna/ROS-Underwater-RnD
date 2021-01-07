@@ -39,6 +39,7 @@
 #ifndef DIAGNOSTIC_TOOLS_MESSAGE_STAGNATION_CHECK_H
 #define DIAGNOSTIC_TOOLS_MESSAGE_STAGNATION_CHECK_H
 
+#include <cinttypes>
 #include <deque>
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
@@ -165,7 +166,7 @@ public:
     stat.summary(diagnostic.status(), diagnostic.description());
     if (diagnostic.has_code())
     {
-      stat.add("Code", diagnostic.code());
+      stat.addf("Code", "%" PRIu64, diagnostic.code());
     }
   }
 
