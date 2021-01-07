@@ -87,7 +87,8 @@ private:
         {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
         {"autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
         {"battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
-        {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED}
+        {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED},
+        {"fin_control", health_monitor::ReportFault::FIN_NODE_DIED}
         };
 
     void handle_ClearFault(const health_monitor::ClearFault::ConstPtr &msg);
