@@ -39,6 +39,7 @@
 #ifndef DIAGNOSTIC_TOOLS_HEALTH_CHECK_H
 #define DIAGNOSTIC_TOOLS_HEALTH_CHECK_H
 
+#include <cinttypes>
 #include <map>
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
@@ -106,7 +107,7 @@ private:
       stat.summary(diagnostic_.status(), diagnostic_.description());
       if (diagnostic_.has_code())
       {
-        stat.add("Code", diagnostic_.code());
+        stat.addf("Code", "%" PRIu64, diagnostic_.code());
       }
       for (const auto &kv : diagnostic_.data())
       {
