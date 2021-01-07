@@ -124,22 +124,22 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
     def run(self, stat):
         with self._lock:
             diagnostic = self._config.diagnostics.normal
-            if rospy.Time.now() - self._last_time > self._config.max_reasonable_period:
+            if (rospy.Time.now() - self._last_time).to_sec() > self._config.max_reasonable_period:
                 # Unreasonable time delta, event is likely stale.
                 self._short_term_period.reset()
             if self._short_term_period.sample_count > 0:
-                if self._last_cycle_period.average < self._config.min_acceptable_period or \
-                   self._last_cycle_period.average > self._config.max_acceptable_period:
+                if self._short_term_period.average < self._config.min_acceptable_period or \
+                   self._short_term_period.average > self._config.max_acceptable_period:
                     diagnostic = self._config.diagnostics.abnormal
                 stat.summary(diagnostic.status, diagnostic.description)
                 if diagnostic.code is not None:
                     stat.add('Code', diagnostic.code)
                 stat.add(
-                    'Average period (last cycle)', self._last_cycle_period.average)
+                    'Average period (short term)', self._short_term_period.average)
                 stat.add(
-                    'Minimum period (last cycle)', self._last_cycle_period.minimum)
+                    'Minimum period (short term)', self._short_term_period.minimum)
                 stat.add(
-                    'Maximum period (last cycle)', self._last_cycle_period.maximum)
+                    'Maximum period (short term)', self._short_term_period.maximum)
             else:
                 diagnostic = self._config.diagnostics.stale
                 stat.summary(diagnostic.status, diagnostic.description)
