@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   diagnostic_updater
   diagnostic_msgs
   roscpp
+  roslint
 )
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -113,6 +114,14 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 ## Testing ##
 #############
+
+roslint_cpp()
+
+roslint_python()
+
+if(CATKIN_ENABLE_TESTING)
+  roslint_add_test()
+endif()
 
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_diagnostics_tool.cpp)
