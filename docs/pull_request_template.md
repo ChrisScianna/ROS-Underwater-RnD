@@ -1,6 +1,6 @@
 # Description
 
-Please include a summary of the change and which issue is fixed. Also, include motivation and context. List all dependencies required for this change (e.g. links to dependent PRs).
+Please include a summary of the change, referring to the issue being addressed. Also, include motivation and context. List all dependencies required for this change (e.g. links to dependent PRs).
 
 Fixes # (issue)
 
@@ -12,12 +12,16 @@ Please mark options that are relevant.
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 
-# How To Test?
+# Checklist
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] The code builds clean without any errors or warnings
+- [ ] Unit tests are passing
+- [ ] Linter tests are passing
 
-Please describe the procedure and/or tests that need to be performed to verify these changes. Also, include test configuration details if relevant.
+# How To Test
 
-- [ ] Your changes have to be tested on hardware
-- [ ] You have added unit tests
+Please describe the procedure and/or tests that need to be performed to verify these changes work as expected. Also, include test configuration details if relevant.
 
 ## Test A
 1) Step 1
@@ -26,9 +30,3 @@ Please describe the procedure and/or tests that need to be performed to verify t
 ## Test B
 1) Step 1
 2) Step 2
-
-# Checklist:
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] The code builds clean without any errors or warnings
-- [ ] Linter tests are passing
