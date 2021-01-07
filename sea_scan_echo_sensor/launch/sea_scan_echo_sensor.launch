@@ -1,0 +1,10 @@
+<launch>
+    <node name="sea_scan_echo_sensor_node"
+        pkg="sea_scan_echo_sensor"
+        type="sea_scan_echo_sensor_node"
+        output="screen">
+        <param name="serial_port_name" type="string" value="/dev/ttyUSB0" />
+        <param name="serial_port_baudrate" type="int" value="38400" />
+        <param name="trigger_mode" type="int" value="2" />
+    </node>
+</launch>

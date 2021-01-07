@@ -1,0 +1,9 @@
+<launch>
+  <arg name="ip" default="192.168.36.200"/>
+  <arg name="port" default="2255"/>
+<!-- ixblue_c3_ins -->
+  <node pkg="ixblue_c3_ins" type="ixblue_c3_ins_node" name="ixblue_c3_ins_node" output="screen">
+    <param name="iface_addr" type="string" value="$(arg ip)"/>
+    <param name="listen_port" type="int" value="$(arg port)"/>
+  </node>
+</launch>
