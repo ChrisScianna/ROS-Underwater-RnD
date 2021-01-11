@@ -15,7 +15,7 @@
   <arg name="reportBatteryHealthRate" default="1.0"/>
   <arg name="minReportBatteryHealthRate" default="0.5"/>
   <arg name="maxReportBatteryHealthRate" default="2.0"/>
-  <arg name="minBatteryTotalCurrent" default="1"/>
+  <arg name="maxBatteryTotalCurrent" default="1"/>
   <arg name="minBatteryCellVoltage" default="1"/>
   <arg name="batteryTotalCurrentSteadyBand" default="0.0"/>
 
@@ -37,7 +37,7 @@
     <param name="battery_total_current_steady_band" type="double" value="$(arg batteryTotalCurrentSteadyBand)"/>
     <param name="min_report_battery_health_rate" type="double" value="$(arg minReportBatteryHealthRate)" />
     <param name="max_report_battery_health_rate" type="double" value="$(arg maxReportBatteryHealthRate)" />
-    <param name="min_battery_total_current" type="double" value="$(arg minBatteryTotalCurrent)"/>
+    <param name="max_battery_total_current" type="double" value="$(arg maxBatteryTotalCurrent)"/>
     <param name="min_battery_cell_voltage" type="double" value="$(arg minBatteryCellVoltage)"/>
   </node>
 

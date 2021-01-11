@@ -72,7 +72,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   std::string canNodeId2 = "";
   motorTemperatureThreshold = 50;
   maxAllowedMotorRPM = 0;
-  minBatteryTotalCurrent = 5000;
+  maxBatteryTotalCurrent = 0.0;
   double motorTemperatureSteadyBand = 0.0;
   double batteryCurrentSteadyBand = 0.0;
   double minBatteryCellVoltage = 30;  // in V
@@ -103,7 +103,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                       motorTemperatureThreshold);
   nodeHandle.getParam("/thruster_control_node/motor_temperature_steady_band",
                       motorTemperatureSteadyBand);
-  nodeHandle.getParam("/thruster_control_node/min_battery_total_current", minBatteryTotalCurrent);
+  nodeHandle.getParam("/thruster_control_node/max_battery_total_current", maxBatteryTotalCurrent);
   nodeHandle.getParam("/thruster_control_node/min_battery_cell_voltage", minBatteryCellVoltage);
 
   ROS_DEBUG_STREAM("report_rpm_rate set to " << reportRPMRate);
@@ -113,7 +113,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   ROS_DEBUG_STREAM("current_logging_enabled set to  " << currentLoggingEnabled ? "true" : "false");
   ROS_DEBUG_STREAM("CAN Node 1 Id =  " << canNodeId1);
   ROS_DEBUG_STREAM("CAN Node 2 Id =  " << canNodeId2);
-  ROS_DEBUG_STREAM("Minimum Battery Total Current = " << minBatteryTotalCurrent);
+  ROS_DEBUG_STREAM("Maximum Battery Total Current = " << maxBatteryTotalCurrent);
   ROS_INFO("Minimum Battery Cell Voltage:[%lf]", minBatteryCellVoltage);
 
   subscriber_setRPM =
@@ -154,14 +154,15 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 
 
   batteryCurrentCheck = diagnostic_tools::create_health_check<double>(
-      "Battery Current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
+      "Battery current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
-        if (batteryCurrent < minBatteryTotalCurrent)
+        if (maxBatteryTotalCurrent < batteryCurrent)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED)
-              .description("Total current - NOT OK (%f mA < %f mA)", batteryCurrent,
-                           minBatteryTotalCurrent);
+          return Diagnostic(Diagnostic::WARN)
+              .code(ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED)
+              .description("Total current - NOT OK (%f mA < %f mA)",
+                           maxBatteryTotalCurrent, batteryCurrent);
         }
         return Diagnostic::OK;
       }

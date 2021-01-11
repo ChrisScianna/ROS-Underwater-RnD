@@ -93,7 +93,7 @@ class ThrusterControl
   bool currentLoggingEnabled;
   double motorTemperatureThreshold;
   double maxAllowedMotorRPM;
-  double minBatteryTotalCurrent;
+  double maxBatteryTotalCurrent;
 
   void handle_SetRPM(const thruster_control::SetRPM::ConstPtr& msg);
 
