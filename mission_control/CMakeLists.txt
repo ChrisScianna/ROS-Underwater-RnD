@@ -23,7 +23,6 @@ add_message_files(
   DepthHeading.msg
   FixedRudder.msg
   Ping.msg
-  SetBehavior.msg
   Waypoint.msg
   AltitudeHeading.msg
   LoadMission.msg
