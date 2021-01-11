@@ -82,7 +82,7 @@ using mission_control::ReportLoadMissionState;
 using mission_control::ReportMissions;
 using pose_estimator::CorrectedData;
 
-class MissionManagerNode
+class MissionControlNode
 {
  public:
   ros::NodeHandle node_handle;
@@ -125,8 +125,8 @@ class MissionManagerNode
   uint64_t heartbeat_sequence_id;
 
  public:
-  explicit MissionManagerNode(ros::NodeHandle& h);
-  ~MissionManagerNode();
+  explicit MissionControlNode(ros::NodeHandle& h);
+  ~MissionControlNode();
 
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);

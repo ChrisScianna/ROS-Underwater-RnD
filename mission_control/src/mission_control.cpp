@@ -39,7 +39,7 @@
 
 #include "mission_control/mission_control.h"
 
-MissionManagerNode::MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
+MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
 {
   heartbeat_sequence_id = 0;
   last_id = -1;
@@ -69,20 +69,20 @@ MissionManagerNode::MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
 
   // Subscribe to all topics
   sub_corrected_data = node_handle.subscribe("/pose/corrected_data", 1,
-                                             &MissionManagerNode::correctedDataCallback, this);
+                                             &MissionControlNode::correctedDataCallback, this);
   report_fault_sub = node_handle.subscribe("/health_monitor/report_fault", 1,
-                                           &MissionManagerNode::reportFaultCallback, this);
+                                           &MissionControlNode::reportFaultCallback, this);
 
   load_mission_sub = node_handle.subscribe("/mngr/load_mission", 1,
-                                           &MissionManagerNode::loadMissionCallback, this);
+                                           &MissionControlNode::loadMissionCallback, this);
   execute_mission_sub = node_handle.subscribe("/mngr/execute_mission", 1,
-                                              &MissionManagerNode::executeMissionCallback, this);
+                                              &MissionControlNode::executeMissionCallback, this);
   abort_mission_sub = node_handle.subscribe("/mngr/abort_mission", 1,
-                                            &MissionManagerNode::abortMissionCallback, this);
+                                            &MissionControlNode::abortMissionCallback, this);
   query_mission_sub = node_handle.subscribe("/mngr/query_missions", 1,
-                                            &MissionManagerNode::queryMissionsCallback, this);
+                                            &MissionControlNode::queryMissionsCallback, this);
   remove_mission_sub = node_handle.subscribe("/mngr/remove_missions", 1,
-                                             &MissionManagerNode::removeMissionsCallback, this);
+                                             &MissionControlNode::removeMissionsCallback, this);
 
   // Advertise all topics and services
   pub_report_mission_load_state = node_handle.advertise<mission_control::ReportLoadMissionState>(
@@ -97,12 +97,12 @@ MissionManagerNode::MissionManagerNode(ros::NodeHandle& h) : node_handle(h)
 
   reportExecuteMissionStateTimer =
       node_handle.createTimer(ros::Duration(reportExecuteMissionStateRate),
-                              &MissionManagerNode::reportExecuteMissionState, this);
+                              &MissionControlNode::reportExecuteMissionState, this);
   reportHeartbeatTimer = node_handle.createTimer(ros::Duration(reportHeartbeatRate),
-                                                 &MissionManagerNode::reportHeartbeat, this);
+                                                 &MissionControlNode::reportHeartbeat, this);
 }
 
-MissionManagerNode::~MissionManagerNode()
+MissionControlNode::~MissionControlNode()
 {
   stop();
 
@@ -119,7 +119,7 @@ MissionManagerNode::~MissionManagerNode()
   m_mission_map.clear();
 }
 
-int MissionManagerNode::loadMissionFile(std::string mission_full_path)
+int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
   MissionParser parser(node_handle);
 
@@ -138,7 +138,7 @@ int MissionManagerNode::loadMissionFile(std::string mission_full_path)
   return 0;
 }
 
-int MissionManagerNode::executeMission(int missionId)
+int MissionControlNode::executeMission(int missionId)
 {
   if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
   {
@@ -149,7 +149,7 @@ int MissionManagerNode::executeMission(int missionId)
   }
 }
 
-int MissionManagerNode::abortMission(int missionId)
+int MissionControlNode::abortMission(int missionId)
 {
   if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
   {
@@ -160,7 +160,7 @@ int MissionManagerNode::abortMission(int missionId)
   }
 }
 
-int MissionManagerNode::start()
+int MissionControlNode::start()
 {
   stop();
 
@@ -171,7 +171,7 @@ int MissionManagerNode::start()
   return retval;
 }
 
-int MissionManagerNode::stop()
+int MissionControlNode::stop()
 {
   if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(m_current_mission_id) > 0))
@@ -180,7 +180,7 @@ int MissionManagerNode::stop()
   return 0;
 }
 
-bool MissionManagerNode::spin()
+bool MissionControlNode::spin()
 {
   if (start() == 0)
   {
@@ -195,7 +195,7 @@ bool MissionManagerNode::spin()
   return true;
 }
 
-void MissionManagerNode::reportHeartbeat(const ros::TimerEvent& timer)
+void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 {
   ReportHeartbeat outmsg;
   outmsg.header.stamp = ros::Time::now();
@@ -203,7 +203,7 @@ void MissionManagerNode::reportHeartbeat(const ros::TimerEvent& timer)
   pub_report_heartbeat.publish(outmsg);
 }
 
-void MissionManagerNode::reportExecuteMissionState(const ros::TimerEvent& timer)
+void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
 {
   if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(m_current_mission_id) > 0))
@@ -259,7 +259,7 @@ void MissionManagerNode::reportExecuteMissionState(const ros::TimerEvent& timer)
   }
 }
 
-void MissionManagerNode::loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg)
+void MissionControlNode::loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg)
 {
   ROS_INFO("loadMissionCallback - just received mission file '%s'",
            (msg->mission_file_full_path).c_str());
@@ -287,7 +287,7 @@ void MissionManagerNode::loadMissionCallback(const mission_control::LoadMission:
   pub_report_mission_load_state.publish(outmsg);
 }
 
-void MissionManagerNode::executeMissionCallback(
+void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
   // TODO(qna): Need to shutdown any mission that is currently running.
@@ -295,7 +295,7 @@ void MissionManagerNode::executeMissionCallback(
   executeMission(msg->mission_id);
 }
 
-void MissionManagerNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
+void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
 {
   // TODO(qna): Need to shutdown any mission that is currently running.
   // TODO(qna): should probably also check the timestamp from the message
@@ -303,7 +303,7 @@ void MissionManagerNode::abortMissionCallback(const mission_control::AbortMissio
   abortMission(msg->mission_id);  // assume mission ID is the current mission
 }
 
-void MissionManagerNode::queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg)
+void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg)
 {
   ReportMissions outmsg;
   MissionData data;
@@ -328,7 +328,7 @@ void MissionManagerNode::queryMissionsCallback(const mission_control::QueryMissi
   }
 }
 
-void MissionManagerNode::removeMissionsCallback(
+void MissionControlNode::removeMissionsCallback(
     const mission_control::RemoveMissions::ConstPtr& msg)
 {
   MissionData data;
@@ -349,7 +349,7 @@ void MissionManagerNode::removeMissionsCallback(
   }
 }
 
-void MissionManagerNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void MissionControlNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   // mission_map.count checks to see if a key is in the map
   if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
@@ -359,7 +359,7 @@ void MissionManagerNode::correctedDataCallback(const pose_estimator::CorrectedDa
   }
 }
 
-void MissionManagerNode::reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg)
+void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg)
 {
   if (msg->fault_id != 0)
   {
@@ -368,14 +368,14 @@ void MissionManagerNode::reportFaultCallback(const health_monitor::ReportFault::
   }
 }
 
-bool MissionManagerNode::endsWith(const std::string& str, const char* suffix)
+bool MissionControlNode::endsWith(const std::string& str, const char* suffix)
 {
   unsigned suffixLen = std::string::traits_type::length(suffix);
   return str.size() >= suffixLen &&
          0 == str.compare(str.size() - suffixLen, suffixLen, suffix, suffixLen);
 }
 
-bool MissionManagerNode::FoundMissionFile()
+bool MissionControlNode::FoundMissionFile()
 {
   ROS_INFO("Mission path is [%s]", mission_path.c_str());
 
@@ -428,7 +428,7 @@ int main(int argc, char** argv)
   ROS_INFO("Starting Mission mgr node Version: [%s]", NODE_VERSION);
   nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
 
-  MissionManagerNode mmn(nh);
+  MissionControlNode mmn(nh);
   ros::spin();
 
   ROS_INFO("Mission mgr shutting down");
