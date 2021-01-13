@@ -176,7 +176,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (batteryVoltage < minBatteryCellVoltage)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_CURRENT_THRESHOLD_REACHED)
+          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED)
               .description("Battery Votlage - NOT OK (%f V < %f V)", batteryVoltage,
                            minBatteryCellVoltage);
         }
@@ -306,8 +306,8 @@ void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& time
   message.present = 1;
   message.location = "A";
   message.serial_number = "1";
-  batteryCurrentCheck.test(message.voltage);
-  batteryVoltageCheck.test(message.current);
+  batteryCurrentCheck.test(message.current);
+  batteryVoltageCheck.test(message.voltage);
   publisher_reportBatteryHealth.publish(message);
   diagnosticsUpdater.update();
 }
