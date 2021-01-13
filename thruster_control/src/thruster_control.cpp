@@ -299,7 +299,7 @@ void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& time
   message.header.stamp = ros::Time::now();
   message.voltage = canIntf.battery_voltage.Get()/1000.0;
   //  message.temperature = canIntf.motor_tempC.Get();
-  message.current = canIntf.motor_current.Get()/-1000.0;
+  message.current = canIntf.motor_current.Get()/1000.0;
   message.power_supply_status = 0;
   message.power_supply_health = 0;
   message.power_supply_technology = 0;
