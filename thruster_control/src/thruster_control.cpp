@@ -204,7 +204,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
           [motorTemperatureSteadyBand](const thruster_control::ReportMotorTemperature& a,
                                        const thruster_control::ReportMotorTemperature& b)
           {
-            return std::fabs(a.motor_temp - b.motor_temp < motorTemperatureSteadyBand);
+            return std::fabs(a.motor_temp - b.motor_temp) < motorTemperatureSteadyBand;
           }
           , paramsTemperatureMessageStagnationcheck));
 
