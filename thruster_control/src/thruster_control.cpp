@@ -137,22 +137,6 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
       publisher_reportBatteryHealth.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check", paramsReportsBatteryHealthCheckPeriod));
 
-  diagnostic_tools::MessageStagnationCheckParams paramsBatteryMessageStagnationcheck;
-  diagnostic_tools::Diagnostic diagnosticBatteryInfoStagnate(
-      diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STAGNATED);
-  paramsBatteryMessageStagnationcheck.stagnation_diagnostic(diagnosticBatteryInfoStagnate);
-
-  diagnosticsUpdater.add(
-      publisher_reportBatteryHealth.add_check<diagnostic_tools::MessageStagnationCheck>(
-          "stagnation check",
-          [batteryCurrentSteadyBand](const sensor_msgs::BatteryState& a,
-                                     const sensor_msgs::BatteryState& b)
-          {
-            return std::fabs(a.current - b.current) < batteryCurrentSteadyBand;
-          }
-          , paramsBatteryMessageStagnationcheck));
-
-
   batteryCurrentCheck = diagnostic_tools::create_health_check<double>(
       "Battery current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
       {
