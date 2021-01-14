@@ -368,10 +368,10 @@ int run(int argc, char *argv[])
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
         "stagnation check",
         [orientationSteadyBand](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
-          return (std::fabs((a.orientation.x - b.orientation.x < orientationSteadyBand)) &&
-                  std::fabs((a.orientation.y - b.orientation.y < orientationSteadyBand)) &&
-                  std::fabs((a.orientation.z - b.orientation.z < orientationSteadyBand)) &&
-                  std::fabs((a.orientation.w - b.orientation.w < orientationSteadyBand)));
+          return ((std::fabs(a.orientation.x - b.orientation.x) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.y - b.orientation.y) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.z - b.orientation.z) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.w - b.orientation.w) < orientationSteadyBand));
         },
         diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
             {diagnostic_tools::Diagnostic::ERROR,
