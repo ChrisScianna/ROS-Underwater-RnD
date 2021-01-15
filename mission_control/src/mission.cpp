@@ -56,12 +56,14 @@ Mission::~Mission()
 
 }
 
-void Mission::loadBehavior(const std::string &missionFullPath){
+bool Mission::loadBehavior(const std::string &missionFullPath){
+//  TODO Check for erros and return -1 if were.
   _missionFullPath = missionFullPath;
   if(_missionFullPath!=""){
     _missionTree = _missionFactory.createTreeFromFile(_missionFullPath);
     printTreeRecursively( _missionTree.rootNode() );
   }
+  return true;
 }
 
 void Mission::Stop()

@@ -61,8 +61,9 @@
 #include "mission_control/ReportMissions.h"
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
-#include "mission_control/mission_parser.h"
 #include "pose_estimator/CorrectedData.h"
+#include <behaviortree_cpp_v3/action_node.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 
 #define LOGGING (1)
 
@@ -72,10 +73,11 @@
 //      The mission manager now subscribes to the ReportFault message.
 #define NODE_VERSION "2.1x"
 
+using namespace BT;
+
 using mission_control::LoadMission;
 using mission_control::Mission;
 using mission_control::MissionData;
-using mission_control::MissionParser;
 using mission_control::ReportExecuteMissionState;
 using mission_control::ReportHeartbeat;
 using mission_control::ReportLoadMissionState;
@@ -103,6 +105,7 @@ class MissionControlNode
 
   ros::Timer reportExecuteMissionStateTimer;
   Mission::MissionState last_state;
+
   int last_id;
 
   ros::Timer reportHeartbeatTimer;
@@ -118,7 +121,6 @@ class MissionControlNode
 
   int m_current_mission_id;
   int m_mission_id_counter;
-  Mission* m_cur_mission;
 
   std::map<int, Mission*> m_mission_map;
 
@@ -127,6 +129,8 @@ class MissionControlNode
  public:
   explicit MissionControlNode(ros::NodeHandle& h);
   ~MissionControlNode();
+
+  boost::shared_ptr<boost::thread> m_thread;
 
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);
@@ -146,8 +150,6 @@ class MissionControlNode
   void correctedDataCallback(const pose_estimator::CorrectedData& data);
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
 
-  bool endsWith(const std::string& str, const char* suffix);
-  bool FoundMissionFile();
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

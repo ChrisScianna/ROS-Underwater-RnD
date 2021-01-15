@@ -1,0 +1,12 @@
+ <root main_tree_to_execute = "MainTree" >
+
+     <BehaviorTree ID="MainTree">
+        <Sequence name="root_sequence">
+            <Depth_Heading      name="Depth_Heading"/>
+            <Depth_Heading      name="Depth_Heading"/>
+            <Attitude_Servo     name="Attitude_Servo"/>
+            <Waypoint1          name="Waypoint1"/>
+        </Sequence>
+     </BehaviorTree>
+
+ </root>

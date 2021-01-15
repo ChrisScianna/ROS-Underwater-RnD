@@ -50,7 +50,6 @@
 
 #include "pose_estimator/CorrectedData.h"
 #include "std_msgs/Header.h"
-#include "tinyxml/tinyxml.h"
 
 namespace mission_control
 {

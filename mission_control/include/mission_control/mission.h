@@ -55,6 +55,16 @@ class Mission
   Mission();
   ~Mission();
 
+  enum MissionState
+  {
+    READY,
+    EXECUTING,
+    ABORTING,
+    STOPPED,
+    PAUSED,
+    COMPLETE
+  };
+
   void processMission();
   void ExecuteMission();
   void Stop();
@@ -64,16 +74,16 @@ class Mission
   std::string getCurrenMissionDescription();
   std::string getCurrentBehavioralName();
 
-  void loadBehavior(const std::string &missionFullPath);
+  bool loadBehavior(const std::string &missionFullPath);
   
   int getCurrentBehaviorID();
   
   BT::Tree _missionTree;
+  NodeStatus _missionStatus;
 
  private:
   BT::BehaviorTreeFactory _missionFactory;
 
-  NodeStatus _missionStatus;
   std::string _missionFullPath;
 
   std::string missionDescription;

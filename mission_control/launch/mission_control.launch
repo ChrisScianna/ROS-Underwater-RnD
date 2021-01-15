@@ -1,14 +1,15 @@
 <launch>
-	<!-- mission manager -->
-	<node pkg="mission_control" type="mission_control_node" name="mission_control_node" output="screen">
-		<param name="mission_path" type="string" value="/home/dev/missions"/>
-		<param name="disable_abort" type="boolean" value="true"/>
-		<param name="attitude_servo_roll_tol" type="double" value="1.0"/>
-		<param name="attitude_servo_pitch_tol" type="double" value="1.0"/>
-		<param name="attitude_servo_yaw_tol" type="double" value="1.0"/>
-		<param name="low_battery_pack_voltage" type="double" value="30.0"/>
-		<param name="low_battery_cell_voltage" type="double" value="3.0"/>
-		<param name="report_execute_mission_state_rate" type="double" value="1.0"/>
-		<param name="report_heart_beat_rate" type="double" value="1.0"/>
-	</node>
+    <!-- mission manager -->
+    <node pkg="mission_control" type="mission_control_node" name="mission_control_node" output="screen">
+        <param name="mission_path" type="string" value="/home/dev/missions"/>
+        <param name="disable_abort" type="boolean" value="true"/>
+        <param name="attitude_servo_roll_tol" type="double" value="1.0"/>
+        <param name="attitude_servo_pitch_tol" type="double" value="1.0"/>
+        <param name="attitude_servo_yaw_tol" type="double" value="1.0"/>
+        <param name="low_battery_pack_voltage" type="double" value="30.0"/>
+        <param name="low_battery_cell_voltage" type="double" value="3.0"/>
+        <param name="report_execute_mission_state_rate" type="double" value="1.0"/>
+        <param name="report_heart_beat_rate" type="double" value="1.0"/>
+        <param name="fullPath" type="string" value="/home/aschapiro/repositories/qna-mkx/catkin_ws/src/public/mission_control/mission.xml"/>
+    </node>
 </launch>
