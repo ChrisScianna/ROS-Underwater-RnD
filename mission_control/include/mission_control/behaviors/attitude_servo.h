@@ -52,43 +52,25 @@
 #define MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
 
 #include <string>
-#include "mission_control/behavior.h"
-#include "mission_control/AttitudeServo.h"
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 
 namespace mission_control
 {
-
-class AttitudeServoBehavior : public Behavior
+class Attitude_Servo : public BT::SyncActionNode
 {
- public:
-  AttitudeServoBehavior();
-  virtual ~AttitudeServoBehavior();
+  public:
+    Attitude_Servo(const std::string& name) :
+        BT::SyncActionNode(name, {}), _behavioralStatus(BT::NodeStatus::IDLE)
+    {
+    }
 
-  virtual bool parseMissionFileParams();
-  bool getParams(ros::NodeHandle nh);
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+    // You must override the virtual function tick()
+    BT::NodeStatus tick() override;
+    BT::NodeStatus getStatus();
 
- private:
-  ros::Publisher attitude_servo_behavior_pub;
-
-  float m_roll;
-  float m_pitch;
-  float m_yaw;
-  float m_speed_knots;
-
-  std::string m_roll_unit;
-  std::string m_pitch_unit;
-  std::string m_yaw_unit;
-
-  bool m_roll_ena;
-  bool m_pitch_ena;
-  bool m_yaw_ena;
-  bool m_speed_knots_ena;
-
-  float m_roll_tol;
-  float m_pitch_tol;
-  float m_yaw_tol;
+  private:
+    BT::NodeStatus _behavioralStatus;
 };
 
 }   //  namespace mission_control

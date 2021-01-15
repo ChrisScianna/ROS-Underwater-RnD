@@ -51,44 +51,26 @@
 #ifndef MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 #define MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 
-#include "mission_control/behavior.h"
-#include "mission_control/Waypoint.h"  // this is the ROS Message
+#include <string>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 
 namespace mission_control
 {
-
-class WaypointBehavior : public Behavior
+class Waypoint1 : public BT::SyncActionNode
 {
- public:
-  WaypointBehavior();
-  virtual ~WaypointBehavior();
+  public:
+    Waypoint1(const std::string& name) :
+        BT::SyncActionNode(name, {}), _behavioralStatus(BT::NodeStatus::IDLE)
+    {
+    }
 
-  virtual bool parseMissionFileParams();
-  bool getParams(ros::NodeHandle nh);
+    // You must override the virtual function tick()
+    BT::NodeStatus tick() override;
+    BT::NodeStatus getStatus();
 
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
-
- private:
-  ros::Publisher waypoint_behavior_pub;
-
-  float m_altitude;
-  float m_depth;
-  float m_lat;
-  float m_long;
-  float m_speed_knots;
-  double m_wp_radius;
-
-  bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_lat_ena;
-  bool m_long_ena;
-  bool m_speed_knots_ena;
-  bool m_wp_radius_ena;
-
-  float m_depth_tol;
-  void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-  double degreesToRadians(double degrees);
+  private:
+    BT::NodeStatus _behavioralStatus;
 };
 
 }   //  namespace mission_control

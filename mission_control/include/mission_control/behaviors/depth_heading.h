@@ -52,39 +52,25 @@
 #define MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
 
 #include <string>
-#include "mission_control/behavior.h"
-#include "mission_control/DepthHeading.h"
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 
 namespace mission_control
 {
-
-class DepthHeadingBehavior : public Behavior
+class Depth_Heading : public BT::SyncActionNode
 {
- public:
-  DepthHeadingBehavior();
-  virtual ~DepthHeadingBehavior();
-  virtual bool parseMissionFileParams();
-  virtual void publishMsg();
+  public:
+    Depth_Heading(const std::string& name) :
+        BT::SyncActionNode(name, {}), _behavioralStatus(BT::NodeStatus::IDLE)
+    {
+    }
 
-  bool getParams(ros::NodeHandle nh);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+    // You must override the virtual function tick()
+    BT::NodeStatus tick() override;
+    BT::NodeStatus getStatus();
 
- private:
-  ros::Publisher depth_heading_behavior_pub;
-
-  float m_depth;
-  float m_heading;
-  float m_speed_knots;
-
-  std::string m_depth_unit;
-  std::string m_heading_unit;
-
-  bool m_depth_ena;
-  bool m_heading_ena;
-  bool m_speed_knots_ena;
-
-  float m_depth_tol;
-  float m_heading_tol;
+  private:
+    BT::NodeStatus _behavioralStatus;
 };
 
 }   //  namespace mission_control

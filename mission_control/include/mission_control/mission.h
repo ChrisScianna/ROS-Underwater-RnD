@@ -39,7 +39,12 @@
 
 #include <vector>
 #include <string>
-#include "mission_control/behavior.h"
+#include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/depth_heading.h"
+#include "mission_control/behaviors/waypoint.h"
+#include <behaviortree_cpp_v3/bt_factory.h>
+
+using namespace BT;
 
 namespace mission_control
 {
@@ -48,75 +53,32 @@ class Mission
 {
  public:
   Mission();
-  virtual ~Mission();
+  ~Mission();
 
-  void addBehavior(Behavior *behavior);
-  Behavior *getNextBehavior(bool reset = false);
-
-  void addAbortBehavior(Behavior *behavior);
-  Behavior *getNextAbortBehavior(bool reset = false);
-
-  enum MissionState
-  {
-    READY,
-    EXECUTING,
-    ABORTING,
-    STOPPED,
-    PAUSED,
-    COMPLETE
-  };
-  void SetState(MissionState state);
-  MissionState GetState();
-  boost::mutex m_MissionStateLock;
-
-  void ExecuteMission(ros::NodeHandle nh);
-  void AbortMissionWrapper(ros::NodeHandle nh);
-
+  void processMission();
+  void ExecuteMission();
   void Stop();
 
-  boost::shared_ptr<boost::thread> m_threadProcMission, m_threadAbortMission;
+  int getMissionStatus();
 
-  void ProcessCorrectedPoseData(const pose_estimator::CorrectedData &data);
+  std::string getCurrenMissionDescription();
+  std::string getCurrentBehavioralName();
 
-  void setMissionDescription(std::string descStr) { m_mission_description = descStr; }
-  std::string getMissionDescription() { return m_mission_description; }
-
-  std::string getCurrentBehaviorsName() { return current_behavior_name; }
-  std::string getCurrentAbortBehaviorsName() { return current_abort_behavior_name; }
-
-  int getCurrentBehaviorId() { return current_behavior_id; }
-  int getCurrentAbortBehaviorId() { return current_abort_behavior_id; }
+  void loadBehavior(const std::string &missionFullPath);
+  
+  int getCurrentBehaviorID();
+  
+  BT::Tree _missionTree;
 
  private:
-  void AbortMission();
+  BT::BehaviorTreeFactory _missionFactory;
 
-  ros::NodeHandle node_handle;
-  ros::Timer callBackTmr;
+  NodeStatus _missionStatus;
+  std::string _missionFullPath;
 
-  MissionState missionState;
-  void processAbort();
-  void processMission();
-
-  Behavior *m_current_behavior;  // this is a the current behavior which can be accessed from ROS
-                                 // callbacks
-  boost::mutex m_mutCallbacks;   // this is mutex to give safe access in callbacks
-
-  std::vector<Behavior *> m_behaviors;
-  std::vector<Behavior *>::iterator m_behavior_iterator;
-
-  std::vector<Behavior *> m_aborts;
-  std::vector<Behavior *>::iterator m_abort_behavior_iterator;
-
-  int mission_status;  // loaded, running, complete, aborted, error
-  double elasped_time;
-
-  std::string m_mission_description;
-
-  std::string current_behavior_name;
-  int current_behavior_id;
-
-  std::string current_abort_behavior_name;
-  int current_abort_behavior_id;
+  std::string missionDescription;
+  std::string behaviorName;
+  int currentBehaviorID;
 };
 
 }   //  namespace mission_control
