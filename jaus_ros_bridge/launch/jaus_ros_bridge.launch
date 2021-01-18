@@ -1,10 +1,10 @@
 <launch>
-  <arg name="ip" default="192.168.36.112"/>
-  <arg name="port" default="2225"/>
+  <arg name="ip" default="192.168.14.10"/>
+  <arg name="port" default="22"/>
   <node pkg="jaus_ros_bridge" type="bridge" name="jaus_ros_bridge" output="screen" cwd="node">	
     <param name="timeout" type="double" value="30.0" />
     <param name="ipaddress" type="string" value="$(arg ip)" />
-    <param name="port" type="int" value="$(arg port)" />
+    <param name="port" type="int" value="22" />
     <param name="batterypack" type="string" value="A" />
     <param name="debug_mode" type="bool" value="false"/>
   </node>

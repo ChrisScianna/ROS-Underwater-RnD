@@ -1,3 +1,7 @@
 <launch>
-  <node name="payload_manager" pkg="payload_manager" type="payloadManagerMain" output="screen"/>
+  <arg name="portNumber" default="2250"/>
+
+  <node name="payload_manager" pkg="payload_manager" type="payload_manager_node" output="screen">
+    <param name="port_number" type="int" value="$(arg portNumber)" />
+  </node>
 </launch>
