@@ -494,10 +494,10 @@ int run(int argc, char *argv[])
     // Right round round round
     while (ros::ok())
     {
-        diagnosticsUpdater.update();
         ros::getGlobalCallbackQueue()->callAvailable(
             ros::WallDuration(diagnosticsUpdater.getPeriod()));
         // Need to make sure we disconnect properly. Check if all ok.
+        diagnosticsUpdater.update();
     }
 
     // Node has been terminated
