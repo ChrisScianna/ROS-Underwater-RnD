@@ -57,12 +57,14 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
 
   minRate = pubRate / 2;
   maxRate = pubRate * 2;
-  double poseDataSteadyBand = 0.0;
+  double linearSteadyBand = 0.0;
+  double angularSteadyBand = 0.0;
   // Get runtime parameters
   private_node_handle.getParam("rate", pubRate);
   private_node_handle.getParam("min_rate", minRate);
   private_node_handle.getParam("max_rate", maxRate);
-  private_node_handle.getParam("pose_data_steady_band", poseDataSteadyBand);
+  private_node_handle.getParam("linear_steady_band", linearSteadyBand);
+  private_node_handle.getParam("angular_steady_band", angularSteadyBand);
   private_node_handle.getParam("saltwater_flag", saltwater_flag);
   private_node_handle.getParam("max_depth", maxDepth);
   private_node_handle.getParam("max_roll_ang", maxRollAng);
@@ -102,15 +104,14 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
   paramsCorrectedDataCheckStagnation.stagnation_diagnostic(diagnosticCorrectedDataInfoStagnate);
   diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::MessageStagnationCheck>(
       "stagnation check",
-      [poseDataSteadyBand](const pose_estimator::CorrectedData &a,
-                           const pose_estimator::CorrectedData &b)
+      [linearSteadyBand, angularSteadyBand](const pose_estimator::CorrectedData &a,
+                                            const pose_estimator::CorrectedData &b)
       {
-        return (std::fabs((a.depth - b.depth) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.x - b.rpy_ang.x) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.y - b.rpy_ang.y) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.z - b.rpy_ang.z) < poseDataSteadyBand));
-      }
-      , paramsCorrectedDataCheckStagnation));
+        return ((std::fabs(a.depth - b.depth) < linearSteadyBand) &&
+                (std::fabs(a.rpy_ang.x - b.rpy_ang.x) < angularSteadyBand) &&
+                (std::fabs(a.rpy_ang.y - b.rpy_ang.y) < angularSteadyBand) &&
+                (std::fabs(a.rpy_ang.z - b.rpy_ang.z) < angularSteadyBand));
+      }, paramsCorrectedDataCheckStagnation));  // NOLINT(whitespace/braces)
 
   // Report if message data is out of range
   depthCheck = diagnostic_tools::create_health_check<double>(
@@ -123,8 +124,7 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
               .description("%f m outside [%f m, %m m] range", depth, maxDepth);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(depthCheck);
 
   orientationRollCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
@@ -144,8 +144,7 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
           diagnostic.description("Roll Angle - OK (%f)", rpy.x);
         }
         return diagnostic;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(orientationRollCheck);
 
   orientationPitchCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
@@ -165,8 +164,7 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
           diagnostic.description("Pitch Angle - OK (%f)", rpy.y);
         }
         return diagnostic;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(orientationPitchCheck);
 
   orientationYawCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
@@ -186,9 +184,7 @@ PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
           diagnostic.description("Yaw Angle - OK (%f)", rpy.z);
         }
         return diagnostic;
-      }
-);
-
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(orientationYawCheck);
 
   // Initialize corrected data header
