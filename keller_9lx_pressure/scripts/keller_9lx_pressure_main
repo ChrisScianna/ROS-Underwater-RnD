@@ -253,7 +253,7 @@ class Keller9lxPressureSensorDriverNode(object):
         """
         reconnection_attempts = 0
         time_of_last_reconnection = None
-        while True:
+        while not rospy.is_shutdown():
             try:
                 port = serial.Serial(
                     port=self.__sensor_port,
