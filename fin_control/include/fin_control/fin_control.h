@@ -78,23 +78,19 @@ class FinControl
  public:
   explicit FinControl(ros::NodeHandle& nodeHandle);
   virtual ~FinControl();
-  ros::Timer reportAngleTimer;
-  void reportAngleSendTimeout(const ros::TimerEvent& timer);
-  void reportAngles();
 
  private:
-  boost::shared_ptr<boost::thread> m_thread;
-
   bool fincontrolEnabled;
   bool servosON;
   bool reportAnglesEnabled;
   bool currentLoggingEnabled;
 
-  void workerFunc();
-  void Start();
-  void Stop();
+  void reportAngles();
+
   float radiansToDegrees(float radians);
   float degreesToRadians(float degrees);
+
+  void reportAngleSendTimeout(const ros::TimerEvent& ev);
   void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
   void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
@@ -112,6 +108,7 @@ class FinControl
   ros::Subscriber subscriber_setAngles;
   ros::Subscriber subscriber_enableReportAngles;
   ros::Publisher publisher_reportAngle;
+  ros::Timer timer_reportAngle;
 
   DynamixelWorkbench myWorkBench;
 
