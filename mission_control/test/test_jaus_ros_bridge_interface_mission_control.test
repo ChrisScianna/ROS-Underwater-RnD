@@ -1,0 +1,14 @@
+<launch>
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+
+  <!--
+    Simulate messages sent by Jaus Ros Bridge
+
+    These test verifyes that the next messages:
+    - Load Mission Message
+    - 
+  -->
+  <test test-name="test_jaus_ros_bridge_interface_mission_control"
+        pkg="mission_control" type="test_jaus_ros_bridge_interface_mission_control.py" 
+        time-limit="15.0" />
+</launch>

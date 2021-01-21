@@ -1,7 +1,9 @@
+ <!-- This file is used for testing  -->
+ 
  <root main_tree_to_execute = "MainTree" >
 
      <BehaviorTree ID="MainTree">
-        <Sequence name="root_sequence">
+        <Sequence name="mission test">
             <Depth_Heading      name="Depth_Heading"/>
             <Depth_Heading      name="Depth_Heading"/>
             <Attitude_Servo     name="Attitude_Servo"/>
