@@ -71,35 +71,33 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
                                              &MissionControlNode::correctedDataCallback, this);
   report_fault_sub = node_handle.subscribe("/health_monitor/report_fault", 1,
                                            &MissionControlNode::reportFaultCallback, this);
-
-  load_mission_sub = node_handle.subscribe("/mngr/load_mission", 1,
+  load_mission_sub = node_handle.subscribe("/mission_control_node/load_mission", 1,
                                            &MissionControlNode::loadMissionCallback, this);
-  execute_mission_sub = node_handle.subscribe("/mngr/execute_mission", 1,
+  execute_mission_sub = node_handle.subscribe("/mission_control_node/execute_mission", 1,
                                               &MissionControlNode::executeMissionCallback, this);
-  abort_mission_sub = node_handle.subscribe("/mngr/abort_mission", 1,
+  abort_mission_sub = node_handle.subscribe("/mission_control_node/abort_mission", 1,
                                             &MissionControlNode::abortMissionCallback, this);
-  query_mission_sub = node_handle.subscribe("/mngr/query_missions", 1,
+  query_mission_sub = node_handle.subscribe("/mission_control_node/query_missions", 1,
                                             &MissionControlNode::queryMissionsCallback, this);
-  remove_mission_sub = node_handle.subscribe("/mngr/remove_missions", 1,
+  remove_mission_sub = node_handle.subscribe("/mission_control_node/remove_missions", 1,
                                              &MissionControlNode::removeMissionsCallback, this);
 
   // Advertise all topics and services
   pub_report_mission_load_state = node_handle.advertise<mission_control::ReportLoadMissionState>(
-      "/mngr/report_mission_load_state", 100);
+      "/mission_control_node/report_mission_load_state", 100);
   pub_report_mission_execute_state =
       node_handle.advertise<mission_control::ReportExecuteMissionState>(
-          "/mngr/report_mission_execute_state", 100);
-  pub_report_missions =
-      node_handle.advertise<mission_control::ReportMissions>("/mngr/report_missions", 100);
-  pub_report_heartbeat =
-      node_handle.advertise<mission_control::ReportHeartbeat>("/mngr/report_heartbeat", 100);
+          "/mission_control_node/report_mission_execute_state", 100);
+  pub_report_missions = node_handle.advertise<mission_control::ReportMissions>(
+      "/mission_control_node/report_missions", 100);
+  pub_report_heartbeat = node_handle.advertise<mission_control::ReportHeartbeat>(
+      "/mission_control_node/report_heartbeat", 100);
 
   reportExecuteMissionStateTimer =
       node_handle.createTimer(ros::Duration(reportExecuteMissionStateRate),
                               &MissionControlNode::reportExecuteMissionState, this);
   reportHeartbeatTimer = node_handle.createTimer(ros::Duration(reportHeartbeatRate),
                                                  &MissionControlNode::reportHeartbeat, this);
-
 }
 
 MissionControlNode::~MissionControlNode()
@@ -122,14 +120,17 @@ MissionControlNode::~MissionControlNode()
 int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
   Mission* newMission = new Mission();
-  if (newMission->loadBehavior(mission_full_path) == false)
+  if (newMission->loadBehavior(mission_full_path) == true)
+  {
+    m_mission_id_counter++;
+    m_mission_map[m_mission_id_counter] = newMission;
+    return 0;
+  }
+  else
   {
     delete newMission;
     return -1;
   }
-  m_mission_id_counter++;
-  m_mission_map[m_mission_id_counter] = newMission;
-  return 0;
 }
 
 int MissionControlNode::executeMission(int missionId)
@@ -139,7 +140,7 @@ int MissionControlNode::executeMission(int missionId)
     last_state = Mission::MissionState::READY;
     last_id = -1;
     m_current_mission_id = missionId;
-    m_mission_map[m_current_mission_id]->ExecuteMission();
+    m_mission_map[m_current_mission_id]->executeMission();
   }
 }
 
@@ -149,10 +150,7 @@ int MissionControlNode::start() { return 0; }
 
 int MissionControlNode::stop() { return 0; }
 
-bool MissionControlNode::spin()
-{
-  return true;
-}
+bool MissionControlNode::spin() {}
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 {
@@ -213,9 +211,9 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
 void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
-    // TODO(qna): Need to shutdown any mission that is currently running.
-    ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
-    executeMission(msg->mission_id);
+  // TODO(qna): Need to shutdown any mission that is currently running.
+  ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
+  executeMission(msg->mission_id);
 }
 
 void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
@@ -232,7 +230,7 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
   for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
   {
     data.mission_id = it->first;
-    // data.mission_description = it->second->getMissionDescription();
+    data.mission_description = it->second->getCurrentMissionDescription();
     outmsg.missions.push_back(data);
   }
 
@@ -255,7 +253,7 @@ void MissionControlNode::removeMissionsCallback(
 
 void MissionControlNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
-  //TODO This should be inside each node.
+  // TODO This should be inside each node.
   // mission_map.count checks to see if a key is in the map
   if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(m_current_mission_id) > 0))
@@ -281,25 +279,14 @@ int main(int argc, char** argv)
   ROS_INFO("Starting Mission mgr node Version: [%s]", NODE_VERSION);
   nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
 
-
-  //testing Mission class
-  Mission testBT;
-  ros::NodeHandle nhTEST("~");
-  std::string param;
-  nhTEST.getParam("fullPath", param);
-  testBT.loadBehavior(param);
-  testBT.ExecuteMission();
-
-  MissionControlNode mmn(nh);  
+  MissionControlNode mcn(nh);
+  ros::Rate loop_rate(10);
   while (ros::ok())
   {
     ros::spinOnce();
-    mmn.spin();
-    ros::Duration sleep_time(0.01);
-    sleep_time.sleep();
+    loop_rate.sleep();
   }
-
-  ROS_INFO("Mission mgr shutting down");
+  ROS_INFO("Mission control shutting down");
 
   return 0;
 }

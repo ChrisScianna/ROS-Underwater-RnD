@@ -37,18 +37,19 @@
 #ifndef MISSION_CONTROL_MISSION_H
 #define MISSION_CONTROL_MISSION_H
 
-#include <vector>
+#include <behaviortree_cpp_v3/bt_factory.h>
+
 #include <string>
+#include <vector>
+
 #include "mission_control/behaviors/attitude_servo.h"
 #include "mission_control/behaviors/depth_heading.h"
 #include "mission_control/behaviors/waypoint.h"
-#include <behaviortree_cpp_v3/bt_factory.h>
 
 using namespace BT;
 
 namespace mission_control
 {
-
 class Mission
 {
  public:
@@ -66,31 +67,30 @@ class Mission
   };
 
   void processMission();
-  void ExecuteMission();
+  void executeMission();
   void Stop();
 
   int getMissionStatus();
 
-  std::string getCurrenMissionDescription();
+  std::string getCurrentMissionDescription();
   std::string getCurrentBehavioralName();
 
   bool loadBehavior(const std::string &missionFullPath);
-  
+
   int getCurrentBehaviorID();
-  
-  BT::Tree _missionTree;
-  NodeStatus _missionStatus;
 
  private:
   BT::BehaviorTreeFactory _missionFactory;
+  BT::Tree _missionTree;
+  NodeStatus _missionStatus;
 
   std::string _missionFullPath;
 
-  std::string missionDescription;
+  std::string _missionDescription;
   std::string behaviorName;
   int currentBehaviorID;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_MISSION_H
