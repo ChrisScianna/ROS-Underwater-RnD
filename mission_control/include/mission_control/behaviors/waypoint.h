@@ -57,10 +57,10 @@
 
 namespace mission_control
 {
-class Waypoint1 : public BT::SyncActionNode
+class Waypoint : public BT::SyncActionNode
 {
   public:
-    Waypoint1(const std::string& name) :
+    Waypoint(const std::string& name) :
         BT::SyncActionNode(name, {}), _behavioralStatus(BT::NodeStatus::IDLE)
     {
     }

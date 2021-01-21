@@ -39,7 +39,7 @@ using namespace mission_control;
 using namespace BT;
 #include <unistd.h>
 
-BT::NodeStatus Waypoint1::tick()
+BT::NodeStatus Waypoint::tick()
 {
   _behavioralStatus = BT::NodeStatus::RUNNING;
   sleep(2);
@@ -47,6 +47,6 @@ BT::NodeStatus Waypoint1::tick()
   return BT::NodeStatus::SUCCESS;
 }
 
-BT::NodeStatus Waypoint1::getStatus(){
+BT::NodeStatus Waypoint::getStatus(){
   return _behavioralStatus;
 }
