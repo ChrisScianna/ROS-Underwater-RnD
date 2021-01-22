@@ -50,7 +50,7 @@ Mission::Mission()
 {
   currentBehaviorID = 0;
 
-  _missionFactory.registerNodeType<Waypoint1>("Waypoint1");
+  _missionFactory.registerNodeType<Waypoint>("Waypoint");
   _missionFactory.registerNodeType<Attitude_Servo>("Attitude_Servo");
   _missionFactory.registerNodeType<Depth_Heading>("Depth_Heading");
 }

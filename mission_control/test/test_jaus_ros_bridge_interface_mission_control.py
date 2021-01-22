@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2020, QinetiQ, Inc.
@@ -31,7 +31,7 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
-'''
+"""
 import sys
 import os
 import unittest
@@ -104,28 +104,24 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         mission_to_load = LoadMission()
         mission_to_load.mission_file_full_path = "NO_MISSION"
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
-        while (not rospy.is_shutdown() and self.mission_load_state_flag == False):
+        while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
-        self.assertTrue(self.mission_load_state ==
-                        ReportLoadMissionState.FAILED)
+        self.assertEqual(self.mission_load_state, ReportLoadMissionState.FAILED)
 
         # TEST - Load a valid Mission
         self.mission_load_state_flag = False
         mission_to_load.mission_file_full_path = self.dir_path + "test_missions/mission.xml"
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
-        while (not rospy.is_shutdown() and self.mission_load_state_flag == False):
+        while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
-        self.assertTrue(self.mission_load_state ==
-                        ReportLoadMissionState.SUCCESS)
+        self.assertEqual(self.mission_load_state, ReportLoadMissionState.SUCCESS)
 
         # TEST - Query Mission
         mission_to_query = QueryMissions()
         simulated_query_mission_msg_pub.publish(mission_to_query)
         while (not rospy.is_shutdown() and self.report_mission_flag == False):
             rospy.sleep(0.1)
-        self.assertTrue(
-            self.report_mission.missions[0].mission_description == "mission test")
-
+        self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_interface_jause_ros_bridge',

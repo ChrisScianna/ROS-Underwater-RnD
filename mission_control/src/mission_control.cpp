@@ -211,7 +211,7 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
 void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
-  // TODO(qna): Need to shutdown any mission that is currently running.
+  
   ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
   executeMission(msg->mission_id);
 }
@@ -271,22 +271,3 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
   }
 }
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "mission_control_node");
-
-  ros::NodeHandle nh;
-  ROS_INFO("Starting Mission mgr node Version: [%s]", NODE_VERSION);
-  nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
-
-  MissionControlNode mcn(nh);
-  ros::Rate loop_rate(10);
-  while (ros::ok())
-  {
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-  ROS_INFO("Mission control shutting down");
-
-  return 0;
-}

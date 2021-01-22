@@ -7,7 +7,7 @@
             <Depth_Heading      name="Depth_Heading"/>
             <Depth_Heading      name="Depth_Heading"/>
             <Attitude_Servo     name="Attitude_Servo"/>
-            <Waypoint1          name="Waypoint1"/>
+            <Waypoint          name="Waypoint"/>
         </Sequence>
      </BehaviorTree>
 

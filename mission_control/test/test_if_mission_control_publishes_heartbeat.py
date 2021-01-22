@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2020, QinetiQ, Inc.
@@ -31,7 +31,7 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
-'''
+"""
 import sys
 import os
 import unittest
@@ -49,7 +49,7 @@ class TestMissionControlPublishesHeartbeat(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('heartbead_mission_control')
+        rospy.init_node('heartbeat_mission_control')
 
     def setUp(self):
         self.mission_manager_heart_beat_count = 0
@@ -58,16 +58,15 @@ class TestMissionControlPublishesHeartbeat(unittest.TestCase):
         self.mission_manager_heart_beat_count = msg.seq_id
 
     def test_mission_control_published_heartbeat(self):
-        rospy.Subscriber('/mission_control/report_heartbeat',
+        rospy.Subscriber('/mission_control_node/report_heartbeat',
                          ReportHeartbeat, self.callback_mission_manager_heart_beat)
 
-        while (not rospy.is_shutdown()
-               and self.mission_manager_heart_beat_count < 3):
+        while not rospy.is_shutdown() and self.mission_manager_heart_beat_count < 3:
             rospy.sleep(0.1)
 
         self.assertTrue(self.mission_manager_heart_beat_count >= 3)
 
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_heartbeat',
+    rostest.rosrun('mission_control_node', 'mission_control_heartbeat',
                    TestMissionControlPublishesHeartbeat)
