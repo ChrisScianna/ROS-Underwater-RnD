@@ -55,7 +55,6 @@
 #include <sstream>
 
 #include "autopilot/pid.h"
-#include "fin_control/EnableReportAngles.h"
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
 #include "jaus_ros_bridge/ActivateManualControl.h"
@@ -83,7 +82,6 @@ class AutoPilotNode
   ros::Publisher autoPilotInControlPub;
   ros::Publisher thrusterPub;
   ros::Publisher finsControlPub;
-  ros::Publisher finsEnableReportingPub;
 
   ros::Subscriber jausRosSub;
 
