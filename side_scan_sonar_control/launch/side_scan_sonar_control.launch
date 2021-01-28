@@ -1,0 +1,18 @@
+<launch>
+  <arg name="portNumber" default="2250"/>
+  <arg name="sidescan" default="192.168.24.189"/>
+  <arg name="start" default="&lt;Seascout:Start&gt;"/>
+  <arg name="stop" default="&lt;Seascout:Stop&gt;"/>
+  <arg name="startString" default="http://169.254.86.213/sonar.html?dataon=1&amp;txon=1&amp;rnglock=0&amp;rngm0=30&amp;rngm1=30&amp;rngdlylock=0&amp;rngdlym0=0&amp;rngdlym1=0&amp;ch0=0&amp;ch0=1&amp;ch1=1&amp;ch2=1&amp;ch3=1"/>
+  <arg name="stopString" default="http://169.254.86.213/sonar.html?dataon=0&amp;txon=0&amp;rnglock=0&amp;rngm0=30&amp;rngm1=30&amp;rngdlylock=0&amp;rngdlym0=0&amp;rngdlym1=0&amp;ch0=0&amp;ch0=0&amp;ch1=0&amp;ch2=0&amp;ch3=0"/>
+
+
+  <node name="side_scan_sonar_control" pkg="side_scan_sonar_control" type="side_scan_sonar_control_node" output="screen">
+    <param name="port_number" type="int" value="$(arg portNumber)" />
+    <param name="side_scan_address" type="string" value="$(arg sidescan)" />
+    <param name="start_message" type="string" value="$(arg start)" />
+    <param name="stop_message" type="string" value="$(arg stop)" />
+    <param name="start_command_to_send" type="string" value="$(arg startString)" />
+    <param name="stop_command_to_send" type="string" value="$(arg stopString)" />
+  </node>
+</launch>
