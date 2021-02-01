@@ -91,9 +91,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 
   ros::Subscriber sub = n.subscribe("/payload_manager/command", 1000, sideScanMessageCallback);
-  if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
-   ros::console::notifyLoggerLevelsChanged();
-  }
+
   int portNumber = 2250;
   std::string sideScanAddress = "192.168.24.189";
   if (n.getParam("/side_scan_sonar_control/port_number", portNumber) == 0)
