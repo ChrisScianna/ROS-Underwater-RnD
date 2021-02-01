@@ -1,0 +1,44 @@
+# Defined in udev rules, change according to your system. Typically /dev/ttyUSB0
+port_number: 2250
+
+side_scan_address: "192.168.24.189"
+
+commands_table:
+    "<Seascout:Start>" : "http://169.254.86.213/sonar.html?dataon=1&;txon=1&;rnglock=0&;rngm0=30&;rngm1=30&;rngdlylock=0&;rngdlym0=0&;rngdlym1=0&;ch0=0&;ch0=1&;ch1=1&;ch2=1&;ch3=1"
+    "<Seascout:Stop>" : "http://169.254.86.213/sonar.html?dataon=0&;txon=0&;rnglock=0&;rngm0=30&;rngm1=30&;rngdlylock=0&;rngdlym0=0&;rngdlym1=0&;ch0=0&;ch0=0&;ch1=0&;ch2=0&;ch3=0"
+
+# Device IMU Rate as set by the manufacturer (800Hz unless specified otherwise)
+# This value is used to set the serial data packet rate
+fixed_imu_rate: 800
+
+# Frame id to publish data in
+frame_id: imu_link
+
+# Data publication form, true for East North Up or false for North East Down <- false is default setting
+tf_ned_to_enu: false
+
+# If publishing ENU, do we want to publish in the frame labeled on the device? Default is false.
+# If tf_ned_to_enu = true and frame_based_enu = false orientation is reported by: x->y y->x z->-z to rotate the quaternion
+# Proper method is to rotate the quaternion by multiplication
+# If tf_ned_to_enu = true and frame_based_enu = true we rotate the quaternion to the frame matched label by multiplication
+frame_based_enu: false
+
+# Make sure all covariances below are of type xx.xx , i.e. double so that the rpc is parsed correctly
+
+# Linear Acceleration Covariances not produced by the sensor
+linear_accel_covariance: [0.01,  0.0,    0.0,
+                          0.0,   0.01,   0.0,
+                          0.0,   0.0,    0.01]
+
+# Angular Velocity Covariances not produced by the sensor
+angular_vel_covariance: [0.01,  0.0,   0.0,
+                         0.0,   0.01,  0.0,
+                         0.0,   0.0,   0.01]
+
+# Orientation covariance overwritten in driver, this is included just as an extra
+orientation_covariance: [0.01,  0.0,   0.0,
+                            0.0,   0.01,  0.0,
+                            0.0,   0.0,   0.01]
+
+# the minimum absolute tolerance in the orientation of the stagnation check
+orientation_steady_band: 0.0

@@ -42,19 +42,15 @@
 #include <cstring>
 #include <iostream>
 #include <string>   
-
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <ros/console.h>
 #include <unistd.h>
+#include <boost/algorithm/string/replace.hpp>
 
-
-std::string startCommandReceived;
-std::string startCommandToSend;
-std::string stopCommandReceived;
-std::string stopCommandToSend;
+std::map<std::string, std::string> commandsTable = { };
 
 int sideScanSocket;
 void sideScanMessageCallback(const side_scan_sonar_control::SideScanSonarCommand::ConstPtr& msg)
@@ -63,17 +59,21 @@ void sideScanMessageCallback(const side_scan_sonar_control::SideScanSonarCommand
   sockaddr_storage client_addr;
   socklen_t client_addr_size = sizeof(client_addr);
   std::string sideScanMessage = "";
-  if (msg->command.c_str() == startCommandReceived) {
-      ROS_DEBUG("Going to activate side scan sonar");
-      sideScanMessage = startCommandToSend;
-  } else if (msg->command.c_str() == stopCommandReceived) {
-      ROS_DEBUG("Going to deactivate side scan sonar");
-      sideScanMessage = stopCommandToSend;
-  } else {
-      sideScanMessage = msg->command.c_str();
-
+  bool isRecognizedCommand = false;
+  for(std::map<std::string,std::string>::iterator iter = commandsTable.begin(); iter != commandsTable.end(); ++iter)
+  {
+    std::string k = iter->first;
+    ROS_DEBUG("Comparing received message %s to %s", msg->command.c_str(), k.c_str());
+    if (k.compare(msg->command) == 0) {
+      isRecognizedCommand = true;
+      std::string v = iter->second;
+      sideScanMessage = v;
+      break;
+    }
   }
-
+  if (!isRecognizedCommand)
+    sideScanMessage = msg->command.c_str();
+  ROS_INFO("Sending side scan message %s", sideScanMessage.c_str());
 
 
   auto bytes_sent = send(sideScanSocket, sideScanMessage.c_str(), sideScanMessage.length(), 0);
@@ -84,48 +84,58 @@ void sideScanMessageCallback(const side_scan_sonar_control::SideScanSonarCommand
 }
 
 
-
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "side_scan_sonar_control");
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("/side_scan_sonar_control/command", 1000, sideScanMessageCallback);
+  ros::Subscriber sub = n.subscribe("/payload_manager/command", 1000, sideScanMessageCallback);
+  if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
+   ros::console::notifyLoggerLevelsChanged();
+  }
   int portNumber = 2250;
   std::string sideScanAddress = "192.168.24.189";
   if (n.getParam("/side_scan_sonar_control/port_number", portNumber) == 0)
     ROS_ERROR("Port not found. Using default: [%d]", portNumber);
   else
     ROS_INFO("Using port: [%d]", portNumber);
-  
+
+
+  std::map<std::string, std::string> unfilteredCommandsTable = { };
+  if (n.getParam("/side_scan_sonar_control/commands_table", unfilteredCommandsTable) == 0)
+    ROS_ERROR("commands table not found. ");
+  else {
+
+    for(std::map<std::string,std::string>::iterator iter = unfilteredCommandsTable.begin(); iter != unfilteredCommandsTable.end(); ++iter)
+    {
+      //for some reason, yaml replaces <> and & in the keys with the HTML entity. This puts them back.
+      std::string k =  iter->first;
+      boost::replace_all(k, "&lt;", "<");
+      boost::replace_all(k, "&gt;", ">");
+      boost::replace_all(k, "&amp;", "&");
+      std::string v = iter->second;
+      commandsTable.insert(std::pair<std::string, std::string>(k, v));
+    }
+
+
+    std::string tableInString = "";
+    for(std::map<std::string,std::string>::iterator iter = commandsTable.begin(); iter != commandsTable.end(); ++iter)
+    {
+      std::string k =  iter->first;
+      std::string v = iter->second;
+      tableInString.append(k + ": " + v + ", ");
+    }
+    ROS_INFO("Using commands table [%s]", tableInString.c_str());
+
+  }
   if (n.getParam("/side_scan_sonar_control/side_scan_address", sideScanAddress) == 0)
     ROS_ERROR("side scan address not found. Using default: [%s]",  sideScanAddress.c_str());
   else
     ROS_INFO("Using side scan address: [%s]", sideScanAddress.c_str());
 
-  if (n.getParam("/side_scan_sonar_control/start_message", startCommandReceived) == 0)
-    ROS_ERROR("start command not found. Using default: [%s]", startCommandReceived.c_str());
-  else
-    ROS_INFO("Using start command: [%s]", startCommandReceived.c_str());
-
-  if (n.getParam("/side_scan_sonar_control/stop_message", stopCommandReceived) == 0)
-    ROS_ERROR("stop command not found. Using default: [%s]", stopCommandReceived.c_str());
-  else
-    ROS_INFO("Using stop command: [%s]", stopCommandReceived.c_str());
-
-  if (n.getParam("/side_scan_sonar_control/start_command_to_send", startCommandToSend) == 0)
-    ROS_ERROR("start command to send not found. Using default: [%s]", startCommandToSend.c_str());
-  else
-    ROS_INFO("Using start command to send: [%s]", startCommandToSend.c_str());
-
-  if (n.getParam("/side_scan_sonar_control/stop_command_to_send", stopCommandToSend) == 0)
-    ROS_ERROR("stop command to send not found. Using default: [%s]", stopCommandToSend.c_str());
-  else
-    ROS_INFO("Using stop command to send: [%s]", stopCommandToSend.c_str());
-
-
   ROS_INFO("Started up side scan sonar control.");
+  //ROS_DEBUG("test debug line");
   try {
     struct sockaddr_in serv_addr; 
     char buffer[1024] = {0}; 
