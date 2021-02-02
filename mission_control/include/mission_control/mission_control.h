@@ -46,6 +46,8 @@
 #include <stdint.h>
 
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 #include <map>
 #include <string>
 
@@ -109,6 +111,7 @@ class MissionControlNode
   int last_id;
 
   ros::Timer reportHeartbeatTimer;
+  ros::Timer executeMissionTimer;
 
  private:
   // Vars holding runtime params
@@ -130,17 +133,16 @@ class MissionControlNode
   explicit MissionControlNode(ros::NodeHandle& h);
   ~MissionControlNode();
 
-  boost::shared_ptr<boost::thread> m_thread;
-
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);
   int abortMission(int missionId);
 
   int start();
-  int stop();
+  int stopMission();
   bool spin();
 
   void reportHeartbeat(const ros::TimerEvent& timer);
+  void executeMissionT(const ros::TimerEvent& timer);
   void reportExecuteMissionState(const ros::TimerEvent& timer);
   void loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg);
   void executeMissionCallback(const mission_control::ExecuteMission::ConstPtr& msg);

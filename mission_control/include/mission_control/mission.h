@@ -39,11 +39,7 @@
 
 #include <behaviortree_cpp_v3/bt_factory.h>
 
-#include <string>
-#include <vector>
-
-#include "mission_control/behaviors/attitude_servo.h"
-#include "mission_control/behaviors/depth_heading.h"
+//Behaviors
 #include "mission_control/behaviors/waypoint.h"
 
 using namespace BT;
@@ -66,29 +62,22 @@ class Mission
     COMPLETE
   };
 
-  void processMission();
-  void executeMission();
-  void Stop();
+  NodeStatus executeMission();
+  void stopMission();
 
-  int getMissionStatus();
-
+  NodeStatus getMissionStatus();
   std::string getCurrentMissionDescription();
   std::string getCurrentBehavioralName();
-
-  bool loadBehavior(const std::string &missionFullPath);
-
-  int getCurrentBehaviorID();
+  bool loadMission(const std::string& missionFullPath);
 
  private:
-  BT::BehaviorTreeFactory _missionFactory;
-  BT::Tree _missionTree;
-  NodeStatus _missionStatus;
+  BT::BehaviorTreeFactory missionFactory_;
+  BT::Tree missionTree_;
 
-  std::string _missionFullPath;
-
-  std::string _missionDescription;
-  std::string behaviorName;
-  int currentBehaviorID;
+  NodeStatus missionStatus_;        //  The status of the Mission defined in MissionState
+  std::string missionFullPath_;     //  Path to the xml mission definitios
+  std::string missionDescription_;  //  Description of the mission
+  std::string behaviorName_;        //  Name of the action (behavior) being executed.
 };
 
 }  //  namespace mission_control

@@ -98,11 +98,15 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
                               &MissionControlNode::reportExecuteMissionState, this);
   reportHeartbeatTimer = node_handle.createTimer(ros::Duration(reportHeartbeatRate),
                                                  &MissionControlNode::reportHeartbeat, this);
+  
+  executeMissionTimer = node_handle.createTimer(ros::Duration(0.1),
+                                                 &MissionControlNode::executeMissionT, this);
+  executeMissionTimer.stop();
 }
 
 MissionControlNode::~MissionControlNode()
 {
-  stop();
+  stopMission();
 
   std::map<int, Mission*>::iterator it;
 
@@ -120,7 +124,7 @@ MissionControlNode::~MissionControlNode()
 int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
   Mission* newMission = new Mission();
-  if (newMission->loadBehavior(mission_full_path) == true)
+  if (newMission->loadMission(mission_full_path) == true)
   {
     m_mission_id_counter++;
     m_mission_map[m_mission_id_counter] = newMission;
@@ -133,22 +137,11 @@ int MissionControlNode::loadMissionFile(std::string mission_full_path)
   }
 }
 
-int MissionControlNode::executeMission(int missionId)
-{
-  if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
-  {
-    last_state = Mission::MissionState::READY;
-    last_id = -1;
-    m_current_mission_id = missionId;
-    m_mission_map[m_current_mission_id]->executeMission();
-  }
-}
-
 int MissionControlNode::abortMission(int missionId) {}
 
 int MissionControlNode::start() { return 0; }
 
-int MissionControlNode::stop() { return 0; }
+int MissionControlNode::stopMission() { return 0; }
 
 bool MissionControlNode::spin() {}
 
@@ -160,13 +153,28 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
   pub_report_heartbeat.publish(outmsg);
 }
 
+void MissionControlNode::executeMissionT(const ros::TimerEvent& timer){
+  
+  NodeStatus missionStatus = m_mission_map[m_current_mission_id]->getMissionStatus();
+  if (missionStatus == NodeStatus::IDLE || missionStatus == NodeStatus::RUNNING)
+  {
+    missionStatus = m_mission_map[m_current_mission_id]->executeMission();
+  }
+  else
+  {
+    m_mission_map[m_current_mission_id]->stopMission();
+    executeMissionTimer.stop();
+  }
+  
+}
+
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
 {
   if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(m_current_mission_id) > 0))
   {
-    // TODO GetState
-    // Mission::MissionState state = m_mission_map[m_current_mission_id]->GetState();
+    int btState = static_cast<int>(m_mission_map[m_current_mission_id]->getMissionStatus());
+    Mission::MissionState state = static_cast<Mission::MissionState>(btState);
     ReportExecuteMissionState outmsg;
 
     outmsg.current_behavior_name = "name";
@@ -175,8 +183,7 @@ void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
     outmsg.mission_id = m_current_mission_id;
     outmsg.header.stamp = ros::Time::now();
     pub_report_mission_execute_state.publish(outmsg);
-    ROS_INFO("In reportExecuteMissionState, mission id[%d] behavior name:[%s] status is [%s]",
-             m_current_mission_id, "name", "RUNNING");
+    ROS_INFO_STREAM("Mission State: " << btState);
   }
 }
 
@@ -211,9 +218,13 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
 void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
-  
-  ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
-  executeMission(msg->mission_id);
+  if ((msg->mission_id > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(msg->mission_id) > 0))
+  {
+    m_current_mission_id = msg->mission_id;
+    executeMissionTimer.start();
+    ROS_INFO_STREAM("executeMissionCallback - Executing mission id[" << m_current_mission_id << "]");
+   
+  }
 }
 
 void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
