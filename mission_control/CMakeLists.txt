@@ -65,8 +65,6 @@ add_executable(${NODE_APP_NAME}
    src/mission.cpp
    src/mission_control.cpp
    src/mission_control_main.cpp
-   src/behaviors/attitude_servo.cpp
-   src/behaviors/depth_heading.cpp
    src/behaviors/waypoint.cpp
 )
 

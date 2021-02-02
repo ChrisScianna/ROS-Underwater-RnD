@@ -35,18 +35,16 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/behaviors/waypoint.h"
 
+
 using namespace mission_control;
-using namespace BT;
-#include <unistd.h>
 
-BT::NodeStatus Waypoint::tick()
-{
-  _behavioralStatus = BT::NodeStatus::RUNNING;
-  sleep(2);
-  std::cout << "Waypoint: " << this->name() << std::endl;
-  return BT::NodeStatus::SUCCESS;
-}
 
-BT::NodeStatus Waypoint::getStatus(){
-  return _behavioralStatus;
+
+  BT::NodeStatus Waypoint::getBehaviorStatus() {
+
+    return BT::NodeStatus::RUNNING;
+  }
+
+void Waypoint::abortBehavior(){
+  ROS_INFO_STREAM("Abort");
 }

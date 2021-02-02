@@ -51,28 +51,77 @@
 #ifndef MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 #define MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 
-#include <string>
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
+#include <behaviortree_cpp_v3/basic_types.h>
+
+#include "mission_control/behavior.h"
+using namespace BT;
+
+
+namespace mission_control{
+  struct WaypointData
+{
+  double depth;
+  double altitude;
+  double latitude;
+  double longitude;
+  double wp_radius;
+  double speed_knots;
+};
+
+}
+
+namespace BT{
+template <> inline mission_control::WaypointData convertFromString<mission_control::WaypointData>(StringView str)
+
+{
+    // real numbers separated by semicolons
+    auto parts = splitString(str, ';');
+    if (parts.size() != 6)
+    {
+        throw RuntimeError("invalid input)");
+    }
+    else{
+        mission_control::WaypointData output;
+        output.depth = convertFromString<double>(parts[0]);
+        output.altitude = convertFromString<double>(parts[1]);
+        output.latitude = convertFromString<double>(parts[2]);
+        output.longitude = convertFromString<double>(parts[3]);
+        output.wp_radius = convertFromString<double>(parts[4]);
+        output.speed_knots = convertFromString<double>(parts[5]);
+        return output;
+    }
+}
+}
+
 
 namespace mission_control
 {
-class Waypoint : public BT::SyncActionNode
+
+class Waypoint : public Behavior
 {
-  public:
-    Waypoint(const std::string& name) :
-        BT::SyncActionNode(name, {}), _behavioralStatus(BT::NodeStatus::IDLE)
-    {
-    }
+ public:
+  Waypoint(const std::string& name, const BT::NodeConfiguration& config) : Behavior(name, config) {
 
-    // You must override the virtual function tick()
-    BT::NodeStatus tick() override;
-    BT::NodeStatus getStatus();
+    auto res = getInput<WaypointData>("value");
+    if( !res )
+        {
+            throw RuntimeError("error reading port [target]:", res.error() );
+        }
+        WaypointData goal = res.value();
+  }
 
-  private:
-    BT::NodeStatus _behavioralStatus;
+  BT::NodeStatus getBehaviorStatus();
+  void abortBehavior();
+
+  static PortsList providedPorts()
+  {
+    const char* description = "depth;altitude;latitude;longitude;wp_radius;speed_knots";
+    return {InputPort<WaypointData>("value", description)};
+  }
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
