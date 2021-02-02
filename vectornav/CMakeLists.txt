@@ -37,7 +37,7 @@ include_directories(vnproglib-1.1.4.0/cpp/include ${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
 ## Declare a cpp executable
-add_executable(vnpub src/main.cpp)
+add_executable(vnpub src/vectornav_main.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vnpub
