@@ -49,12 +49,13 @@ from mission_control.msg import RemoveMissions
 from mission_control.msg import ReportMissions
 
 
-class TestJausRosBridgeInterface(unittest.TestCase):
+class TestWaypointBehavioral(unittest.TestCase):
     """ 
-        Simulate messages sent by the jaus ros bridge
+        The test simulates messages sent by the jaus ros bridge
+        and execute a waypoint behavioral
     """
 
-    rospy.init_node('test_mission_control_interface_jaus_ros_bridge')
+    rospy.init_node('test_waypoint_behavioral')
     mission_execute_state = ReportExecuteMissionState.PAUSED
     mission_load_state = False
     dir_path = os.path.dirname(os.path.abspath(__file__)) + '/test_files/'
@@ -75,7 +76,7 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.mission_load_state = msg.load_state
         self.mission_load_state_flag = True
 
-    def test_jaus_ros_bridge_interface(self):
+    def test_mission_with_waypoint_behavioral(self):
         rospy.Subscriber('/mission_control_node/report_mission_execute_state',
                          ReportExecuteMissionState, self.callback_mission_execute_state)
 
@@ -103,17 +104,10 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         simulated_mission_manager_execute_mission_pub = rospy.Publisher('/mission_control_node/execute_mission', 
             ExecuteMission, queue_size=1)
 
-        # TEST - Load a wrong mission
-        mission_to_load = LoadMission()
-        mission_to_load.mission_file_full_path = "NO_MISSION"
-        simulated_mission_control_load_mission_pub.publish(mission_to_load)
-        while not rospy.is_shutdown() and not self.mission_load_state_flag:
-            rospy.sleep(0.1)
-        self.assertEqual(self.mission_load_state, ReportLoadMissionState.FAILED)
-
-        # TEST - Load a valid Mission
+        # Load mission with waypoint behavioral
         self.mission_load_state_flag = False
-        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/mission.xml"
+        mission_to_load = LoadMission()
+        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/waypoint_mission_test.xml"
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
         while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
@@ -126,12 +120,16 @@ class TestJausRosBridgeInterface(unittest.TestCase):
             rospy.sleep(0.1)
         self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
 
-        print("--------------Executing-------------------------")
+        # TEST - Execute Mission
         execute_mission_command = ExecuteMission()
         execute_mission_command.mission_id = 1
         simulated_mission_manager_execute_mission_pub.publish(execute_mission_command)
         rospy.sleep(1)
+        
+        # TODO
+        # Publish data that allows waypoint to finish.
+        # test if the mission has ended.
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_interface_jause_ros_bridge',
-                   TestJausRosBridgeInterface)
+    rostest.rosrun('mission_control', 'mission_control_test_waypoint_behavioral',
+                   TestWaypointBehavioral)
