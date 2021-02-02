@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   thruster_control
   jaus_ros_bridge
   message_generation
+  mission_manager
 )
 
 add_message_files(
@@ -34,7 +35,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS fin_control pose_estimator roscpp rospy std_msgs thruster_control jaus_ros_bridge
+ CATKIN_DEPENDS fin_control pose_estimator roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_manager
 )
 
 roslint_cpp(

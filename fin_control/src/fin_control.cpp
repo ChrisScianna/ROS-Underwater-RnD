@@ -107,6 +107,9 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   publisher_reportAngle =
       nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
 
+  timer_reportAngle = nodeHandle.createTimer(
+      ros::Duration(reportAngleRate), &FinControl::reportAngleSendTimeout, this);
+
   finAngleCheck = diagnostic_tools::create_health_check<double>(
       "Fin angle within range", [this](double angle) -> diagnostic_tools::Diagnostic
       {
@@ -168,9 +171,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
     return;
   }
 
-  Start();
   ros::spin();
-  Stop();
 }
 
 FinControl::~FinControl()
@@ -369,30 +370,10 @@ void FinControl::handleEnableReportAngles(const fin_control::EnableReportAngles:
   }
 }
 
-void FinControl::workerFunc()
+void FinControl::reportAngleSendTimeout(const ros::TimerEvent& ev)
 {
-  while (fincontrolEnabled)
-  {
-    reportAngles();
-    diagnosticsUpdater.update();
-    // sleep to maintain 25Hz update period
-    // if changing this number update durations above.
-    usleep(static_cast<int>(reportAngleRate * 1e6));
-  }
-}
-void FinControl::Start()
-{
-  assert(!m_thread);
-  fincontrolEnabled = true;
-  m_thread = boost::shared_ptr<boost::thread>(
-      new boost::thread(boost::bind(&FinControl::workerFunc, this)));
-}
-
-void FinControl::Stop()
-{
-  assert(m_thread);
-  fincontrolEnabled = false;
-  m_thread->join();
+  reportAngles();
+  diagnosticsUpdater.update();
 }
 
 }  // namespace robot

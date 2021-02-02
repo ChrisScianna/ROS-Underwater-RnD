@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   mission_manager
   thruster_control
+  health_monitor
+  fin_control
 )
 
 #find_package(catkin REQUIRED COMPONENTS
@@ -127,7 +129,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES jaus_ros_bridge
 #  LIBRARIES fin_control
-  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs 
+  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs health_monitor fin_control
 #  DEPENDS system_lib
 )
 
