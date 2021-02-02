@@ -35,16 +35,20 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/behaviors/waypoint.h"
 
-
 using namespace mission_control;
 
-
-
-  BT::NodeStatus Waypoint::getBehaviorStatus() {
-
-    return BT::NodeStatus::RUNNING;
+Waypoint::Waypoint(const std::string& name, const BT::NodeConfiguration& config)
+    : Behavior(name, config)
+{
+  auto res = getInput<WaypointData>("value");
+  if (!res)
+  {
+    throw RuntimeError("error reading port [target]:", res.error());
   }
-
-void Waypoint::abortBehavior(){
-  ROS_INFO_STREAM("Abort");
+  WaypointData goal = res.value();
 }
+
+BT::NodeStatus Waypoint::getBehaviorStatus() { return BT::NodeStatus::RUNNING; }
+
+void Waypoint::abortBehavior() { ROS_INFO_STREAM("Abort"); }
+void Waypoint::publishMsg() { ROS_INFO_STREAM("PublishMsg"); }

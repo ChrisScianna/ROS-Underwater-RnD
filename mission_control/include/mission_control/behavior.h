@@ -48,6 +48,7 @@ class Behavior : public BT::AsyncActionNode
   Behavior(const std::string& name, const BT::NodeConfiguration& config)
       : AsyncActionNode(name, config)
   {
+    idleToRunning = true;
   }
 
   ~Behavior() {}
@@ -58,10 +59,16 @@ class Behavior : public BT::AsyncActionNode
     switch (status())
     {
       case BT::NodeStatus::IDLE:
-        setStatus(BT::NodeStatus::RUNNING);
+        halt();
         break;
       case BT::NodeStatus::RUNNING:
-        setStatus(getBehaviorStatus());
+        if(idleToRunning){
+          idleToRunning = false;
+          publishMsg();
+        }
+        else{
+          setStatus(getBehaviorStatus());
+        }
         break;
       case BT::NodeStatus::FAILURE:
         abortBehavior();
@@ -82,12 +89,18 @@ class Behavior : public BT::AsyncActionNode
     setStatus(BT::NodeStatus::IDLE);
   }
 
+  /// Method (to be implemented by the user) that sends msg to actuators.
+  /// It's used in the transition from IDLE to RUNNING
+  virtual void publishMsg() = 0;
+
   /// Method (to be implemented by the user) to abort the mission.
   virtual void abortBehavior() = 0;
 
   /// Method (to be implemented by the user) to receive the behavior status.
   /// User can decide which NodeStatus it will return (RUNNING, SUCCESS or FAILURE).
   virtual BT::NodeStatus getBehaviorStatus() = 0;
+
+  bool idleToRunning;
 };
 
 }  //  namespace mission_control
