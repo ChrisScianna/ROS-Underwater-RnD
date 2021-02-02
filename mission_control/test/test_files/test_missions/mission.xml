@@ -4,10 +4,8 @@
 
      <BehaviorTree ID="MainTree">
         <Sequence name="mission test">
-            <Depth_Heading      name="Depth_Heading"/>
-            <Depth_Heading      name="Depth_Heading"/>
-            <Attitude_Servo     name="Attitude_Servo"/>
-            <Waypoint          name="Waypoint"/>
+            <Waypoint     value="1;2;3;4;5;6" />
+            <Waypoint     value="1;2;3;4;5;6" />
         </Sequence>
      </BehaviorTree>
 

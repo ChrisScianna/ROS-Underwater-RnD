@@ -99,6 +99,9 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
         simulated_remove_mission_msg_pub = rospy.Publisher(
             '/mission_control_node/remove_missions', RemoveMissions, latch=True, queue_size=1)
+        
+        simulated_mission_manager_execute_mission_pub = rospy.Publisher('/mission_control_node/execute_mission', 
+            ExecuteMission, queue_size=1)
 
         # TEST - Load a wrong mission
         mission_to_load = LoadMission()
@@ -122,6 +125,12 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         while (not rospy.is_shutdown() and self.report_mission_flag == False):
             rospy.sleep(0.1)
         self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
+
+        print("--------------Executing-------------------------")
+        execute_mission_command = ExecuteMission()
+        execute_mission_command.mission_id = 1
+        simulated_mission_manager_execute_mission_pub.publish(execute_mission_command)
+        rospy.sleep(1)
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_interface_jause_ros_bridge',
