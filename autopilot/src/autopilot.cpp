@@ -416,10 +416,10 @@ void AutoPilotNode::workerFunc()
           fabs(desiredSpeed) >= minimalSpeed)
         setRPM.commanded_rpms =
             (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * rpmPerKnot * minimalSpeed;
-      else if (fabs(setRPM.commanded_rpms) > thruster_control::SetRPM::MAX_RPM)
+      if (fabs(setRPM.commanded_rpms) > thruster_control::SetRPM::MAX_RPM)
         setRPM.commanded_rpms = (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) *
                                 thruster_control::SetRPM::MAX_RPM;
-      else if (fabs(setRPM.commanded_rpms) > maxAllowedThrusterRpm)
+      if (fabs(setRPM.commanded_rpms) > maxAllowedThrusterRpm)
         setRPM.commanded_rpms =
             (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * maxAllowedThrusterRpm;
       if (setRPM.commanded_rpms < 0.0 &&
