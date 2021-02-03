@@ -27,7 +27,7 @@
 #include <sea_scan_echo_sensor/SetBaudrate.h>
 #include <sea_scan_echo_sensor/SetDetectionThreshold.h>
 
-#include "SerialPort.h"
+//#include "SerialPort.h"
 
 #include "sea_scan_echo_msgs.h"
 
@@ -49,8 +49,8 @@ public:
 
     // Serial port related member data
     std::string             filename;
-    FMI::SerialPort::Config serialPortConfig;
-    FMI::SerialPort         serialPort;
+    //FMI::SerialPort::Config serialPortConfig;
+    //FMI::SerialPort         serialPort;
     bool stopSerialPortThread;
     std::thread serialPortThread;
     void ReadFromSerialPort();

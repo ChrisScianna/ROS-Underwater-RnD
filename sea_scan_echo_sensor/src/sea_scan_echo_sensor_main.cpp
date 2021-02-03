@@ -4,6 +4,7 @@
 
 
 #include <sea_scan_echo_sensor.h>
+#include "sea_scan_echo_msgs.h"
 
 #include <ros/ros.h>
 #include <signal.h>
