@@ -41,6 +41,8 @@
 #ifndef MISSION_CONTROL_MISSION_CONTROL_H
 #define MISSION_CONTROL_MISSION_CONTROL_H
 
+#include <behaviortree_cpp_v3/action_node.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 #include <dirent.h>
 #include <ros/ros.h>
 #include <stdint.h>
@@ -63,8 +65,6 @@
 #include "mission_control/ReportMissions.h"
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
-#include <behaviortree_cpp_v3/action_node.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
 
 #define LOGGING (1)
 
@@ -114,7 +114,6 @@ class MissionControlNode
  private:
   // Vars holding runtime params
   std::string mission_path;
-  bool disable_abort;
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
 
@@ -132,10 +131,7 @@ class MissionControlNode
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);
   int abortMission(int missionId);
-
-  int start();
   int stopMission();
-  bool spin();
 
   void reportHeartbeat(const ros::TimerEvent& timer);
   void executeMissionT(const ros::TimerEvent& timer);
@@ -146,7 +142,6 @@ class MissionControlNode
   void queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg);
   void removeMissionsCallback(const mission_control::RemoveMissions::ConstPtr& msg);
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
-
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

@@ -49,20 +49,17 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
   m_current_mission_id = 0;
   m_mission_id_counter = 0;
 
-  disable_abort = false;
   reportExecuteMissionStateRate = 1.0;
   reportHeartbeatRate = 1.0;
 
   // Get runtime parameters
   node_handle.getParam("/mission_control_node/mission_path", mission_path);
-  node_handle.getParam("/mission_control_node/disable_abort", disable_abort);
 
   node_handle.getParam("/mission_control_node/report_execute_mission_state_rate",
                        reportExecuteMissionStateRate);
   node_handle.getParam("/mission_control_node/report_heart_beat_rate", reportHeartbeatRate);
 
   ROS_INFO("mission path:[%s]", mission_path.c_str());
-  ROS_INFO("disable abort:[%s]", disable_abort ? "true" : "false");
   ROS_INFO("report executemissionstate rate:[%lf]", reportExecuteMissionStateRate);
   ROS_INFO("report heartbeat rate:[%lf]", reportHeartbeatRate);
 
@@ -96,9 +93,9 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
                               &MissionControlNode::reportExecuteMissionState, this);
   reportHeartbeatTimer = node_handle.createTimer(ros::Duration(reportHeartbeatRate),
                                                  &MissionControlNode::reportHeartbeat, this);
-  
-  executeMissionTimer = node_handle.createTimer(ros::Duration(0.1),
-                                                 &MissionControlNode::executeMissionT, this);
+
+  executeMissionTimer =
+      node_handle.createTimer(ros::Duration(0.1), &MissionControlNode::executeMissionT, this);
   executeMissionTimer.stop();
 }
 
@@ -137,11 +134,7 @@ int MissionControlNode::loadMissionFile(std::string mission_full_path)
 
 int MissionControlNode::abortMission(int missionId) {}
 
-int MissionControlNode::start() { return 0; }
-
 int MissionControlNode::stopMission() { return 0; }
-
-bool MissionControlNode::spin() {}
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 {
@@ -151,8 +144,8 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
   pub_report_heartbeat.publish(outmsg);
 }
 
-void MissionControlNode::executeMissionT(const ros::TimerEvent& timer){
-  
+void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
+{
   NodeStatus missionStatus = m_mission_map[m_current_mission_id]->getMissionStatus();
   if (missionStatus == NodeStatus::IDLE || missionStatus == NodeStatus::RUNNING)
   {
@@ -163,7 +156,6 @@ void MissionControlNode::executeMissionT(const ros::TimerEvent& timer){
     m_mission_map[m_current_mission_id]->stopMission();
     executeMissionTimer.stop();
   }
-  
 }
 
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
@@ -216,12 +208,13 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
 void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
-  if ((msg->mission_id > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(msg->mission_id) > 0))
+  if ((msg->mission_id > 0) && (m_mission_map.size() > 0) &&
+      (m_mission_map.count(msg->mission_id) > 0))
   {
     m_current_mission_id = msg->mission_id;
     executeMissionTimer.start();
-    ROS_INFO_STREAM("executeMissionCallback - Executing mission id[" << m_current_mission_id << "]");
-   
+    ROS_INFO_STREAM("executeMissionCallback - Executing mission id[" << m_current_mission_id
+                                                                     << "]");
   }
 }
 
@@ -279,4 +272,3 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
     abortMission(m_current_mission_id);
   }
 }
-
