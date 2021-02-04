@@ -67,8 +67,6 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
   ROS_INFO("report heartbeat rate:[%lf]", reportHeartbeatRate);
 
   // Subscribe to all topics
-  sub_corrected_data = node_handle.subscribe("/pose/corrected_data", 1,
-                                             &MissionControlNode::correctedDataCallback, this);
   report_fault_sub = node_handle.subscribe("/health_monitor/report_fault", 1,
                                            &MissionControlNode::reportFaultCallback, this);
   load_mission_sub = node_handle.subscribe("/mission_control_node/load_mission", 1,
@@ -260,17 +258,6 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
 void MissionControlNode::removeMissionsCallback(
     const mission_control::RemoveMissions::ConstPtr& msg)
 {
-}
-
-void MissionControlNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
-{
-  // TODO This should be inside each node.
-  // mission_map.count checks to see if a key is in the map
-  if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
-      (m_mission_map.count(m_current_mission_id) > 0))
-  {
-    // m_mission_map[m_current_mission_id]->ProcessCorrectedPoseData(data);
-  }
 }
 
 void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg)

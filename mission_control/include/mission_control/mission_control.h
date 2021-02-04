@@ -63,7 +63,6 @@
 #include "mission_control/ReportMissions.h"
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
-#include "pose_estimator/CorrectedData.h"
 #include <behaviortree_cpp_v3/action_node.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 
@@ -84,7 +83,6 @@ using mission_control::ReportExecuteMissionState;
 using mission_control::ReportHeartbeat;
 using mission_control::ReportLoadMissionState;
 using mission_control::ReportMissions;
-using pose_estimator::CorrectedData;
 
 class MissionControlNode
 {
@@ -120,8 +118,6 @@ class MissionControlNode
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
 
-  pose_estimator::CorrectedData m_correctedData;
-
   int m_current_mission_id;
   int m_mission_id_counter;
 
@@ -149,7 +145,6 @@ class MissionControlNode
   void abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg);
   void queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg);
   void removeMissionsCallback(const mission_control::RemoveMissions::ConstPtr& msg);
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
 
 };
