@@ -129,11 +129,11 @@ namespace qna
 
             serialPortOpened = false;
 
-            //serialPort.SetName(serialPortName);
+            serialPort.SetName(serialPortName);
 
 
             // if Open returns a -1 then something went wrong opening the serial port
-            int retval = 0;//serialPort.Open();     // if Open is succesful it automatically calls the same method as SetConfig
+            int retval = serialPort.Open();     // if Open is succesful it automatically calls the same method as SetConfig
 
             if (retval != -1)
             {
@@ -146,14 +146,14 @@ namespace qna
 
             if (baudrate == 38400)
             {
-                //serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b38400;
+                serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b38400;
             }
             else
             {
-                //serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b921600;
+                serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b921600;
             }
 
-            int config_retval = 0;//serialPort.SetConfig(serialPortConfig);
+            int config_retval = serialPort.SetConfig(serialPortConfig);
             if (config_retval != 0)
             {
                 ROS_ERROR("Could not set the desired configuration. SetConfig returned %d", config_retval);
@@ -166,19 +166,19 @@ namespace qna
         {
             if (serialPortOpened == true)
             {
-                //int retval = serialPort.Close();
+                int retval = serialPort.Close();
             }
         }
 
         int SeaScanEchoSensor::SendMsg(std::string msg)
         {
-            /*if (serialPortOpened == true)
+            if (serialPortOpened == true)
             {
                 if (serialPort.SendReady())
                 {
                     int retval = serialPort.Send(msg.data(), msg.length());
                 }
-            }*/
+            }
         }
 
         void SeaScanEchoSensor::HandleSonarResponseMsg()
@@ -263,7 +263,7 @@ namespace qna
 
             ROS_DEBUG("in ReadFromSerialPort");
 
-            /*serialPort.IFlush();
+            serialPort.IFlush();
             serialPort.OFlush();
 
             std::string partialMsgBuffer;
@@ -305,7 +305,7 @@ namespace qna
 
                 } // if bytesRead != -1
  
-            }*/ // while not stopSerialThread
+            } // while not stopSerialThread
         }
 
 
