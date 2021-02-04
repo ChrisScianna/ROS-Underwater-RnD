@@ -106,8 +106,6 @@ class MissionControlNode
   ros::Timer reportExecuteMissionStateTimer;
   Mission::MissionState last_state;
 
-  int last_id;
-
   ros::Timer reportHeartbeatTimer;
   ros::Timer executeMissionTimer;
 

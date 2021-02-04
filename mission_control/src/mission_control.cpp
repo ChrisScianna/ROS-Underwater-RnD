@@ -42,7 +42,6 @@
 MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
 {
   heartbeat_sequence_id = 0;
-  last_id = -1;
   last_state = Mission::MissionState::READY;
   reportExecuteMissionStateRate = 1.0;  // every 1 second
   reportHeartbeatRate = 1.0;            // every 1 second
@@ -101,7 +100,6 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
 
 MissionControlNode::~MissionControlNode()
 {
-  stopMission();
 
   std::map<int, Mission*>::iterator it;
 
@@ -132,9 +130,22 @@ int MissionControlNode::loadMissionFile(std::string mission_full_path)
   }
 }
 
-int MissionControlNode::abortMission(int missionId) {}
-
-int MissionControlNode::stopMission() { return 0; }
+int MissionControlNode::abortMission(int missionId)
+{
+  executeMissionTimer.stop();
+  if (m_current_mission_id == missionId)
+  {
+    m_mission_map[m_current_mission_id]->stopMission();
+    ROS_INFO_STREAM("Aborting Mission " << m_current_mission_id);
+    m_current_mission_id = 0;
+  }
+  else
+  {
+    ROS_INFO_STREAM("The mission currently running is different from request");
+    ROS_INFO_STREAM("Current mission: " << m_current_mission_id
+                                        << " - Request mission to abort: " << missionId);
+  }
+}
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 {
@@ -220,6 +231,7 @@ void MissionControlNode::executeMissionCallback(
 
 void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
 {
+  abortMission(msg->mission_id);
   ROS_INFO("abortMissionCallback - Aborting mission id[%d]", msg->mission_id);
 }
 
