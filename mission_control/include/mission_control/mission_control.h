@@ -52,6 +52,7 @@
 #include <boost/thread.hpp>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "health_monitor/ReportFault.h"
 #include "mission_control/AbortMission.h"
@@ -118,7 +119,7 @@ class MissionControlNode
   int m_current_mission_id;
   int m_mission_id_counter;
 
-  std::map<int, Mission*> m_mission_map;
+  std::unordered_map<int, std::shared_ptr<Mission>> m_mission_map;
 
   uint64_t heartbeat_sequence_id;
 
