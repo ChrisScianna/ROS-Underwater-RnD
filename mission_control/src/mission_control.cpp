@@ -52,13 +52,10 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
   reportHeartbeatRate = 1.0;
 
   // Get runtime parameters
-  node_handle.getParam("/mission_control_node/mission_path", mission_path);
-
   node_handle.getParam("/mission_control_node/report_execute_mission_state_rate",
                        reportExecuteMissionStateRate);
   node_handle.getParam("/mission_control_node/report_heart_beat_rate", reportHeartbeatRate);
 
-  ROS_INFO_STREAM("mission path: " << mission_path.c_str());
   ROS_INFO_STREAM("report executemissionstate rate: " << reportExecuteMissionStateRate);
   ROS_INFO_STREAM("report heartbeat rate: " << reportHeartbeatRate);
 

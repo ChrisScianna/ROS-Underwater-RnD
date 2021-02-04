@@ -112,7 +112,6 @@ class MissionControlNode
 
  private:
   // Vars holding runtime params
-  std::string mission_path;
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
 
