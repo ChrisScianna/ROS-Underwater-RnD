@@ -258,6 +258,17 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
 void MissionControlNode::removeMissionsCallback(
     const mission_control::RemoveMissions::ConstPtr& msg)
 {
+  if (m_mission_map.size() > 0)
+  {
+    if (m_current_mission_id != 0)
+    {
+      executeMissionTimer.stop();
+      m_mission_map[m_current_mission_id]->stopMission();
+      m_current_mission_id = 0;
+    }
+    ROS_INFO("removeMissionsCallback - Removing missions");
+    m_mission_map.clear();
+  }
 }
 
 void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg)

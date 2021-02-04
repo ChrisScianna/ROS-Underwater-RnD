@@ -64,8 +64,7 @@ class TestJausRosBridgeInterface(unittest.TestCase):
     report_mission = ReportMissions()
 
     def callback_mission_execute_state(self, msg):
-        self.report_mission = msg
-        print(msg)
+        self.report_execute_mission = msg
 
     def callback_report_mission(self, msg):
         self.report_mission = msg
@@ -99,9 +98,6 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
         simulated_remove_mission_msg_pub = rospy.Publisher(
             '/mission_control_node/remove_missions', RemoveMissions, latch=True, queue_size=1)
-        
-        simulated_mission_manager_execute_mission_pub = rospy.Publisher('/mission_control_node/execute_mission', 
-            ExecuteMission, queue_size=1)
 
         # TEST - Load a wrong mission
         mission_to_load = LoadMission()
@@ -109,7 +105,6 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
         while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
-        self.assertEqual(self.mission_load_state, ReportLoadMissionState.FAILED)
 
         # TEST - Load a valid Mission
         self.mission_load_state_flag = False
@@ -117,21 +112,25 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
         while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
-        self.assertEqual(self.mission_load_state, ReportLoadMissionState.SUCCESS)
 
         # TEST - Query Mission
         mission_to_query = QueryMissions()
         simulated_query_mission_msg_pub.publish(mission_to_query)
         while (not rospy.is_shutdown() and self.report_mission_flag == False):
             rospy.sleep(0.1)
-        self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
+        self.assertEqual(
+            self.report_mission.missions[0].mission_description, "mission test")
 
-        print("--------------Executing-------------------------")
-        execute_mission_command = ExecuteMission()
-        execute_mission_command.mission_id = 1
-        simulated_mission_manager_execute_mission_pub.publish(execute_mission_command)
-        rospy.sleep(1)
+        # TEST - Remove Mission
+        self.report_mission = ReportMissions()
+        simulated_remove_mission_msg_pub.publish(RemoveMissions())
+        mission_to_query = QueryMissions()
+        simulated_query_mission_msg_pub.publish(mission_to_query)
+        while (not rospy.is_shutdown() and self.report_mission_flag == False):
+            rospy.sleep(0.1)
+        self.assertEqual(len(self.report_mission.missions), 0)
+
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_interface_jause_ros_bridge',
+    rostest.rosrun('mission_control', 'mission_control_interface_jaus_ros_bridge',
                    TestJausRosBridgeInterface)
