@@ -51,9 +51,19 @@ catkin_package(
   CATKIN_DEPENDS rospy roscpp std_msgs
 )
 
+if (DEFINED ENV{SERIALPORTLIBHOME})
+    message("-- SERIALPORTLIBHOME = $ENV{SERIALPORTLIBHOME}")
+else()
+    message(FATAL_ERROR "SERIALPORTLIBHOME is not defined. It should point to here ..Seascout/mkIII_ros/Libraries/SerialPort")
+endif()
+
 ###########
 ## Build ##
 ###########
+
+set(SERIALPORTLIB_INCLUDES
+    $ENV{SERIALPORTLIBHOME}/
+)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -64,6 +74,7 @@ set(CANFESTIVAL_INCLUDES
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${SERIALPORTLIB_INCLUDES}
   ${CANFESTIVAL_INCLUDES}
 )
 
@@ -76,6 +87,7 @@ add_executable(${NODE_APP_NAME}
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 set(CANFESTIVAL_LIBRARIES
+    $ENV{SERIALPORTLIBHOME}/libserialport.a
     $ENV{CANFESTIVALHOME}/lib/libcanfestival.a
     $ENV{CANFESTIVALHOME}/lib/libcanfestival_unix.a
     $ENV{CANFESTIVALHOME}/lib/libcanfestival_can_socket.a

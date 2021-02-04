@@ -190,7 +190,7 @@ namespace qna
 
                 if (msg.length() > 0)
                 {
-                    ROS_DEBUG("Just received msg %s", msg);
+                    ROS_DEBUG("Just received msg %s", msg.c_str());
 
                     if (msg.find(IMAGE_MSG) != std::string::npos) 
                     {
@@ -221,7 +221,7 @@ namespace qna
                         ROS_DEBUG("Major %d", sonarMajorSWVersion);
                         ROS_DEBUG("Minor %d", sonarMinorSWVersion);
                         ROS_DEBUG("Beta %d", sonarBetaSWVersion);
-                        ROS_DEBUG("SerialNum %d", sonarSerialNum);
+                        ROS_DEBUG("SerialNum %s", sonarSerialNum.c_str());
                         ReportSonarConfiguration();
                     }
                     else if (msg.find(POLO_MSG) != std::string::npos) 
