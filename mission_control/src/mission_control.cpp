@@ -210,6 +210,7 @@ void MissionControlNode::executeMissionCallback(
     executeMissionTimer.start();
     ROS_INFO_STREAM("executeMissionCallback - Executing mission id[" << m_current_mission_id
                                                                      << "]");
+
   }
 }
 

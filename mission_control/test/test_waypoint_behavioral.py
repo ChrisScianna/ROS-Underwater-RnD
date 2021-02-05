@@ -47,6 +47,8 @@ from mission_control.msg import AbortMission
 from mission_control.msg import QueryMissions
 from mission_control.msg import RemoveMissions
 from mission_control.msg import ReportMissions
+from mission_control.msg import Waypoint
+from pose_estimator.msg import CorrectedData
 
 
 class TestWaypointBehavioral(unittest.TestCase):
@@ -66,7 +68,6 @@ class TestWaypointBehavioral(unittest.TestCase):
 
     def callback_mission_execute_state(self, msg):
         self.report_mission = msg
-        print(msg)
 
     def callback_report_mission(self, msg):
         self.report_mission = msg
@@ -75,6 +76,15 @@ class TestWaypointBehavioral(unittest.TestCase):
     def callback_mission_load_state(self, msg):
         self.mission_load_state = msg.load_state
         self.mission_load_state_flag = True
+
+    def callback_publish_waypoint_goal(self, msg):
+        self.waypoint_goal = [msg.latitude,
+                              msg.longitude,
+                              msg.depth,
+                              msg.altitude,
+                              msg.speed_knots,
+                              msg.ena_mask]
+        self.waypoint_goal_flag = True
 
     def test_mission_with_waypoint_behavioral(self):
         rospy.Subscriber('/mission_control_node/report_mission_execute_state',
@@ -85,6 +95,9 @@ class TestWaypointBehavioral(unittest.TestCase):
 
         rospy.Subscriber('/mission_control_node/report_missions',
                          ReportMissions, self.callback_report_mission)
+
+        rospy.Subscriber('/mngr/waypoint',
+                         Waypoint, self.callback_publish_waypoint_goal)
 
         simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
                                                                      LoadMission, latch=True, queue_size=1)
@@ -100,35 +113,53 @@ class TestWaypointBehavioral(unittest.TestCase):
 
         simulated_remove_mission_msg_pub = rospy.Publisher(
             '/mission_control_node/remove_missions', RemoveMissions, latch=True, queue_size=1)
-        
-        simulated_mission_manager_execute_mission_pub = rospy.Publisher('/mission_control_node/execute_mission', 
-            ExecuteMission, queue_size=1)
+
+        simulated_mission_manager_execute_mission_pub = rospy.Publisher('/mission_control_node/execute_mission',
+                                                                        ExecuteMission, queue_size=1)
+
+        simulated_pose_estimator_pub = rospy.Publisher('/pose/corrected_data',
+                                                       CorrectedData, queue_size=1)
 
         # Load mission with waypoint behavioral
         self.mission_load_state_flag = False
         mission_to_load = LoadMission()
-        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/waypoint_mission_test.xml"
+        mission_to_load.mission_file_full_path = self.dir_path + \
+            "test_missions/waypoint_mission_test.xml"
         simulated_mission_control_load_mission_pub.publish(mission_to_load)
         while not rospy.is_shutdown() and not self.mission_load_state_flag:
             rospy.sleep(0.1)
-        self.assertEqual(self.mission_load_state, ReportLoadMissionState.SUCCESS)
+        self.assertEqual(self.mission_load_state,
+                         ReportLoadMissionState.SUCCESS)
 
         # TEST - Query Mission
         mission_to_query = QueryMissions()
         simulated_query_mission_msg_pub.publish(mission_to_query)
         while (not rospy.is_shutdown() and self.report_mission_flag == False):
             rospy.sleep(0.1)
-        self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
+        self.assertEqual(
+            self.report_mission.missions[0].mission_description, "mission test")
 
         # TEST - Execute Mission
         execute_mission_command = ExecuteMission()
         execute_mission_command.mission_id = 1
-        simulated_mission_manager_execute_mission_pub.publish(execute_mission_command)
+        simulated_mission_manager_execute_mission_pub.publish(
+            execute_mission_command)
         rospy.sleep(1)
-        
+
+        # TEST - Waypoint has published the goal
+        while (not rospy.is_shutdown() and self.waypoint_goal_flag == False):
+            rospy.sleep(0.1)
+        self.assertEqual(self.waypoint_goal, [3.0, 4.0, 1.0, 0.0, 6.0, 4])
+        rospy.sleep(4)
+
+        # TEST - Pusblish Pose Estimator Data
+        pose_estimator_corrected_data = CorrectedData()
+        rospy.loginfo(pose_estimator_corrected_data)
+        simulated_pose_estimator_pub.publish(pose_estimator_corrected_data)
+
         # TODO
-        # Publish data that allows waypoint to finish.
-        # test if the mission has ended.
+        # test if the behavior has ended.
+
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_test_waypoint_behavioral',

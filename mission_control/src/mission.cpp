@@ -37,51 +37,43 @@
 
 #include "mission_control/mission.h"
 
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <fstream>
-#include <string>
 
 using mission_control::Mission;
 using namespace mission_control;
+using namespace BT;
 
 Mission::Mission()
 {
-  currentBehaviorID = 0;
-
-  _missionFactory.registerNodeType<Waypoint>("Waypoint");
-  _missionFactory.registerNodeType<Attitude_Servo>("Attitude_Servo");
-  _missionFactory.registerNodeType<Depth_Heading>("Depth_Heading");
+  missionStatus_ = BT::NodeStatus::IDLE;
+  missionFactory_.registerNodeType<WaypointBehavior>("Waypoint");
 }
 
 Mission::~Mission() {}
 
-bool Mission::loadBehavior(const std::string &missionFullPath)
+bool Mission::loadMission(const std::string &missionFullPath)
 {
-  //  TODO Check for erros and return -1 if were.
   if (access(missionFullPath.c_str(), F_OK) != -1)
   {
-    _missionFullPath = missionFullPath;
-    _missionTree = _missionFactory.createTreeFromFile(_missionFullPath);
-    _missionDescription = _missionTree.rootNode()->name();
-    printTreeRecursively(_missionTree.rootNode());
+    missionFullPath_ = missionFullPath;
+    missionTree_ = missionFactory_.createTreeFromFile(missionFullPath_);
+    missionDescription_ = missionTree_.rootNode()->name();
+    printTreeRecursively(missionTree_.rootNode());
     return true;
   }
 
   return false;
 }
 
-void Mission::Stop() { _missionTree.haltTree(); }
+void Mission::stopMission() { missionTree_.haltTree(); }
 
-int Mission::getMissionStatus() { return 0; }
+BT::NodeStatus Mission::getMissionStatus() { return missionStatus_; }
 
-std::string Mission::getCurrentMissionDescription() { return _missionDescription; }
+std::string Mission::getCurrentMissionDescription() { return missionDescription_; }
 
-std::string Mission::getCurrentBehavioralName() { return "Current Behavioral Name"; }
+std::string Mission::getCurrentBehavioralName() { return behaviorName_; }
 
-int Mission::getCurrentBehaviorID() { return 0; }
-
-void Mission::executeMission() { _missionStatus = _missionTree.tickRoot(); }
-
-void Mission::processMission() {}
+NodeStatus Mission::executeMission()
+{
+  missionStatus_ = missionTree_.tickRoot();
+  return missionStatus_;
+}

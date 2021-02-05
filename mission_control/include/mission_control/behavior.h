@@ -35,10 +35,11 @@
 #ifndef MISSION_CONTROL_BEHAVIOR_H
 #define MISSION_CONTROL_BEHAVIOR_H
 
-#include <string>
-#include <ros/ros.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
+
+#include <string>
 
 namespace mission_control
 {
@@ -59,19 +60,16 @@ class Behavior : public BT::AsyncActionNode
     switch (status())
     {
       case BT::NodeStatus::IDLE:
-        halt();
+        setStatus(BT::NodeStatus::RUNNING);
         break;
       case BT::NodeStatus::RUNNING:
-        if(idleToRunning){
-          idleToRunning = false;
-          publishMsg();
-        }
-        else{
-          setStatus(getBehaviorStatus());
-        }
+        setStatus(getBehaviorStatus());
         break;
       case BT::NodeStatus::FAILURE:
         abortBehavior();
+        halt();
+        break;
+      case BT::NodeStatus::SUCCESS:
         halt();
         break;
       default:
@@ -100,7 +98,9 @@ class Behavior : public BT::AsyncActionNode
   /// User can decide which NodeStatus it will return (RUNNING, SUCCESS or FAILURE).
   virtual BT::NodeStatus getBehaviorStatus() = 0;
 
+ private:
   bool idleToRunning;
+  BT::NodeStatus behaviorStatus;
 };
 
 }  //  namespace mission_control
