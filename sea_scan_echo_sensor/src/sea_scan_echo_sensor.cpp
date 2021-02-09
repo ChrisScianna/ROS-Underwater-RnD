@@ -5,7 +5,9 @@
 
 
 #include "sea_scan_echo_sensor.h"
-
+#include <iostream>
+#include <vector>
+#include <sstream>
 namespace qna
 {
     namespace sensor
@@ -94,7 +96,6 @@ namespace qna
                 serialPortThread = std::thread(&SeaScanEchoSensor::ReadFromSerialPort, this);
                 processResponseThread = std::thread(&SeaScanEchoSensor::HandleSonarResponseMsg, this);
 
-
                 // Need to wait until we get the info information back
                 while ( sonarSerialNum.empty() )
                 {
@@ -106,8 +107,22 @@ namespace qna
                 // send trigger messages to sonar
                 // TriggerMode 0=None/Off, 1=Manual (trigger on Sync), 2=Auto (trigger on internal timer), 3=Once (ping Once now)
                 std::string echoMsg = sensorMsgs.GetTriggerCmd(triggerMode);
+                
+                while (true) {
+                    SendMsg(echoMsg);
+                    std::string response = ReceiveMsg();
 
-                SendMsg(echoMsg);
+                    if (response.compare(ACK_MSG))
+                    {
+                        break;
+                    }
+                    else if (response.compare(NACK_MSG))
+                    {
+                        ROS_WARN("NACK received. Something went wrong with the message.");
+                        break;
+                    }
+                }
+                ROS_INFO("Set trigger to automatic");
             }
             else
             {
@@ -141,18 +156,23 @@ namespace qna
             }
             else
             {
-                ROS_ERROR("Could not Open the serial port[%s]", serialPortName.c_str() );
+                ROS_ERROR("Could not Open the serial port[%s], error=%d", serialPortName.c_str(), retval );
             }
 
             if (baudrate == 38400)
             {
                 serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b38400;
+                ROS_INFO("Baud rate set to 38400");
             }
             else
             {
                 serialPortConfig.BaudRate = FMI::SerialPort::Config::BaudRate_T::b921600;
+                ROS_INFO("Baud rate set to 921600");
             }
 
+            serialPortConfig.Parity = FMI::SerialPort::Config::Parity_T::NOPARITY;
+            serialPortConfig.FlowControl = FMI::SerialPort::Config::FlowControl_T::NOFC;
+            serialPortConfig.StopBits = 1;
             int config_retval = serialPort.SetConfig(serialPortConfig);
             if (config_retval != 0)
             {
@@ -172,13 +192,15 @@ namespace qna
 
         int SeaScanEchoSensor::SendMsg(std::string msg)
         {
+            int retval = -1;
             if (serialPortOpened == true)
             {
                 if (serialPort.SendReady())
                 {
-                    int retval = serialPort.Send(msg.data(), msg.length());
+                    retval = serialPort.Send(msg.data(), msg.length());
                 }
             }
+            return retval;
         }
 
         void SeaScanEchoSensor::HandleSonarResponseMsg()
@@ -191,6 +213,133 @@ namespace qna
                 if (msg.length() > 0)
                 {
                     ROS_DEBUG("Just received msg %s", msg.c_str());
+
+                    std::vector<std::string> filtered_message;
+                    std::stringstream s_stream(msg);
+                    serialPort.IFlush();
+                    while (s_stream.good()) {
+                        std::string sub_message;
+                        getline(s_stream, sub_message, ',');
+                        filtered_message.push_back(sub_message);
+                    }
+                    if (filtered_message.size() == 0) {
+                        ROS_WARN("message does not contain commas");
+                        return;
+
+                    }
+                    try {
+                        AltimeterResponses first_word = altimeter_responses_map.at(filtered_message.at(0));
+                    
+                        switch (first_word){
+                            case AltimeterResponses::ADV:
+                                ROS_DEBUG("ADV command found");
+                                break;
+                            case AltimeterResponses::DTM:
+                                ROS_DEBUG("DTM command found");
+                                break;
+                            case AltimeterResponses::GBS:
+                                ROS_DEBUG("GBS command found");
+                                break;
+                            case AltimeterResponses::GGA:
+                                ROS_DEBUG("GGA command found");
+                                break;
+                            case AltimeterResponses::GNS:
+                                ROS_DEBUG("GNS command found");
+                                break;
+                            case AltimeterResponses::GRS:
+                                ROS_DEBUG("GRS command found");
+                                break;
+                            case AltimeterResponses::GSA:
+                                ROS_DEBUG("GSA command found");
+                                break;
+                            case AltimeterResponses::GST:
+                                ROS_DEBUG("GST command found");
+                                break;
+                            case AltimeterResponses::GSV:
+                                ROS_DEBUG("GSV command found");
+                                break;
+                            case AltimeterResponses::HDT:
+                                ROS_DEBUG("HDT command found");
+                                break;
+                            case AltimeterResponses::LLQ:
+                                ROS_DEBUG("LLQ command found");
+                                break;
+                            case AltimeterResponses::MSALT:
+                                {
+                                    ROS_DEBUG("MSALT command found");
+                                    if (filtered_message.size() < 2) {
+                                        ROS_WARN("Filtered message has no arguments after MSALT");
+                                        return;
+                                    }
+                                    std::string matchingPhraseFound("");
+                                    for (auto iter = altimeter_sub_responses_map.begin(); iter != altimeter_sub_responses_map.end(); ++iter) {
+                                        std::string key = iter->first;
+                                        if (filtered_message.at(1).find(key) != std::string::npos) {
+                                            matchingPhraseFound = key;
+                                            break;
+                                        }
+
+                                    }
+                                    if (matchingPhraseFound == "") {
+                                        ROS_WARN("Unable to find match for response argument %s", filtered_message.at(1).c_str());
+                                        return;
+                                    }
+                                    AltimeterSubResponses second_word = altimeter_sub_responses_map.at(matchingPhraseFound);
+                    
+                                    switch (second_word){
+                                        case AltimeterSubResponses::ACK:
+                                            ROS_DEBUG("ACK found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::DATA:
+                                            ROS_DEBUG("DATA found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::IMAGE:
+                                            ROS_DEBUG("IMAGE found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::INFO:
+                                            ROS_DEBUG("INFO found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::NACK:
+                                            ROS_DEBUG("NACK found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::POLO:
+                                            ROS_DEBUG("POLO found as second arg");
+                                            break;
+                                        case AltimeterSubResponses::TX:
+                                            ROS_DEBUG("TX found as second arg");
+                                            break;
+                                        default:
+                                            ROS_WARN("Unable to recognize second word in response. This should not be hit");
+                                    }
+                                }
+                                break;
+                            case AltimeterResponses::PFUGDP:
+                                ROS_DEBUG("PFUGDP command found");
+                                break;
+                            case AltimeterResponses::PTNL:
+                                ROS_DEBUG("PTNL command found");
+                                break;
+                            case AltimeterResponses::RMC:
+                                ROS_DEBUG("RMC command found");
+                                break;
+                            case AltimeterResponses::ROT:
+                                ROS_DEBUG("ROT command found");
+                                break;
+                            case AltimeterResponses::VTG:
+                                ROS_DEBUG("VTG command found");
+                                break;
+                            case AltimeterResponses::ZDA:
+                                ROS_DEBUG("ZDA command found");
+                                break;
+                            default:
+                                ROS_WARN("Unrecognized first term [%s]",filtered_message.at(0).c_str());
+                                break;
+
+                    }
+                    } catch (std::out_of_range& ex) {
+                        ROS_WARN("Unable to find word matching [%s]", filtered_message.at(0).c_str());
+                        
+                    }
 
                     if (msg.find(IMAGE_MSG) != std::string::npos) 
                     {
@@ -267,14 +416,15 @@ namespace qna
             serialPort.OFlush();
 
             std::string partialMsgBuffer;
-
             while (stopSerialPortThread != true)
             {
+
 
                 if (serialPort.ReceiveReady(0, 250000) == false)    // loop until there is something to read
                 {
                     continue;
                 }
+
 
                 char buf[1052];     // this is to accomodate reading a sonar image. Most messages are much smaller
                 memset(buf, 0, 1052);
@@ -286,8 +436,8 @@ namespace qna
                     tempstr.insert(0, buf, bytesread);
                     partialMsgBuffer.append(tempstr);
 
-                    ROS_DEBUG("just read %d bytes. string is:%s", bytesread, tempstr.c_str());
-                    ROS_DEBUG("partialMsgBuffer >%s< size is:%d", partialMsgBuffer.c_str(), (int)partialMsgBuffer.size() );
+                    //ROS_DEBUG("just read %d bytes. string is:%s", bytesread, tempstr.c_str());
+                    //ROS_DEBUG("partialMsgBuffer >%s< size is:%d", partialMsgBuffer.c_str(), (int)partialMsgBuffer.size() );
 
                     std::size_t startMsgPos = partialMsgBuffer.find(START_OF_STRING,0);
                     std::size_t endMsgPos = partialMsgBuffer.find(SENTENCE_TERMINATOR,0);

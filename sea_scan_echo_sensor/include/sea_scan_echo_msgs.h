@@ -10,7 +10,8 @@
 
 #include <iostream>
 #include <sstream>
-#include <iomanip>      // for std::setfill
+#include <iomanip>
+#include <map>
 
 namespace qna
 {
@@ -44,6 +45,77 @@ const std::string POLO_MSG = "POLO";
 const std::string INFO_MSG = "INFO";
 const std::string DATA_MSG = "DATA";
 const std::string IMAGE_MSG = "IMAGE";
+
+
+enum class AltimeterResponses {
+    ADV,
+    DTM,
+    GBS,
+    GGA,
+    GNS,
+    GRS,
+    GSA,
+    GST,
+    GSV,
+    HDT,
+    LLQ,
+    MSALT,
+    PFUGDP,
+    PTNL,
+    RMC,
+    ROT,
+    VTG,
+    ZDA
+};
+
+enum class AltimeterSubResponses{
+    ACK,
+    DATA,
+    IMAGE,
+    INFO,
+    NACK,
+    POLO,
+    TX
+
+};
+
+const std::map<std::string, AltimeterResponses> altimeter_responses_map = 
+{
+    {"$PGPPADV", AltimeterResponses::ADV},
+    {"$GPDTM", AltimeterResponses::DTM},
+    {"$GPGBS", AltimeterResponses::GBS},
+    {"$GPGGA", AltimeterResponses::GGA},
+    {"$GPGSA", AltimeterResponses::GSA},
+    {"$GNGNS", AltimeterResponses::GNS},
+    {"$GPGRS", AltimeterResponses::GRS},
+    {"$GPGSA", AltimeterResponses::GSA},
+    {"$GPGST", AltimeterResponses::GST},
+    {"$GPGSV", AltimeterResponses::GSV},
+    {"$GPHDT", AltimeterResponses::HDT},
+    {"$GPLLQ", AltimeterResponses::LLQ},
+    {"$MSALT", AltimeterResponses::MSALT},
+    {"$PFUGDP", AltimeterResponses::PFUGDP},
+    {"$PTNL", AltimeterResponses::PTNL},
+    {"$GPRMC", AltimeterResponses::RMC},
+    {"$GPROT", AltimeterResponses::ROT},
+    {"$GPVTG", AltimeterResponses::VTG},
+    {"$GPZDA", AltimeterResponses::ZDA}
+
+
+};
+
+const std::map<std::string, AltimeterSubResponses> altimeter_sub_responses_map = 
+{
+    {"ACK", AltimeterSubResponses::ACK},
+    {"DATA", AltimeterSubResponses::DATA},
+    {"IMAGE", AltimeterSubResponses::IMAGE},
+    {"INFO", AltimeterSubResponses::INFO},
+    {"NACK", AltimeterSubResponses::NACK},
+    {"POLO", AltimeterSubResponses::POLO},
+    {"TX", AltimeterSubResponses::TX}
+
+};
+
 
 
 class SeaScanEchoSensorMsgs

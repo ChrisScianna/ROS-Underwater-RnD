@@ -98,8 +98,8 @@ private:
     unsigned short triggerMode;
     unsigned short triggerModeOnceRateHz;
     float speedOfSoundInWaterMetersPerSecond;
-    float maxListeningRangeMeters;
-    float lockoutRangeMeters;
+    float maxListeningRangeMeters = 0;
+    float lockoutRangeMeters = 0;
     unsigned short filterLength;
     unsigned int baudrate;
 
