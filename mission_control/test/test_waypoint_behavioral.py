@@ -65,7 +65,8 @@ class TestWaypointBehavioral(unittest.TestCase):
     mission_load_state_flag = False
     report_mission_flag = False
     report_mission = ReportMissions()
-
+    waypoint_goal_flag = False
+    waypoint_goal = []
     def callback_mission_execute_state(self, msg):
         self.report_mission = msg
 
@@ -149,7 +150,7 @@ class TestWaypointBehavioral(unittest.TestCase):
         # TEST - Waypoint has published the goal
         while (not rospy.is_shutdown() and self.waypoint_goal_flag == False):
             rospy.sleep(0.1)
-        self.assertEqual(self.waypoint_goal, [3.0, 4.0, 1.0, 0.0, 6.0, 4])
+        self.assertEqual(self.waypoint_goal, [3.0, 4.0, 1.0, 0.0, 6.0, 23])
         rospy.sleep(4)
 
         # TEST - Pusblish Pose Estimator Data

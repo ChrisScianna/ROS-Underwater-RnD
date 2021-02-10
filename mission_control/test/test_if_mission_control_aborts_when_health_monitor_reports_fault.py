@@ -42,10 +42,7 @@ from mission_control.msg import LoadMission
 from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import ReportLoadMissionState
-from mission_control.msg import AbortMission
-from mission_control.msg import QueryMissions
-from mission_control.msg import RemoveMissions
-from mission_control.msg import ReportMissions
+from health_monitor.msg import ReportFault
 
 
 def wait_for(predicate, period=1):
@@ -57,118 +54,88 @@ def wait_for(predicate, period=1):
     return predicate()
 
 
-class TestJausRosBridgeInterface(unittest.TestCase):
-    """
-        Simulate messages sent by the jaus ros bridge:
-        -   Load Mission
-        -   Execute Mission
-        -   Query Mission
-        -   Abort Mission
-        -   Remove Mission 
+class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
+    """ 
+        Simulate error message sent by health monitor and checks 
+        if the mission control publishes the abort status.
+        The steps int the involved are:
+            1)  Load a mission
+            2)  Execute the Mission
+            3)  Simulate an error sent by health monitor
+            4)  check if the mission control abort the mission
     """
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_mission_control_interface_jaus_ros_bridge')
+        rospy.init_node('test_mission_control_aborts_procedure')
 
     def setUp(self):
-        self.report_execute_mission = ReportExecuteMissionState()
-        self.mission_load_state = None
         self.dir_path = os.path.dirname(
             os.path.abspath(__file__)) + '/test_files/'
-        self.report_mission = ReportMissions()
         self.mission_to_load = LoadMission()
-        
-        #Subscribers
+        self.mission_to_load.mission_file_full_path = self.dir_path + \
+            "test_missions/mission.xml"
+        self.mission_to_execute = ExecuteMission()
+        self.mission_to_execute.mission_id = 1
+        self.simulate_error_code = ReportFault()
+        self.simulate_error_code.fault_id = ReportFault.PAYLOAD_ERROR
+        self.mission_load_state = ReportLoadMissionState()
+        self.report_execute_mission = ReportExecuteMissionState()
+
+        # Subscribers
         self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
                                                ReportExecuteMissionState, self.callback_mission_execute_state)
 
         self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
                                                ReportLoadMissionState, self.callback_mission_load_state)
 
-        self.report_missions_sub = rospy.Subscriber('/mission_control_node/report_missions',
-                                                    ReportMissions, self.callback_report_mission)
+        #   Publisher
 
         self.simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
                                                                           LoadMission, latch=True, queue_size=1)
 
-        #   Publishers
         self.simulated_mission_control_execute_mission_pub = rospy.Publisher(
             '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
 
-        self.simulated_query_mission_msg_pub = rospy.Publisher(
-            '/mission_control_node/query_missions', QueryMissions, latch=True, queue_size=1)
-
-        self.simulated_remove_mission_msg_pub = rospy.Publisher(
-            '/mission_control_node/remove_missions', RemoveMissions, latch=True, queue_size=1)
-        
-        self.simulated_abort_mission_msg_pub = rospy.Publisher(
-            '/mission_control_node/abort_mission', AbortMission, latch=True, queue_size=1)
+        self.simulated_health_monitor_pub = rospy.Publisher('/health_monitor/report_fault',
+                                                            ReportFault, queue_size=1)
 
     def callback_mission_execute_state(self, msg):
         self.report_execute_mission = msg
-        rospy.loginfo(self.report_execute_mission.execute_mission_state)
-
-    def callback_report_mission(self, msg):
-        self.report_mission = msg
 
     def callback_mission_load_state(self, msg):
         self.mission_load_state = msg.load_state
+        self.mission_load_state_flag = True
 
-    def test_jaus_ros_bridge_interface(self):
+    def test_mission_control_aborts_if_health_monitor_reports_fault(self):
 
-        # A wrong mission is sent to the mission control
-        self.mission_to_load.mission_file_full_path = "NO_MISSION"
+        # Load Mission
         self.simulated_mission_control_load_mission_pub.publish(
             self.mission_to_load)
-        def test_load_wrong_mission():
-            return self.mission_load_state == ReportLoadMissionState.FAILED
-        self.assertTrue(wait_for(test_load_wrong_mission), 
-            msg='Mission control must report FAILED')
 
-        # A valid mission is sent to the mission control
-        self.mission_to_load.mission_file_full_path = self.dir_path + \
-            "test_missions/mission.xml"
-        self.simulated_mission_control_load_mission_pub.publish(
-            self.mission_to_load)
         def test_load_valid_mission():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(test_load_valid_mission), 
-            msg='Mission control must report SUCCESS')
+        self.assertTrue(wait_for(test_load_valid_mission),
+                        msg='Error Loading mission')
 
         # Execute Mission and check if the mission control reports status
-        mission_to_execute = ExecuteMission()
-        mission_to_execute.mission_id = 1
-        self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
+        self.simulated_mission_control_execute_mission_pub.publish(
+            self.mission_to_execute)
+
         def test_success_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
-        self.assertTrue(wait_for(test_success_mission_status_is_reported), 
-            msg='Mission control must report SUCCESS')
+        self.assertTrue(wait_for(test_success_mission_status_is_reported),
+                        msg='Mission control must report SUCCESS')
 
-        # Abort the Mission and wait for the mission to abort the mission
-        abortMission = AbortMission()
-        abortMission.mission_id = 1
-        self.simulated_abort_mission_msg_pub.publish(abortMission)
+        # Simulate the health monitor publishing the fault code
+        self.simulated_health_monitor_pub.publish(self.simulate_error_code)
+
         def test_abort_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.PAUSED
-        self.assertTrue(wait_for(test_abort_mission_status_is_reported), 
-            msg='Mission control must report ABORTING')
-        
-        # Query mission and test response
-        self.simulated_query_mission_msg_pub.publish(QueryMissions())
-        def test_query_mission():
-            return len(self.report_mission.missions) > 0
-        self.assertTrue(wait_for(test_query_mission))
-        self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
+        self.assertTrue(wait_for(test_abort_mission_status_is_reported),
+                        msg='Mission control must report STOP/ABORTING')
 
-        # Remove all missions and test if they have been removed.
-        self.report_mission = ReportMissions()
-        self.simulated_remove_mission_msg_pub.publish(RemoveMissions())
-        self.simulated_query_mission_msg_pub.publish(QueryMissions())
-        def test_query_after_remove_mission():
-            return len(self.report_mission.missions) == 0
-        self.assertTrue(wait_for(test_query_after_remove_mission))
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_interface_jaus_ros_bridge',
-                   TestJausRosBridgeInterface)
+    rostest.rosrun('mission_control', 'mission_control_aborts_when_health_monitor_reports_fault',
+                   TestMissionControlAbortsWhenHealthMonitorReportsFault)

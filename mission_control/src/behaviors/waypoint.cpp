@@ -40,76 +40,43 @@ using namespace mission_control;
 WaypointBehavior::WaypointBehavior(const std::string& name, const BT::NodeConfiguration& config)
     : Behavior(name, config)
 {
-  behaviorDone = false;
-  auto res = getInput<WaypointData>("value");
-  if (!res)
-  {
-    throw RuntimeError("error reading port [target]:", res.error());
-  }
-  WaypointData goal = res.value();
+  getInput<double>("depth", m_depth);
+  if (m_depth != 0.0) m_depth_ena = true;
 
-  if (goal.depth != 0)
-  {
-    m_depth = goal.depth;
-    m_depth_ena = true;
-  }
+  getInput<double>("altitude", m_altitude);
+  if (m_altitude != 0.0) m_altitude_ena = true;
 
-  if (goal.altitude != 0)
-  {
-    m_altitude = goal.altitude;
-    m_altitude_ena = true;
-  }
+  getInput<double>("latitude", m_lat);
+  if (m_lat != 0.0) m_lat_ena = true;
 
-  if (goal.latitude != 0)
-  {
-    m_lat = goal.latitude;
-    m_lat_ena = false;
-  }
+  getInput<double>("longitude", m_long);
+  if (m_long != 0.0) m_long_ena = true;
 
-  if (goal.longitude != 0)
-  {
-    m_long = goal.longitude;
-    m_long_ena = false;
-  }
+  getInput<double>("wp_radius", m_wp_radius);
+  if (m_wp_radius != 0.0) m_wp_radius_ena = true;
 
-  if (goal.wp_radius != 0)
-  {
-    m_wp_radius = goal.wp_radius;
-    m_wp_radius_ena = false;
-  }
+  getInput<double>("speed_knots", m_speed_knots);
+  if (m_speed_knots != 0.0) m_speed_knots_ena = true;
 
-  if (goal.speed_knots != 0)
-  {
-    m_speed_knots = goal.speed_knots;
-    m_speed_knots_ena = false;
-  }
   sub_corrected_data = nodeHandle.subscribe("/pose/corrected_data", 1,
                                             &WaypointBehavior::correctedDataCallback, this);
+
+  goalHasBeenPublished = false;
   waypoint_behavior_pub = nodeHandle.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
 }
 
 BT::NodeStatus WaypointBehavior::getBehaviorStatus()
 {
-  if (status() == BT::NodeStatus::IDLE)
-  {
-    publishMsg();
-    return BT::NodeStatus::RUNNING;
-  }
-  else
-  {
-    if (behaviorDone)
+    if (!goalHasBeenPublished)
     {
-      return BT::NodeStatus::SUCCESS;
+      publishGoalMsg();
+      goalHasBeenPublished = true;
     }
-    else
-    {
-      return BT::NodeStatus::RUNNING;
-    }
-  }
+    return (status());
+ 
 }
-void WaypointBehavior::abortBehavior() { halt(); }
 
-void WaypointBehavior::publishMsg()
+void WaypointBehavior::publishGoalMsg()
 {  // Altitude is not used.
   Waypoint msg;
   msg.depth = m_depth;
@@ -224,7 +191,7 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
 }
 void WaypointBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
-  if (!behaviorDone)
+  if (status() == BT::NodeStatus::RUNNING)
   {
     double dist_to_wp;
     double currentNorthing;
@@ -251,11 +218,11 @@ void WaypointBehavior::correctedDataCallback(const pose_estimator::CorrectedData
     {
       ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", dist_to_wp,
                m_wp_radius);
-      behaviorDone = true;
+      setStatus(BT::NodeStatus::SUCCESS);
     }
     else
     {
-      behaviorDone = false;
+      setStatus(BT::NodeStatus::RUNNING);
     }
   }
   // TODO(QNA): check shaft speed?

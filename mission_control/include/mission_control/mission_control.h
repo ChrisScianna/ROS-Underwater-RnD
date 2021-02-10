@@ -69,11 +69,7 @@
 
 #define LOGGING (1)
 
-// Version 2.0 rewritten in 2019 for SeaScout mkIII
-// Version 2.1 removed the battery handling for faults. There is now a
-//      HeatlhMonitor ROS Node that publishes a ReportFault message.
-//      The mission manager now subscribes to the ReportFault message.
-#define NODE_VERSION "2.1x"
+#define NODE_VERSION "1.0x"
 
 using namespace BT;
 
@@ -88,7 +84,6 @@ using mission_control::ReportMissions;
 class MissionControlNode
 {
  public:
-  ros::NodeHandle node_handle;
   ros::Subscriber sub_corrected_data;
 
   ros::Subscriber report_fault_sub;
@@ -110,20 +105,7 @@ class MissionControlNode
   ros::Timer reportHeartbeatTimer;
   ros::Timer executeMissionTimer;
 
- private:
-  // Vars holding runtime params
-  double reportExecuteMissionStateRate;
-  double reportHeartbeatRate;
-
-  int m_current_mission_id;
-  int m_mission_id_counter;
-
-  std::unordered_map<int, std::shared_ptr<Mission>> m_mission_map;
-
-  uint64_t heartbeat_sequence_id;
-
- public:
-  explicit MissionControlNode(ros::NodeHandle& h);
+  MissionControlNode(ros::NodeHandle& h);
   ~MissionControlNode();
 
   int loadMissionFile(std::string mission_full_path);
@@ -140,6 +122,18 @@ class MissionControlNode
   void queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg);
   void removeMissionsCallback(const mission_control::RemoveMissions::ConstPtr& msg);
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
+
+private:
+  ros::NodeHandle pnh;
+  // Vars holding runtime params
+  double reportExecuteMissionStateRate;
+  double reportHeartbeatRate;
+
+  int m_current_mission_id;
+  int m_mission_id_counter;
+
+  std::unordered_map<int, std::unique_ptr<Mission>> m_mission_map;
+  uint64_t heartbeat_sequence_id;
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

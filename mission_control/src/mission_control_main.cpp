@@ -39,14 +39,15 @@
  */
 
 #include <ros/ros.h>
+
 #include "mission_control/mission_control.h"
 
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "mission_control_node");
 
-  ros::NodeHandle nh;
-  ROS_INFO("Starting Mission mgr node Version: [%s]", NODE_VERSION);
+  ros::NodeHandle nh("~");
+  ROS_INFO("Starting Mission control node Version: [%s]", NODE_VERSION);
   nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
 
   MissionControlNode mcn(nh);

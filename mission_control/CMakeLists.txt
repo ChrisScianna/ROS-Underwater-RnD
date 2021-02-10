@@ -95,4 +95,12 @@ install(FILES
 ## Testing ##
 #############
 
-roslint_add_test()
+if(CATKIN_ENABLE_TESTING)
+  roslint_add_test()
+  
+  find_package(rostest REQUIRED)
+  add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
+  add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
+  add_rostest(test/test_mission_control_publishes_heartbeat.test)
+
+endif()

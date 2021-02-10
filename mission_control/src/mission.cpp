@@ -44,7 +44,6 @@ using namespace BT;
 
 Mission::Mission()
 {
-  missionStatus_ = BT::NodeStatus::IDLE;
   missionFactory_.registerNodeType<WaypointBehavior>("Waypoint");
 }
 
@@ -66,14 +65,13 @@ bool Mission::loadMission(const std::string &missionFullPath)
 
 void Mission::stopMission() { missionTree_.haltTree(); }
 
-BT::NodeStatus Mission::getMissionStatus() { return missionStatus_; }
+BT::NodeStatus Mission::getMissionStatus() { return missionTree_.rootNode()->status(); }
 
 std::string Mission::getCurrentMissionDescription() { return missionDescription_; }
 
 std::string Mission::getCurrentBehavioralName() { return behaviorName_; }
 
-NodeStatus Mission::executeMission()
+NodeStatus Mission::executeMissionTickEvent()
 {
-  missionStatus_ = missionTree_.tickRoot();
-  return missionStatus_;
+  return missionTree_.tickRoot();
 }

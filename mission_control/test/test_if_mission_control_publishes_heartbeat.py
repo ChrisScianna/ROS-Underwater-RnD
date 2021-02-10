@@ -35,7 +35,6 @@
 import sys
 import os
 import unittest
-import math
 import rosnode
 import rospy
 import rostest
@@ -44,7 +43,7 @@ from mission_control.msg import ReportHeartbeat
 
 class TestMissionControlPublishesHeartbeat(unittest.TestCase):
     """
-        Simulate if mission control publishes heartbeatsion folder.
+        this test checks if mission control publishes heartbeats.
     """
 
     @classmethod

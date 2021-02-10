@@ -62,7 +62,7 @@ class Mission
     COMPLETE
   };
 
-  NodeStatus executeMission();
+  NodeStatus executeMissionTickEvent();
   void stopMission();
 
   NodeStatus getMissionStatus();
@@ -74,7 +74,6 @@ class Mission
   BT::BehaviorTreeFactory missionFactory_;
   BT::Tree missionTree_;
 
-  NodeStatus missionStatus_;        //  The status of the Mission defined in MissionState
   std::string missionFullPath_;     //  Path to the xml mission definitios
   std::string missionDescription_;  //  Description of the mission
   std::string behaviorName_;        //  Name of the action (behavior) being executed.

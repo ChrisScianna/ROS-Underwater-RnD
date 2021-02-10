@@ -65,10 +65,6 @@ class Behavior : public BT::AsyncActionNode
       case BT::NodeStatus::RUNNING:
         setStatus(getBehaviorStatus());
         break;
-      case BT::NodeStatus::FAILURE:
-        abortBehavior();
-        halt();
-        break;
       case BT::NodeStatus::SUCCESS:
         halt();
         break;
@@ -86,13 +82,6 @@ class Behavior : public BT::AsyncActionNode
     }
     setStatus(BT::NodeStatus::IDLE);
   }
-
-  /// Method (to be implemented by the user) that sends msg to actuators.
-  /// It's used in the transition from IDLE to RUNNING
-  virtual void publishMsg() = 0;
-
-  /// Method (to be implemented by the user) to abort the mission.
-  virtual void abortBehavior() = 0;
 
   /// Method (to be implemented by the user) to receive the behavior status.
   /// User can decide which NodeStatus it will return (RUNNING, SUCCESS or FAILURE).

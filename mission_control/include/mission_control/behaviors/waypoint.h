@@ -81,60 +81,22 @@ using namespace BT;
 
 namespace mission_control
 {
-struct WaypointData
-{
-  double depth;
-  double altitude;
-  double latitude;
-  double longitude;
-  double wp_radius;
-  double speed_knots;
-};
-
-}  // namespace mission_control
-
-namespace BT
-{
-template <>
-inline mission_control::WaypointData convertFromString<mission_control::WaypointData>(
-    StringView str)
-
-{
-  // real numbers separated by semicolons
-  auto parts = splitString(str, ';');
-  if (parts.size() != 6)
-  {
-    throw RuntimeError("invalid input)");
-  }
-  else
-  {
-    mission_control::WaypointData output;
-    output.depth = convertFromString<double>(parts[0]);
-    output.altitude = convertFromString<double>(parts[1]);
-    output.latitude = convertFromString<double>(parts[2]);
-    output.longitude = convertFromString<double>(parts[3]);
-    output.wp_radius = convertFromString<double>(parts[4]);
-    output.speed_knots = convertFromString<double>(parts[5]);
-    return output;
-  }
-}
-}  // namespace BT
-
-namespace mission_control
-{
 class WaypointBehavior : public Behavior
 {
  public:
   WaypointBehavior(const std::string& name, const BT::NodeConfiguration& config);
 
   BT::NodeStatus getBehaviorStatus();
-  void abortBehavior();
-  void publishMsg();
 
   static PortsList providedPorts()
   {
-    const char* description = "depth;altitude;latitude;longitude;wp_radius;speed_knots";
-    return {InputPort<WaypointData>("value", description)};
+    BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
+                           BT::InputPort<double>("altitude", 0.0, "altitude"),
+                           BT::InputPort<double>("latitude", 0.0, "latitude"),
+                           BT::InputPort<double>("longitude", 0.0, "longitude"),
+                           BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
+                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots")};
+    return ports;
   }
 
  private:
@@ -158,11 +120,12 @@ class WaypointBehavior : public Behavior
 
   double m_depth_tol;
 
-  bool behaviorDone;
   void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
   double degreesToRadians(double degrees);
 
   void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  bool goalHasBeenPublished;
+  void publishGoalMsg();
 };
 
 }  //  namespace mission_control

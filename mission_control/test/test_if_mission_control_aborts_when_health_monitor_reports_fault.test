@@ -1,0 +1,10 @@
+<launch>
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+
+  <!--
+      Simulate error message sent by health monitor and checks 
+      if the mission control publishes the abort
+  -->
+  <test test-name="test_mission_control_aborts_when_health_monitor_report_fault" pkg="mission_control" type="test_if_mission_control_aborts_when_health_monitor_reports_fault.py" time-limit="10.0" />
+
+</launch>
