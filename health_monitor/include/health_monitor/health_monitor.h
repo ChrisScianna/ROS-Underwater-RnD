@@ -75,7 +75,6 @@ public:
     void setFault(uint64_t fault_id);
 
 private:
-    std::mutex faultArrayMutex;
     uint64_t faults;
     std::unordered_map<std::string, uint64_t> uErrorMap
         {
