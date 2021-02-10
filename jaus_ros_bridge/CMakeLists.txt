@@ -226,8 +226,7 @@ add_dependencies(bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TA
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(FILES
-  launch/jaus_ros_bridge.launch
+install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
