@@ -349,11 +349,10 @@ int run(int argc, char *argv[])
     pn.param<int>("serial_baud", SensorBaudrate, 115200);
     pn.param<int>("fixed_imu_rate", SensorImuRate, 800);
     
-    min_async_output_rate = static_cast<double>(async_output_rate) / 2;
-    max_async_output_rate = static_cast<double>(async_output_rate) * 2;
-
-    pn.param<double>("min_async_output_rate", min_async_output_rate);
-    pn.param<double>("max_async_output_rate", max_async_output_rate);
+    pn.param<double>("min_async_output_rate", min_async_output_rate,
+                     static_cast<double>(async_output_rate) / 2);
+    pn.param<double>("max_async_output_rate", max_async_output_rate,
+                     static_cast<double>(async_output_rate) * 2);
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
     diagnosticsUpdater.setHardwareID("imu");
