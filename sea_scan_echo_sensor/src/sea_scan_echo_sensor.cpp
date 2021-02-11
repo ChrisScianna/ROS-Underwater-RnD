@@ -102,7 +102,8 @@ namespace qna
                     std::string infoMsg = sensorMsgs.GetInfoCmd();
                     SendMsg(infoMsg);
                     usleep(250000);     // 250000 = 4 times per second
-                } 
+                    ROS_DEBUG("waiting for sonar serial number");
+                }
 
                 // send trigger messages to sonar
                 // TriggerMode 0=None/Off, 1=Manual (trigger on Sync), 2=Auto (trigger on internal timer), 3=Once (ping Once now)
@@ -292,12 +293,24 @@ namespace qna
                                             break;
                                         case AltimeterSubResponses::DATA:
                                             ROS_DEBUG("DATA found as second arg");
+                                            sensorMsgs.GetAltimeterDataFromMsg(msg, unfilteredRange, filteredRange);
+                                            ROS_DEBUG("Unfiltered Range %f", unfilteredRange);
+                                            ROS_DEBUG("Filtered Range %f", filteredRange);
+                                            ReportAltimeterRange();
                                             break;
                                         case AltimeterSubResponses::IMAGE:
                                             ROS_DEBUG("IMAGE found as second arg");
+                                            sensorMsgs.GetSonarImageFromMsg(msg, sonar_samples_range, sonar_samples);
+                                            ReportSonarImage();
                                             break;
                                         case AltimeterSubResponses::INFO:
                                             ROS_DEBUG("INFO found as second arg");
+                                            sensorMsgs.GetDeviceInfoFromMsg(msg, sonarMajorSWVersion, sonarMinorSWVersion, sonarBetaSWVersion, sonarSerialNum);
+                                            ROS_DEBUG("Major %d", sonarMajorSWVersion);
+                                            ROS_DEBUG("Minor %d", sonarMinorSWVersion);
+                                            ROS_DEBUG("Beta %d", sonarBetaSWVersion);
+                                            ROS_DEBUG("SerialNum %s", sonarSerialNum.c_str());
+                                            ReportSonarConfiguration();
                                             break;
                                         case AltimeterSubResponses::NACK:
                                             ROS_DEBUG("NACK found as second arg");
@@ -340,47 +353,6 @@ namespace qna
                         ROS_WARN("Unable to find word matching [%s]", filtered_message.at(0).c_str());
                         
                     }
-
-                    if (msg.find(IMAGE_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("IMAGE");
-                        sensorMsgs.GetSonarImageFromMsg(msg, sonar_samples_range, sonar_samples);
-                        ReportSonarImage();
-                    }
-                    else if (msg.find(DATA_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("DATA");
-                        sensorMsgs.GetAltimeterDataFromMsg(msg, unfilteredRange, filteredRange);
-                        ROS_DEBUG("Unfiltered Range %f", unfilteredRange);
-                        ROS_DEBUG("Filtered Range %f", filteredRange);
-                        ReportAltimeterRange();
-                    }
-                    else if (msg.find(ACK_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("ACK");
-                    }
-                    else if (msg.find(NACK_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("NACK");
-                    }
-                    else if (msg.find(INFO_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("INFO");
-                        sensorMsgs.GetDeviceInfoFromMsg(msg, sonarMajorSWVersion, sonarMinorSWVersion, sonarBetaSWVersion, sonarSerialNum);
-                        ROS_DEBUG("Major %d", sonarMajorSWVersion);
-                        ROS_DEBUG("Minor %d", sonarMinorSWVersion);
-                        ROS_DEBUG("Beta %d", sonarBetaSWVersion);
-                        ROS_DEBUG("SerialNum %s", sonarSerialNum.c_str());
-                        ReportSonarConfiguration();
-                    }
-                    else if (msg.find(POLO_MSG) != std::string::npos) 
-                    {
-                        ROS_DEBUG("POLO");
-                    }
-                    else
-                    {
-                        ROS_WARN("Unknown message type returned from sonar");
-                    }
                 }
                 else // no message strings to process
                 {
@@ -403,7 +375,7 @@ namespace qna
                 sonar_msgs.erase(sonar_msgs.begin());
                 sonar_msgs_mutex.unlock();
             }
-
+            //ROS_DEBUG("retstr: %s, numOfMsgs: %d", retstr.c_str(), numOfMsgs);
             return retstr;
         }
 
@@ -668,6 +640,7 @@ namespace qna
                 ROS_WARN("handle_SetDetectionThreshold - Received NACK");
             }
         }
+
 
 
 
