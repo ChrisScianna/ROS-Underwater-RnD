@@ -152,7 +152,6 @@ class AutoPilotNode
   double desiredRudder;
   double desiredSpeed;
 
-  double maxAllowedThrusterRpm;
   double minimalSpeed;       // knots
   double rpmPerKnot;
   int controlLoopRate;       // Hz

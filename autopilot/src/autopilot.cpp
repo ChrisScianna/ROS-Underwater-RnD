@@ -106,8 +106,6 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
                  allowReverseThrusterAutopilot, false);
   nh.param<bool>("/autopilot_node/thruster_enabled", thrusterEnabled, false);
 
-  nh.param<double>("/thruster_control_node/max_allowed_motor_rpm", maxAllowedThrusterRpm, 0);
-
   jausRosSub = nh.subscribe("/jaus_ros_bridge/activate_manual_control", 1,
                               &AutoPilotNode::HandleActivateManualControl, this);
   correctedDataSub =
@@ -406,12 +404,6 @@ void AutoPilotNode::workerFunc()
           fabs(desiredSpeed) >= minimalSpeed)
         setRPM.commanded_rpms =
             (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * rpmPerKnot * minimalSpeed;
-      if (fabs(setRPM.commanded_rpms) > thruster_control::SetRPM::MAX_RPM)
-        setRPM.commanded_rpms = (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) *
-                                thruster_control::SetRPM::MAX_RPM;
-      if (fabs(setRPM.commanded_rpms) > maxAllowedThrusterRpm)
-        setRPM.commanded_rpms =
-            (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * maxAllowedThrusterRpm;
       if (setRPM.commanded_rpms < 0.0 &&
           !allowReverseThrusterAutopilot)  // don't have thruster move in reverse.
         setRPM.commanded_rpms = 0.0;
