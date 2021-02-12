@@ -317,7 +317,6 @@ void CANIntf::SetVehicleCommandData()
 	if ((now-last_time_secs) > GetMotorTiemoutSeconds())
 	{
 		vel = 0.0;
-		ROS_INFO("now[%lf] - lastTime[%lf] = %lf. MotorTimeout[%lf] in seconds", now, last_time_secs, now-last_time_secs, GetMotorTiemoutSeconds());	
 	}
 
     // setting info to CAN bus
