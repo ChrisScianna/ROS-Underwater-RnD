@@ -58,7 +58,6 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_tools/message_stagnation_check.h>
 #include <diagnostic_tools/periodic_message_status.h>
-#include <fin_control/EnableReportAngles.h>
 #include <fin_control/ReportAngle.h>
 #include <fin_control/SetAngle.h>
 #include <fin_control/SetAngles.h>
@@ -82,7 +81,6 @@ class FinControl
  private:
   bool fincontrolEnabled;
   bool servosON;
-  bool reportAnglesEnabled;
   bool currentLoggingEnabled;
 
   void reportAngles();
@@ -93,7 +91,6 @@ class FinControl
   void reportAngleSendTimeout(const ros::TimerEvent& ev);
   void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
-  void handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr& msg);
 
   double maxCtrlFinAngle;
   double ctrlFinOffset;

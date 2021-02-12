@@ -49,8 +49,6 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 
   thrusterPub = nh.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
   finsControlPub = nh.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
-  finsEnableReportingPub =
-      nh.advertise<fin_control::EnableReportAngles>("/fin_control/enable_report_angles", 1);
   autoPilotInControlPub =
       nh.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
 
@@ -142,9 +140,6 @@ void AutoPilotNode::Stop()
   assert(m_thread);
   autopilotEnabled = false;
   m_thread->join();
-  fin_control::EnableReportAngles enableReportAnglesMsg;
-  enableReportAnglesMsg.enable_report_angles = true;
-  finsEnableReportingPub.publish(enableReportAnglesMsg);
 }
 
 void AutoPilotNode::missionMgrHeartbeatTimeout(const ros::TimerEvent& timer)
@@ -346,7 +341,6 @@ void AutoPilotNode::workerFunc()
   thruster_control::SetRPM setRPM;
   ros::Rate r(controlLoopRate);
   autopilot::AutoPilotInControl incontrol;
-  fin_control::EnableReportAngles enableReportAnglesMsg;
   bool lastControl;
 
   lastControl = autoPilotInControl;
@@ -360,8 +354,6 @@ void AutoPilotNode::workerFunc()
     else
     {
       i = 0;
-      enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-      finsEnableReportingPub.publish(enableReportAnglesMsg);
       incontrol.auto_pilot_in_control = autoPilotInControl;
       autoPilotInControlPub.publish(incontrol);
     }
@@ -369,8 +361,6 @@ void AutoPilotNode::workerFunc()
                                                // pilot. used only by OCU
     {
       lastControl = autoPilotInControl;
-      enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-      finsEnableReportingPub.publish(enableReportAnglesMsg);
     }
     if (autoPilotInControl &&
         mmIsAlive)  // check to see if teleoperation not in control and mission mgr is running
@@ -431,6 +421,4 @@ void AutoPilotNode::workerFunc()
     r.sleep();
   }
   autoPilotInControl = false;
-  enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-  finsEnableReportingPub.publish(enableReportAnglesMsg);
 }
