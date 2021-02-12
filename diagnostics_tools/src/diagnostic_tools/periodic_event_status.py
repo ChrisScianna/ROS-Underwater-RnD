@@ -94,6 +94,7 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
         self._config = config
 
         self._last_time = rospy.Time(0)
+        self._start_time = rospy.Time.now()
         self._short_term_period = SampledStatistics(
             self._config.short_term_avg_window, dtype=float
         )
@@ -106,13 +107,13 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
         with self._lock:
             if not self._last_time.is_zero():
                 if self._last_time <= time:
-                    delta_in_seconds = (time - self._last_time).to_sec()
+                    time_delta = (time - self._last_time).to_sec()
                     if delta_in_seconds <= self._config.max_reasonable_period:
-                        self._short_term_period.update(delta_in_seconds)
-                        self._long_term_period.update(delta_in_seconds)
+                        self._short_term_period.update(time_delta)
+                        self._long_term_period.update(time_delta)
                     else:
                         rospy.logdebug(
-                            'Time delta %f too long, ignoring', delta_in_seconds
+                            'Time delta %f too long, ignoring', time_delta
                         )
                 else:
                     rospy.logdebug(
@@ -124,10 +125,10 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
     def run(self, stat):
         with self._lock:
             diagnostic = self._config.diagnostics.normal
-            if (rospy.Time.now() - self._last_time).to_sec() > self._config.max_reasonable_period:
-                # Unreasonable time delta, event is likely stale.
-                self._short_term_period.reset()
-            if self._short_term_period.sample_count > 0:
+            current_time = rospy.Time.now()
+            time_delta = (current_time - self._last_time).to_sec()
+            if self._short_term_period.sample_count > 0 and \
+               time_delta < self._config.max_reasonable_period:
                 if self._short_term_period.average < self._config.min_acceptable_period or \
                    self._short_term_period.average > self._config.max_acceptable_period:
                     diagnostic = self._config.diagnostics.abnormal
@@ -141,6 +142,13 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
                 stat.add(
                     'Maximum period (short term)', self._short_term_period.maximum)
             else:
+                time_since_init = (current_time - self._start_time).to_sec()
+                if time_since_init <= self._config.max_reasonable_period:
+                    # Likely still initializing, skip diagnostic checks
+                    return
+                # Event is likely stale, reset estimate
+                self._short_term_period.reset()
+
                 diagnostic = self._config.diagnostics.stale
                 stat.summary(diagnostic.status, diagnostic.description)
                 if diagnostic.code is not None:
