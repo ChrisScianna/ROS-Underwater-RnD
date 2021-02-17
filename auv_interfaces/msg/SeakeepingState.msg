@@ -7,4 +7,6 @@
 #
 # See "Perez, T., & Fossen, T. I. (n.d.). Kinematics of Ship Motion. Ship Motion Control, 45–58."
 
+string reference_frame_id  # Body co-located reference coordinate frame
+
 auv_interfaces/MotionPerturbation perturbation
