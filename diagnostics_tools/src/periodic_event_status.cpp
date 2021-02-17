@@ -50,7 +50,8 @@ PeriodicEventStatus::PeriodicEventStatus(const std::string& name, PeriodicEventS
   : PeriodicDiagnosticTask(name),
     params_(std::move(params)),
     short_term_period_(params.short_term_avg_window()),
-    long_term_period_(params.long_term_avg_window()) {}
+    long_term_period_(params.long_term_avg_window()),
+    start_stamp_(ros::Time::now()) {}
 
 void PeriodicEventStatus::tick(const ros::Time& stamp)
 {
@@ -59,18 +60,18 @@ void PeriodicEventStatus::tick(const ros::Time& stamp)
   {
     if (last_stamp_ <= stamp)
     {
-      const double delta_in_seconds = (stamp - last_stamp_).toSec();
-      if (delta_in_seconds <= params_.max_reasonable_period())
+      const double time_delta = (stamp - last_stamp_).toSec();
+      if (time_delta <= params_.max_reasonable_period())
       {
-        short_term_period_.update(delta_in_seconds);
-        long_term_period_.update(delta_in_seconds);
+        short_term_period_.update(time_delta);
+        long_term_period_.update(time_delta);
       }
       else
       {
         ROS_DEBUG_NAMED(
           "diagnostics_tools",
           "Time delta %f too long, ignoring",
-          delta_in_seconds);
+          time_delta);
       }
     }
     else
@@ -87,13 +88,9 @@ void PeriodicEventStatus::tick(const ros::Time& stamp)
 void PeriodicEventStatus::run(diagnostic_updater::DiagnosticStatusWrapper& stat)
 {
   std::lock_guard<std::mutex> guard(mutex_);
-  const double delta_in_seconds = (ros::Time::now() - last_stamp_).toSec();
-  if (delta_in_seconds > params_.max_reasonable_period())
-  {
-    // Unreasonable time delta, event is likely stale.
-    short_term_period_.reset();
-  }
-  if (short_term_period_.sample_count() > 0)
+  const ros::Time current_stamp = ros::Time::now();
+  const double time_delta = (current_stamp - last_stamp_).toSec();
+  if (short_term_period_.sample_count() > 0 && time_delta < params_.max_reasonable_period())
   {
     if (short_term_period_.average() < params_.min_acceptable_period() ||
         short_term_period_.average() > params_.max_acceptable_period())
@@ -120,6 +117,17 @@ void PeriodicEventStatus::run(diagnostic_updater::DiagnosticStatusWrapper& stat)
   }
   else
   {
+    const double time_since_init = (current_stamp - start_stamp_).toSec();
+
+    if (time_since_init <= params_.max_reasonable_period())
+    {
+      // Likely still initializing, skip diagnostic checks
+      return;
+    }
+
+    // Event is likely stale, reset estimate
+    short_term_period_.reset();
+
     stat.summary(params_.stale_diagnostic().status(),
                  params_.stale_diagnostic().description());
     if (params_.stale_diagnostic().has_code())
