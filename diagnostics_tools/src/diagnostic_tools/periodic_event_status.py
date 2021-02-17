@@ -108,7 +108,7 @@ class PeriodicEventStatus(PeriodicDiagnosticTask):
             if not self._last_time.is_zero():
                 if self._last_time <= time:
                     time_delta = (time - self._last_time).to_sec()
-                    if delta_in_seconds <= self._config.max_reasonable_period:
+                    if time_delta <= self._config.max_reasonable_period:
                         self._short_term_period.update(time_delta)
                         self._long_term_period.update(time_delta)
                     else:
