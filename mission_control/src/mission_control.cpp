@@ -111,9 +111,9 @@ int MissionControlNode::loadMissionFile(std::string mission_full_path)
 
 int MissionControlNode::abortMission(int missionId)
 {
-  executeMissionTimer.stop();
   if (m_current_mission_id == missionId)
   {
+    executeMissionTimer.stop();
     m_mission_map[m_current_mission_id]->stopMission();
     ROS_INFO_STREAM("Aborting Mission " << m_current_mission_id);
   }
@@ -139,11 +139,6 @@ void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
   if (missionStatus == NodeStatus::IDLE || missionStatus == NodeStatus::RUNNING)
   {
     missionStatus = m_mission_map[m_current_mission_id]->executeMissionTickEvent();
-  }
-  else
-  {
-    m_mission_map[m_current_mission_id]->stopMission();
-    executeMissionTimer.stop();
   }
 }
 
@@ -249,23 +244,18 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
 {
   ReportMissions outmsg;
   MissionData data;
-  for (const auto& it : m_mission_map)
-  {
-    data.mission_id = it.first;
-    data.mission_description = it.second->getCurrentMissionDescription();
-    outmsg.missions.push_back(data);
-  }
-
-  outmsg.header.stamp = ros::Time::now();
-  pub_report_missions.publish(outmsg);
 
   ROS_INFO_STREAM("queryMissionsCallback - Reporting these missions");
-  for (const auto& mission : outmsg.missions)
+  for (const auto& entry : m_mission_map)
   {
-    const mission_control::MissionData& mdata = mission;
-    ROS_INFO_STREAM("Mission Id: " << mdata.mission_id
-                                   << " Description: " << mdata.mission_description.c_str());
+    data.mission_id = entry.first;
+    data.mission_description = entry.second->getCurrentMissionDescription();
+    outmsg.missions.push_back(data);
+    ROS_INFO_STREAM("Mission Id: " << data.mission_id
+                                   << " Description: " << data.mission_description.c_str());
   }
+  outmsg.header.stamp = ros::Time::now();
+  pub_report_missions.publish(outmsg);
 }
 
 void MissionControlNode::removeMissionsCallback(
