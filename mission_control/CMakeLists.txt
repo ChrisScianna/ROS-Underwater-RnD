@@ -68,6 +68,13 @@ add_executable(${NODE_APP_NAME}
    src/behaviors/waypoint.cpp
 )
 
+add_library(MISSION_CONTROL_LIB SHARED
+  src/mission.cpp
+  src/mission_control.cpp
+  src/mission_control_main.cpp
+  src/behaviors/waypoint.cpp
+)
+
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(${NODE_APP_NAME}
@@ -94,6 +101,9 @@ install(FILES
 #############
 ## Testing ##
 #############
+
+catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
+target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${MISSION_CONTROL_LIB})
 
 if(CATKIN_ENABLE_TESTING)
   roslint_add_test()
