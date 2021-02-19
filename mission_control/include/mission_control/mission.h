@@ -37,6 +37,7 @@
 #ifndef MISSION_CONTROL_MISSION_H
 #define MISSION_CONTROL_MISSION_H
 
+#include <memory>
 #include <behaviortree_cpp_v3/bt_factory.h>
 
 //Behaviors
@@ -49,7 +50,8 @@ namespace mission_control
 class Mission
 {
  public:
-  Mission();
+  static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath);
+  
   ~Mission();
 
   enum MissionState
@@ -68,13 +70,11 @@ class Mission
   NodeStatus getMissionStatus();
   std::string getCurrentMissionDescription();
   std::string getCurrentBehavioralName();
-  bool loadMission(const std::string& missionFullPath);
-
+  
  private:
-  BT::BehaviorTreeFactory missionFactory_;
-  BT::Tree missionTree_;
+  explicit Mission(BT::Tree &&missionTree);
 
-  std::string missionFullPath_;     //  Path to the xml mission definitios
+  BT::Tree missionTree_;
   std::string missionDescription_;  //  Description of the mission
   std::string behaviorName_;        //  Name of the action (behavior) being executed.
 };

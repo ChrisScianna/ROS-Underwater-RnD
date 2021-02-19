@@ -96,17 +96,16 @@ MissionControlNode::~MissionControlNode() { m_mission_map.clear(); }
 
 int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
-  std::unique_ptr<Mission> newMission = std::make_unique<Mission>();
-  if (newMission->loadMission(mission_full_path) == true)
+  std::unique_ptr<Mission> newMission = Mission::FromMissionDefinition(mission_full_path);
+
+  if (newMission)
   {
     m_mission_id_counter++;
     m_mission_map[m_mission_id_counter] = std::move(newMission);
     return 0;
   }
   else
-  {
     return -1;
-  }
 }
 
 int MissionControlNode::abortMission(int missionId)
@@ -144,7 +143,6 @@ void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
 
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
 {
-
   if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(m_current_mission_id) > 0))
   {

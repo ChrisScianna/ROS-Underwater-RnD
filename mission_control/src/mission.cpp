@@ -37,30 +37,29 @@
 
 #include "mission_control/mission.h"
 
-
 using mission_control::Mission;
 using namespace mission_control;
 using namespace BT;
 
-Mission::Mission()
+Mission::Mission(BT::Tree&& missionTree) : missionTree_(std::move(missionTree))
 {
-  missionFactory_.registerNodeType<WaypointBehavior>("Waypoint");
+  missionDescription_ = missionTree_.rootNode()->name();
+  printTreeRecursively(missionTree_.rootNode());
 }
 
 Mission::~Mission() {}
 
-bool Mission::loadMission(const std::string &missionFullPath)
+std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath)
 {
+  BT::BehaviorTreeFactory missionFactory;
   if (access(missionFullPath.c_str(), F_OK) != -1)
   {
-    missionFullPath_ = missionFullPath;
-    missionTree_ = missionFactory_.createTreeFromFile(missionFullPath_);
-    missionDescription_ = missionTree_.rootNode()->name();
-    printTreeRecursively(missionTree_.rootNode());
-    return true;
+    missionFactory.registerNodeType<GoToWaypoint>("GoToWaypoint");
+    return std::unique_ptr<Mission>(
+        new Mission(missionFactory.createTreeFromFile(missionFullPath)));
   }
-
-  return false;
+  else
+    return nullptr;
 }
 
 void Mission::stopMission() { missionTree_.haltTree(); }
@@ -71,7 +70,4 @@ std::string Mission::getCurrentMissionDescription() { return missionDescription_
 
 std::string Mission::getCurrentBehavioralName() { return behaviorName_; }
 
-NodeStatus Mission::executeMissionTickEvent()
-{
-  return missionTree_.tickRoot();
-}
+NodeStatus Mission::executeMissionTickEvent() { return missionTree_.tickRoot(); }

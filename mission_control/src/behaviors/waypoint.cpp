@@ -37,7 +37,7 @@
 
 using namespace mission_control;
 
-WaypointBehavior::WaypointBehavior(const std::string& name, const BT::NodeConfiguration& config)
+GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config)
     : Behavior(name, config)
 {
   getInput<double>("depth", m_depth);
@@ -59,13 +59,13 @@ WaypointBehavior::WaypointBehavior(const std::string& name, const BT::NodeConfig
   if (m_speed_knots != 0.0) m_speed_knots_ena = true;
 
   sub_corrected_data = nodeHandle.subscribe("/pose/corrected_data", 1,
-                                            &WaypointBehavior::correctedDataCallback, this);
+                                            &GoToWaypoint::correctedDataCallback, this);
 
   goalHasBeenPublished = false;
   waypoint_behavior_pub = nodeHandle.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
 }
 
-BT::NodeStatus WaypointBehavior::getBehaviorStatus()
+BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
 {
     if (!goalHasBeenPublished)
     {
@@ -76,7 +76,7 @@ BT::NodeStatus WaypointBehavior::getBehaviorStatus()
  
 }
 
-void WaypointBehavior::publishGoalMsg()
+void GoToWaypoint::publishGoalMsg()
 {  // Altitude is not used.
   Waypoint msg;
   msg.depth = m_depth;
@@ -97,9 +97,9 @@ void WaypointBehavior::publishGoalMsg()
   msg.header.stamp = ros::Time::now();
   waypoint_behavior_pub.publish(msg);
 }
-double WaypointBehavior::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+double GoToWaypoint::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* ptrNorthing,
+void GoToWaypoint::latLongtoUTM(double latitude, double longitude, double* ptrNorthing,
                                     double* ptrEasting)
 {
   int zone;
@@ -189,7 +189,7 @@ void WaypointBehavior::latLongtoUTM(double latitude, double longitude, double* p
   *ptrNorthing = northing;
   *ptrEasting = easting;
 }
-void WaypointBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   if (status() == BT::NodeStatus::RUNNING)
   {

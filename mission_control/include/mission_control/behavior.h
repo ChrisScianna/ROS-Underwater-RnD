@@ -63,10 +63,13 @@ class Behavior : public BT::AsyncActionNode
         setStatus(BT::NodeStatus::RUNNING);
         break;
       case BT::NodeStatus::RUNNING:
-        setStatus(getBehaviorStatus());
+        setStatus(behaviorRunningProcess());
         break;
       case BT::NodeStatus::SUCCESS:
         halt();
+        break;
+      case BT::NodeStatus::FAILURE:
+        setStatus(BT::NodeStatus::FAILURE);
         break;
       default:
         throw std::logic_error("Unexpected state in ::tick()");
@@ -76,16 +79,12 @@ class Behavior : public BT::AsyncActionNode
   }
   virtual void halt() override
   {
-    if (status() == BT::NodeStatus::RUNNING)
-    {
-      ROS_INFO_STREAM("HALT");
-    }
     setStatus(BT::NodeStatus::IDLE);
   }
 
-  /// Method (to be implemented by the user) to receive the behavior status.
-  /// User can decide which NodeStatus it will return (RUNNING, SUCCESS or FAILURE).
-  virtual BT::NodeStatus getBehaviorStatus() = 0;
+  /// Method (to be implemented by the user) to implement the function when the satus is RUNNING
+  /// User should return the NodeStatus of the action (RUNNING, SUCCESS or FAILURE).
+  virtual BT::NodeStatus behaviorRunningProcess() = 0;
 
  private:
   bool idleToRunning;

@@ -33,20 +33,6 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-/*  Behavioral Waipoint
-  <waypoint>
-      <description>
-          00:00:00 - .
-      </description>
-      <when unit="sec">0</when>
-      <timeout unit="sec">50</timeout>
-      <depth unit="m">10.0</depth>
-      <latitude>42.656040</latitude>
-      <longitude>-70.591213</longitude>
-      <radius unit="m">14.0</radius>
-      <speed_knots>0.0</speed_knots>
-  </waypoint>
-*/
 
 #ifndef MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 #define MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
@@ -55,7 +41,6 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
-
 #include "mission_control/Waypoint.h"
 #include "mission_control/behavior.h"
 #include "pose_estimator/CorrectedData.h"
@@ -81,12 +66,12 @@ using namespace BT;
 
 namespace mission_control
 {
-class WaypointBehavior : public Behavior
+class GoToWaypoint : public Behavior
 {
  public:
-  WaypointBehavior(const std::string& name, const BT::NodeConfiguration& config);
+  GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config);
 
-  BT::NodeStatus getBehaviorStatus();
+  BT::NodeStatus behaviorRunningProcess();
 
   static PortsList providedPorts()
   {
