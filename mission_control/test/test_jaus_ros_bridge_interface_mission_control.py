@@ -116,58 +116,58 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.mission_load_state = msg.load_state
 
     def test_jaus_ros_bridge_interface(self):
-
+        
         # A wrong mission is sent to the mission control
         self.mission_to_load.mission_file_full_path = "NO_MISSION"
         self.simulated_mission_control_load_mission_pub.publish(
             self.mission_to_load)
-        def test_load_wrong_mission():
+        def load_wrong_mission():
             return self.mission_load_state == ReportLoadMissionState.FAILED
-        self.assertTrue(wait_for(test_load_wrong_mission), 
+        self.assertTrue(wait_for(load_wrong_mission), 
             msg='Mission control must report FAILED')
-
+        
         # A valid mission is sent to the mission control
         self.mission_to_load.mission_file_full_path = self.dir_path + \
             "test_missions/mission.xml"
         self.simulated_mission_control_load_mission_pub.publish(
             self.mission_to_load)
-        def test_load_valid_mission():
+        def load_valid_mission():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(test_load_valid_mission), 
+        self.assertTrue(wait_for(load_valid_mission), 
             msg='Mission control must report SUCCESS')
 
         # Execute Mission and check if the mission control reports status
         mission_to_execute = ExecuteMission()
         mission_to_execute.mission_id = 1
         self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
-        def test_success_mission_status_is_reported():
+        def success_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
-        self.assertTrue(wait_for(test_success_mission_status_is_reported), 
+        self.assertTrue(wait_for(success_mission_status_is_reported), 
             msg='Mission control must report SUCCESS')
 
         # Abort the Mission and wait for the mission to abort the mission
         abortMission = AbortMission()
         abortMission.mission_id = 1
         self.simulated_abort_mission_msg_pub.publish(abortMission)
-        def test_abort_mission_status_is_reported():
+        def abort_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.PAUSED
-        self.assertTrue(wait_for(test_abort_mission_status_is_reported), 
+        self.assertTrue(wait_for(abort_mission_status_is_reported), 
             msg='Mission control must report ABORTING')
         
         # Query mission and test response
         self.simulated_query_mission_msg_pub.publish(QueryMissions())
-        def test_query_mission():
+        def query_mission():
             return len(self.report_mission.missions) > 0
-        self.assertTrue(wait_for(test_query_mission))
+        self.assertTrue(wait_for(query_mission))
         self.assertEqual(self.report_mission.missions[0].mission_description, "mission test")
 
         # Remove all missions and test if they have been removed.
         self.report_mission = ReportMissions()
         self.simulated_remove_mission_msg_pub.publish(RemoveMissions())
         self.simulated_query_mission_msg_pub.publish(QueryMissions())
-        def test_query_after_remove_mission():
+        def query_after_remove_mission():
             return len(self.report_mission.missions) == 0
-        self.assertTrue(wait_for(test_query_after_remove_mission))
+        self.assertTrue(wait_for(query_after_remove_mission))
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_interface_jaus_ros_bridge',

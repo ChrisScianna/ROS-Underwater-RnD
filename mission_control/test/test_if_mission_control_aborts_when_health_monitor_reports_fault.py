@@ -113,26 +113,26 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.simulated_mission_control_load_mission_pub.publish(
             self.mission_to_load)
 
-        def test_load_valid_mission():
+        def load_valid_mission():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(test_load_valid_mission),
+        self.assertTrue(wait_for(load_valid_mission),
                         msg='Error Loading mission')
 
         # Execute Mission and check if the mission control reports status
         self.simulated_mission_control_execute_mission_pub.publish(
             self.mission_to_execute)
 
-        def test_success_mission_status_is_reported():
+        def success_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
-        self.assertTrue(wait_for(test_success_mission_status_is_reported),
+        self.assertTrue(wait_for(success_mission_status_is_reported),
                         msg='Mission control must report SUCCESS')
 
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
 
-        def test_abort_mission_status_is_reported():
+        def abort_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.PAUSED
-        self.assertTrue(wait_for(test_abort_mission_status_is_reported),
+        self.assertTrue(wait_for(abort_mission_status_is_reported),
                         msg='Mission control must report STOP/ABORTING')
 
 

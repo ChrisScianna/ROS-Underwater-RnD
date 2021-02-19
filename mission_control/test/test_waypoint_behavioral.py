@@ -51,7 +51,7 @@ from mission_control.msg import Waypoint
 from pose_estimator.msg import CorrectedData
 
 
-class TestWaypointBehavioral(unittest.TestCase):
+class TestGoToWaypointal(unittest.TestCase):
     """ 
         The test simulates messages sent by the jaus ros bridge
         and execute a waypoint behavioral
@@ -164,4 +164,4 @@ class TestWaypointBehavioral(unittest.TestCase):
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_test_waypoint_behavioral',
-                   TestWaypointBehavioral)
+                   TestGoToWaypointal)
