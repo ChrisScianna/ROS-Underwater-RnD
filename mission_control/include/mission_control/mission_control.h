@@ -100,7 +100,7 @@ class MissionControlNode
   ros::Publisher pub_report_heartbeat;
 
   ros::Timer reportExecuteMissionStateTimer;
-  Mission::MissionState last_state;
+  Mission::State last_state;
 
   ros::Timer reportHeartbeatTimer;
   ros::Timer executeMissionTimer;

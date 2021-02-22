@@ -42,7 +42,7 @@
 MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
 {
   heartbeat_sequence_id = 0;
-  last_state = Mission::MissionState::READY;
+  last_state = Mission::State::READY;
   reportExecuteMissionStateRate = 1.0;  // every 1 second
   reportHeartbeatRate = 1.0;            // every 1 second
   m_current_mission_id = 0;

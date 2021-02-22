@@ -37,42 +37,45 @@
 #ifndef MISSION_CONTROL_MISSION_H
 #define MISSION_CONTROL_MISSION_H
 
-#include <memory>
 #include <behaviortree_cpp_v3/bt_factory.h>
 
-//Behaviors
+#include <memory>
+
+// Behaviors
 #include "mission_control/behaviors/waypoint.h"
 
 using namespace BT;
 
 namespace mission_control
 {
+
 class Mission
 {
  public:
   static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath);
-  
+  static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath,
+                                                        BT::BehaviorTreeFactory& missionFactory);
+
   ~Mission();
 
-  enum MissionState
-  {
-    READY,
-    EXECUTING,
-    ABORTING,
-    STOPPED,
-    PAUSED,
-    COMPLETE
-  };
+enum class State
+{
+  READY,
+  EXECUTING,
+  ABORTING,
+  STOPPED,
+  PAUSED,
+  COMPLETE
+};
 
   NodeStatus executeMissionTickEvent();
   void stopMission();
 
   NodeStatus getMissionStatus();
   std::string getCurrentMissionDescription();
-  std::string getCurrentBehavioralName();
-  
+
  private:
-  explicit Mission(BT::Tree &&missionTree);
+  explicit Mission(BT::Tree&& missionTree);
 
   BT::Tree missionTree_;
   std::string missionDescription_;  //  Description of the mission
