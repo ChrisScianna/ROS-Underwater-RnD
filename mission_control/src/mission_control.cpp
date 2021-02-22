@@ -139,7 +139,7 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
 {
   NodeStatus missionStatus = m_mission_map[m_current_mission_id]->getStatus();
-  if (missionStatus == NodeStatus::IDLE || missionStatus == NodeStatus::RUNNING)
+  if (missionStatus != NodeStatus::SUCCESS)
   {
     missionStatus = m_mission_map[m_current_mission_id]->Continue();
   }
