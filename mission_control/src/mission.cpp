@@ -41,10 +41,9 @@ using mission_control::Mission;
 using namespace mission_control;
 using namespace BT;
 
-Mission::Mission(BT::Tree&& missionTree) : missionTree_(std::move(missionTree))
+Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
 {
-  missionDescription_ = missionTree_.rootNode()->name();
-  printTreeRecursively(missionTree_.rootNode());
+    description_ = tree_.rootNode()->name();
 }
 
 Mission::~Mission() {}
@@ -62,12 +61,23 @@ std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missi
     return nullptr;
 }
 
-void Mission::stopMission() { missionTree_.haltTree(); }
+std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath, BT::BehaviorTreeFactory& missionFactory)
+{
 
-BT::NodeStatus Mission::getMissionStatus() { return missionTree_.rootNode()->status(); }
+  if (access(missionFullPath.c_str(), F_OK) != -1)
+  {
+    return std::unique_ptr<Mission>(
+        new Mission(missionFactory.createTreeFromFile(missionFullPath)));
+  }
+  else
+    return nullptr;
+}
 
-std::string Mission::getCurrentMissionDescription() { return missionDescription_; }
 
-std::string Mission::getCurrentBehavioralName() { return behaviorName_; }
+void Mission::stop() { tree_.haltTree(); }
 
-NodeStatus Mission::executeMissionTickEvent() { return missionTree_.tickRoot(); }
+BT::NodeStatus Mission::getStatus() { return tree_.rootNode()->status(); }
+
+std::string Mission::getCurrentMissionDescription() { return description_; }
+
+NodeStatus Mission::Continue() { return tree_.tickRoot(); }
