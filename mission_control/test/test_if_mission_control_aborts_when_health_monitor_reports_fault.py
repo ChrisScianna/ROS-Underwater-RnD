@@ -43,6 +43,7 @@ from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import ReportLoadMissionState
 from health_monitor.msg import ReportFault
+from jaus_ros_bridge.msg import ActivateManualControl
 
 
 def wait_for(predicate, period=1):
@@ -63,6 +64,8 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             2)  Execute the Mission
             3)  Simulate an error sent by health monitor
             4)  check if the mission control abort the mission
+                a) Stop the current behavior
+                b) Send manual control command to autopilot
     """
 
     @classmethod
@@ -81,6 +84,7 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.simulate_error_code.fault_id = ReportFault.PAYLOAD_ERROR
         self.mission_load_state = ReportLoadMissionState()
         self.report_execute_mission = ReportExecuteMissionState()
+        self.activate_manual_control = False
 
         # Subscribers
         self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
@@ -88,6 +92,9 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
 
         self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
                                                ReportLoadMissionState, self.callback_mission_load_state)
+
+        self.activate_manual_control_sub = rospy.Subscriber('/jaus_ros_bridge/activate_manual_control',
+                                                            ActivateManualControl, self.callback_activate_manual_control)
 
         #   Publisher
 
@@ -105,7 +112,9 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
 
     def callback_mission_load_state(self, msg):
         self.mission_load_state = msg.load_state
-        self.mission_load_state_flag = True
+
+    def callback_activate_manual_control(self, msg):
+        self.activate_manual_control = msg.activate_manual_control
 
     def test_mission_control_aborts_if_health_monitor_reports_fault(self):
 
@@ -135,6 +144,10 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.assertTrue(wait_for(abort_mission_status_is_reported),
                         msg='Mission control must report STOP/ABORTING')
 
+        def abort_mission_change_autopilot_to_manual_control():
+            return self.activate_manual_control
+        self.assertTrue(wait_for(abort_mission_change_autopilot_to_manual_control),
+                        msg='Mission control must send command to autopilot control for being manual')
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_aborts_when_health_monitor_reports_fault',

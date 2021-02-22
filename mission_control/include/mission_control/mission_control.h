@@ -55,6 +55,7 @@
 #include <memory>
 
 #include "health_monitor/ReportFault.h"
+#include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_control/AbortMission.h"
 #include "mission_control/ExecuteMission.h"
 #include "mission_control/LoadMission.h"
@@ -98,6 +99,7 @@ class MissionControlNode
   ros::Publisher pub_report_mission_execute_state;
   ros::Publisher pub_report_missions;
   ros::Publisher pub_report_heartbeat;
+  ros::Publisher pub_activate_manual_control;
 
   ros::Timer reportExecuteMissionStateTimer;
   Mission::State last_state;
@@ -111,6 +113,7 @@ class MissionControlNode
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);
   int abortMission(int missionId);
+  void processAbort();
   int stopMission();
 
   void reportHeartbeat(const ros::TimerEvent& timer);

@@ -80,6 +80,8 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
       "report_mission_execute_state", 100);
   pub_report_missions = pnh.advertise<mission_control::ReportMissions>("report_missions", 100);
   pub_report_heartbeat = pnh.advertise<mission_control::ReportHeartbeat>("report_heartbeat", 100);
+  pub_activate_manual_control = pnh.advertise<jaus_ros_bridge::ActivateManualControl>(
+      "/jaus_ros_bridge/activate_manual_control", 1);
 
   reportExecuteMissionStateTimer =
       pnh.createTimer(ros::Duration(reportExecuteMissionStateRate),
@@ -114,6 +116,8 @@ int MissionControlNode::abortMission(int missionId)
   {
     executeMissionTimer.stop();
     m_mission_map[m_current_mission_id]->stop();
+
+    processAbort();
     ROS_DEBUG_STREAM("Aborting Mission " << m_current_mission_id);
   }
   else
@@ -164,6 +168,7 @@ void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
         break;
       case BT::NodeStatus::FAILURE:
         outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::ABORTING;
+        abortMission(m_current_mission_id);
         break;
     }
 
@@ -277,7 +282,14 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
 {
   if (msg->fault_id != 0)
   {
-    ROS_WARN_STREAM("Fault Detected [" << msg->fault_id << "] aborting mission");
+    ROS_ERROR_STREAM("Fault Detected by health monitor[" << msg->fault_id << "] aborting mission");
     abortMission(m_current_mission_id);
   }
+}
+
+void MissionControlNode::processAbort()
+{
+  jaus_ros_bridge::ActivateManualControl msg;
+  msg.activate_manual_control = true;
+  pub_activate_manual_control.publish(msg);
 }
