@@ -52,9 +52,9 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   reportHeartbeatRate = 1.0;
 
   // Get runtime parameters
-  pnh.getParam("/mission_control_node/report_execute_mission_state_rate",
-               reportExecuteMissionStateRate);
-  pnh.getParam("/mission_control_node/report_heart_beat_rate", reportHeartbeatRate);
+  pnh.getParam("report_execute_mission_state_rate", reportExecuteMissionStateRate);
+  pnh.getParam("report_heart_beat_rate", reportHeartbeatRate);
+  pnh.getParam("execute_mission_asynchronous_rate", executeMissionAsynchronousRate);
 
   ROS_DEBUG_STREAM("report executemissionstate rate: " << reportExecuteMissionStateRate);
   ROS_DEBUG_STREAM("report heartbeat rate: " << reportHeartbeatRate);
@@ -87,8 +87,8 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   reportHeartbeatTimer = pnh.createTimer(ros::Duration(reportHeartbeatRate),
                                          &MissionControlNode::reportHeartbeat, this);
 
-  executeMissionTimer =
-      pnh.createTimer(ros::Duration(0.1), &MissionControlNode::executeMissionT, this);
+  executeMissionTimer = pnh.createTimer(ros::Duration(executeMissionAsynchronousRate),
+                                        &MissionControlNode::executeMissionT, this);
   executeMissionTimer.stop();
 }
 
@@ -120,7 +120,7 @@ int MissionControlNode::abortMission(int missionId)
   {
     ROS_ERROR_STREAM("The mission currently running is different from request");
     ROS_ERROR_STREAM("Current mission: " << m_current_mission_id
-                                        << " - Request mission to abort: " << missionId);
+                                         << " - Request mission to abort: " << missionId);
   }
 }
 
@@ -178,7 +178,7 @@ void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
 void MissionControlNode::loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg)
 {
   ROS_DEBUG_STREAM("loadMissionCallback - just received mission file "
-                  << msg->mission_file_full_path.c_str());
+                   << msg->mission_file_full_path.c_str());
 
   int retval = loadMissionFile(msg->mission_file_full_path);
 
@@ -188,14 +188,14 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
     outmsg.load_state = ReportLoadMissionState::FAILED;
     outmsg.mission_id = 0;
     ROS_ERROR_STREAM("loadMissionCallback - FAILED to parse mission file "
-                    << msg->mission_file_full_path.c_str());
+                     << msg->mission_file_full_path.c_str());
   }
   else
   {
     outmsg.load_state = ReportLoadMissionState::SUCCESS;
     outmsg.mission_id = m_mission_id_counter;
     ROS_DEBUG_STREAM("loadMissionCallback - SUCCESSFULLY parsed mission file "
-                    << msg->mission_file_full_path.c_str());
+                     << msg->mission_file_full_path.c_str());
   }
 
   outmsg.header.stamp = ros::Time::now();
@@ -223,12 +223,12 @@ void MissionControlNode::executeMissionCallback(
     m_current_mission_id = msg->mission_id;
     executeMissionTimer.start();
     ROS_DEBUG_STREAM("executeMissionCallback - Executing mission id[" << m_current_mission_id
-                                                                     << "]");
+                                                                      << "]");
   }
   else
   {
     ROS_ERROR_STREAM("Error - Wrong Mission Number. "
-                    << "Mission Number: " << msg->mission_id);
+                     << "Mission Number: " << msg->mission_id);
   }
 }
 
@@ -250,7 +250,7 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
     data.mission_description = entry.second->getCurrentMissionDescription();
     outmsg.missions.push_back(data);
     ROS_DEBUG_STREAM("Mission Id: " << data.mission_id
-                                   << " Description: " << data.mission_description.c_str());
+                                    << " Description: " << data.mission_description.c_str());
   }
   outmsg.header.stamp = ros::Time::now();
   pub_report_missions.publish(outmsg);

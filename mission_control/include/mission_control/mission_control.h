@@ -128,6 +128,7 @@ private:
   // Vars holding runtime params
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
+  double executeMissionAsynchronousRate;
 
   int m_current_mission_id;
   int m_mission_id_counter;

@@ -1,7 +1,12 @@
 <launch>
-    <!-- mission manager -->
+    <!-- mission control -->
+    <arg name="report_execute_mission_state_rate" default="1.0"/>
+    <arg name="report_heart_beat_rate" default="1.0"/>
+    <arg name="execute_mission_asynchronous_rate" default="0.1"/>
+    
     <node pkg="mission_control" type="mission_control_node" name="mission_control_node" output="screen">
-        <param name="report_execute_mission_state_rate" type="double" value="1.0"/>
-        <param name="report_heart_beat_rate" type="double" value="1.0"/>
+        <param name="report_execute_mission_state_rate" type="double" value="$(arg report_execute_mission_state_rate)"/>
+        <param name="report_heart_beat_rate" type="double" value="$(arg report_heart_beat_rate)"/>
+        <param name="execute_mission_asynchronous_rate" type="double" value="$(arg execute_mission_asynchronous_rate)"/>
     </node>
 </launch>

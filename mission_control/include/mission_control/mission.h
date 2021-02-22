@@ -48,7 +48,6 @@ using namespace BT;
 
 namespace mission_control
 {
-
 class Mission
 {
  public:
@@ -58,28 +57,28 @@ class Mission
 
   ~Mission();
 
-enum class State
-{
-  READY,
-  EXECUTING,
-  ABORTING,
-  STOPPED,
-  PAUSED,
-  COMPLETE
-};
+  enum class State
+  {
+    READY,
+    EXECUTING,
+    ABORTING,
+    STOPPED,
+    PAUSED,
+    COMPLETE
+  };
 
-  NodeStatus executeMissionTickEvent();
-  void stopMission();
+  NodeStatus Continue();
+  void stop();
 
-  NodeStatus getMissionStatus();
+  NodeStatus getStatus();
   std::string getCurrentMissionDescription();
 
  private:
   explicit Mission(BT::Tree&& missionTree);
 
-  BT::Tree missionTree_;
-  std::string missionDescription_;  //  Description of the mission
-  std::string behaviorName_;        //  Name of the action (behavior) being executed.
+  BT::Tree tree_;
+  std::string description_;   //  Description of the mission
+  std::string behaviorName_;  //  Name of the action (behavior) being executed.
 };
 
 }  //  namespace mission_control
