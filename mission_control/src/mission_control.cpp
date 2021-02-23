@@ -300,4 +300,5 @@ void MissionControlNode::processAbort()
 void MissionControlNode::registerBehaviorActions()
 {
   missionFactory_.registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
+  missionFactory_.registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
 }
