@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   behaviortree_cpp_v3
   health_monitor
+  jaus_ros_bridge
   message_generation
   pose_estimator
   payload_manager
@@ -49,7 +50,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS pose_estimator payload_manager roscpp rospy std_msgs
+ CATKIN_DEPENDS pose_estimator payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
 )
 
 ###########
