@@ -51,7 +51,6 @@ namespace mission_control
 class Mission
 {
  public:
-  static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath);
   static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath,
                                                         BT::BehaviorTreeFactory& missionFactory);
 

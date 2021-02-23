@@ -92,13 +92,16 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   executeMissionTimer = pnh.createTimer(ros::Duration(executeMissionAsynchronousRate),
                                         &MissionControlNode::executeMissionT, this);
   executeMissionTimer.stop();
+
+  registerBehaviorActions();
 }
 
 MissionControlNode::~MissionControlNode() {}
 
 int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
-  std::unique_ptr<Mission> newMission = Mission::FromMissionDefinition(mission_full_path);
+  std::unique_ptr<Mission> newMission =
+      Mission::FromMissionDefinition(mission_full_path, missionFactory_);
 
   if (newMission)
   {
@@ -292,4 +295,9 @@ void MissionControlNode::processAbort()
   jaus_ros_bridge::ActivateManualControl msg;
   msg.activate_manual_control = true;
   pub_activate_manual_control.publish(msg);
+}
+
+void MissionControlNode::registerBehaviorActions()
+{
+  missionFactory_.registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
 }

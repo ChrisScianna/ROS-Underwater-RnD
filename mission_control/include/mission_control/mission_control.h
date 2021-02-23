@@ -68,6 +68,9 @@
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
 
+#include "mission_control/behavior.h"
+#include "mission_control/behaviors/waypoint.h"
+
 #define LOGGING (1)
 
 #define NODE_VERSION "1.0x"
@@ -127,6 +130,8 @@ class MissionControlNode
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
 
 private:
+  void registerBehaviorActions();
+
   ros::NodeHandle pnh;
   // Vars holding runtime params
   double reportExecuteMissionStateRate;
@@ -138,6 +143,8 @@ private:
 
   std::unordered_map<int, std::unique_ptr<Mission>> m_mission_map;
   uint64_t heartbeat_sequence_id;
+  BT::BehaviorTreeFactory missionFactory_;
+
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

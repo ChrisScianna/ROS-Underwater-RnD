@@ -44,22 +44,10 @@ using namespace BT;
 Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
 {
     description_ = tree_.rootNode()->name();
+
 }
 
 Mission::~Mission() {}
-
-std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath)
-{
-  BT::BehaviorTreeFactory missionFactory;
-  if (access(missionFullPath.c_str(), F_OK) != -1)
-  {
-    missionFactory.registerNodeType<GoToWaypoint>("GoToWaypoint");
-    return std::unique_ptr<Mission>(
-        new Mission(missionFactory.createTreeFromFile(missionFullPath)));
-  }
-  else
-    return nullptr;
-}
 
 std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath, BT::BehaviorTreeFactory& missionFactory)
 {
