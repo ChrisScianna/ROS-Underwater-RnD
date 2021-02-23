@@ -58,6 +58,7 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
   getInput<double>("speed_knots", m_speed_knots);
   if (m_speed_knots != 0.0) m_speed_knots_ena = true;
 
+  getInput<double>("time_out", timeOut_);
   sub_corrected_data =
       nodeHandle.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
 
@@ -71,6 +72,11 @@ BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
   {
     publishGoalMsg();
     goalHasBeenPublished = true;
+  }
+  else
+  {
+    ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
+    if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
   }
   return (status());
 }

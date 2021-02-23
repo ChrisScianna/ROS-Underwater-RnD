@@ -67,7 +67,8 @@ class GoToWaypoint : public Behavior
                            BT::InputPort<double>("latitude", 0.0, "latitude"),
                            BT::InputPort<double>("longitude", 0.0, "longitude"),
                            BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots")};
+                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+                           BT::InputPort<double>("time_out", 0.0, "time_out")};
     return ports;
   }
 
@@ -82,6 +83,7 @@ class GoToWaypoint : public Behavior
   double m_long;
   double m_speed_knots;
   double m_wp_radius;
+  double timeOut_;
 
   bool m_altitude_ena;
   bool m_depth_ena;
@@ -95,6 +97,7 @@ class GoToWaypoint : public Behavior
   void correctedDataCallback(const pose_estimator::CorrectedData& data);
   bool goalHasBeenPublished;
   void publishGoalMsg();
+  ros::Time behaviorStartTime_;
 };
 
 }  //  namespace mission_control
