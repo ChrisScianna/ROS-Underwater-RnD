@@ -58,8 +58,8 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
   getInput<double>("speed_knots", m_speed_knots);
   if (m_speed_knots != 0.0) m_speed_knots_ena = true;
 
-  sub_corrected_data = nodeHandle.subscribe("/pose/corrected_data", 1,
-                                            &GoToWaypoint::correctedDataCallback, this);
+  sub_corrected_data =
+      nodeHandle.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
 
   goalHasBeenPublished = false;
   waypoint_behavior_pub = nodeHandle.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
@@ -67,13 +67,12 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
 
 BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
 {
-    if (!goalHasBeenPublished)
-    {
-      publishGoalMsg();
-      goalHasBeenPublished = true;
-    }
-    return (status());
- 
+  if (!goalHasBeenPublished)
+  {
+    publishGoalMsg();
+    goalHasBeenPublished = true;
+  }
+  return (status());
 }
 
 void GoToWaypoint::publishGoalMsg()
@@ -97,11 +96,67 @@ void GoToWaypoint::publishGoalMsg()
   msg.header.stamp = ros::Time::now();
   waypoint_behavior_pub.publish(msg);
 }
-double GoToWaypoint::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-void GoToWaypoint::latLongtoUTM(double latitude, double longitude, double* ptrNorthing,
-                                    double* ptrEasting)
+void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
+  if (status() == BT::NodeStatus::RUNNING)
+  {
+    double dist_to_wp;
+    double currentNorthing;
+    double currentEasting;
+
+    double desiredNorthing;
+    double desiredEasting;
+
+    latLongtoUTM(data.position.latitude, data.position.longitude, &currentNorthing,
+                 &currentEasting);
+    latLongtoUTM(m_lat, m_long, &desiredNorthing, &desiredEasting);
+
+    // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
+    // investigating hypot it looks like it does the squaring and square root to figure out the
+    // return value. Need to add depth or altitude (whatever we are using).
+    //   dist_to_wp = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
+    //   data.depth-m_depth);
+    // dist_to_wp = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
+
+    dist_to_wp = sqrt(pow((currentNorthing - desiredNorthing), 2) +
+                      pow((currentEasting - desiredEasting), 2) + pow((data.depth - m_depth), 2));
+
+    if (dist_to_wp < m_wp_radius)
+    {
+      ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", dist_to_wp,
+               m_wp_radius);
+      setStatus(BT::NodeStatus::SUCCESS);
+    }
+    else
+    {
+      setStatus(BT::NodeStatus::RUNNING);
+    }
+  }
+  // TODO(QNA): check shaft speed?
+}
+
+double degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+
+void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting)
+{
+  // WGS84 Parameters
+  static constexpr double WGS84_A = 6378137.0;         // major axis
+  static constexpr double WGS84_B = 6356752.31424518;  // minor axis
+  static constexpr double WGS84_F = 0.0033528107;      // ellipsoid flattening
+  static constexpr double WGS84_E = 0.0818191908;      // first eccentricity
+  static constexpr double WGS84_EP = 0.0820944379;     // second eccentricity
+
+  // UTM Parameters
+  static constexpr double UTM_K0 = 0.9996;                    // scale factor
+  static constexpr double UTM_FE = 500000.0;                  // false easting
+  static constexpr double UTM_FN_N = 0.0;                     // false northing, northern hemisphere
+  static constexpr double UTM_FN_S = 10000000.0;              // false northing, southern hemisphere
+  static constexpr double UTM_E2 = (WGS84_E * WGS84_E);       // e^2
+  static constexpr double UTM_E4 = (UTM_E2 * UTM_E2);         // e^4
+  static constexpr double UTM_E6 = (UTM_E4 * UTM_E2);         // e^6
+  static constexpr double UTM_EP2 = (UTM_E2 / (1 - UTM_E2));  // e'^2
+
   int zone;
   double Lat = latitude;
   double Long = longitude;
@@ -188,42 +243,4 @@ void GoToWaypoint::latLongtoUTM(double latitude, double longitude, double* ptrNo
 
   *ptrNorthing = northing;
   *ptrEasting = easting;
-}
-void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
-{
-  if (status() == BT::NodeStatus::RUNNING)
-  {
-    double dist_to_wp;
-    double currentNorthing;
-    double currentEasting;
-
-    double desiredNorthing;
-    double desiredEasting;
-
-    latLongtoUTM(data.position.latitude, data.position.longitude, &currentNorthing,
-                 &currentEasting);
-    latLongtoUTM(m_lat, m_long, &desiredNorthing, &desiredEasting);
-
-    // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
-    // investigating hypot it looks like it does the squaring and square root to figure out the
-    // return value. Need to add depth or altitude (whatever we are using).
-    //   dist_to_wp = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
-    //   data.depth-m_depth);
-    // dist_to_wp = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
-
-    dist_to_wp = sqrt(pow((currentNorthing - desiredNorthing), 2) +
-                      pow((currentEasting - desiredEasting), 2) + pow((data.depth - m_depth), 2));
-
-    if (dist_to_wp < m_wp_radius)
-    {
-      ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", dist_to_wp,
-               m_wp_radius);
-      setStatus(BT::NodeStatus::SUCCESS);
-    }
-    else
-    {
-      setStatus(BT::NodeStatus::RUNNING);
-    }
-  }
-  // TODO(QNA): check shaft speed?
 }
