@@ -301,4 +301,5 @@ void MissionControlNode::registerBehaviorActions()
 {
   missionFactory_.registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
   missionFactory_.registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
+  missionFactory_.registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
 }

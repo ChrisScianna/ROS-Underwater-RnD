@@ -70,6 +70,8 @@
 
 #include "mission_control/behavior.h"
 #include "mission_control/behaviors/waypoint.h"
+#include "mission_control/behaviors/fixed_rudder.h"
+#include "mission_control/behaviors/depth_heading.h"
 
 #define LOGGING (1)
 
