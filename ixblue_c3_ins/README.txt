@@ -36,21 +36,13 @@ script:
     sudo python ./c3_ins.py
 
 * In another terminal on the target, echo the ROS topic messages to the terminal:
-    rostopic  echo ixblue_c3_ins/C3Ins
+    rostopic echo ixblue_c3_ins/data
 
 * When the ROS node receives a UDP packet and sucessfully parses it, the
 ROS echo command will display the published data, example below:
 
-header: 
-  seq: 188
-  stamp: 
-    secs: 1306311723
-    nsecs: 965270978
-  frame_id: ixblue_c3_ins
-nl_header: 9386
 user_status: 0
-algo_status_0: 0
-algo_status_1: 0
+algorithm_status: 0
 heading: 3.1400001049
 roll: 0.0
 pitch: 0.0
