@@ -72,6 +72,7 @@
 #include "mission_control/behaviors/waypoint.h"
 #include "mission_control/behaviors/fixed_rudder.h"
 #include "mission_control/behaviors/depth_heading.h"
+#include "mission_control/behaviors/attitude_servo.h"
 
 #define LOGGING (1)
 

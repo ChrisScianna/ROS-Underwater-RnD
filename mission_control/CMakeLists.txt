@@ -69,6 +69,7 @@ add_executable(${NODE_APP_NAME}
    src/behaviors/waypoint.cpp
    src/behaviors/fixed_rudder.cpp
    src/behaviors/depth_heading.cpp
+   src/behaviors/attitude_servo.cpp
 )
 
 add_library(MISSION_CONTROL_LIB SHARED
@@ -78,6 +79,7 @@ add_library(MISSION_CONTROL_LIB SHARED
   src/behaviors/waypoint.cpp
   src/behaviors/fixed_rudder.cpp
   src/behaviors/depth_heading.cpp
+  src/behaviors/attitude_servo.cpp
 )
 
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
