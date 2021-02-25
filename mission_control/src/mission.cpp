@@ -34,24 +34,23 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
+#include <string>
 #include "mission_control/mission.h"
 
 using mission_control::Mission;
-using namespace mission_control;
-using namespace BT;
+using BT::NodeStatus;
+using BT::Tree;
 
-Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
+Mission::Mission(BT::Tree && missionTree) : tree_(std::move(missionTree))
 {
-    description_ = tree_.rootNode()->name();
-
+  description_ = tree_.rootNode()->name();
 }
 
 Mission::~Mission() {}
 
-std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath, BT::BehaviorTreeFactory& missionFactory)
+std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath,
+                                                        BT::BehaviorTreeFactory& missionFactory)
 {
-
   if (access(missionFullPath.c_str(), F_OK) != -1)
   {
     return std::unique_ptr<Mission>(
@@ -61,11 +60,10 @@ std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missi
     return nullptr;
 }
 
-
 void Mission::stop() { tree_.haltTree(); }
 
 BT::NodeStatus Mission::getStatus() { return tree_.rootNode()->status(); }
 
 std::string Mission::getCurrentMissionDescription() { return description_; }
 
-NodeStatus Mission::Continue() { return tree_.tickRoot(); }
+BT::NodeStatus Mission::Continue() { return tree_.tickRoot(); }

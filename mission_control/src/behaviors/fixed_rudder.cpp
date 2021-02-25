@@ -33,9 +33,10 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include <string>
 #include "mission_control/behaviors/fixed_rudder.h"
 
-using namespace mission_control;
+using mission_control::MoveWithFixedRudder;
 
 MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
                                          const BT::NodeConfiguration& config)
@@ -65,7 +66,7 @@ MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
   getInput<double>("altitude_tol", altitudeTolerance_);
 
   subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                              &MoveWithFixedRudder::correctedDataCallback, this);
+                                            &MoveWithFixedRudder::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
   fixedRudderBehaviorPub_ =

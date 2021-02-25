@@ -38,13 +38,11 @@
 #define MISSION_CONTROL_MISSION_H
 
 #include <behaviortree_cpp_v3/bt_factory.h>
-
 #include <memory>
+#include <string>
 
 // Behaviors
 #include "mission_control/behaviors/waypoint.h"
-
-using namespace BT;
 
 namespace mission_control
 {
@@ -66,14 +64,14 @@ class Mission
     COMPLETE
   };
 
-  NodeStatus Continue();
+  BT::NodeStatus Continue();
   void stop();
 
-  NodeStatus getStatus();
+  BT::NodeStatus getStatus();
   std::string getCurrentMissionDescription();
 
  private:
-  explicit Mission(BT::Tree&& missionTree);
+  explicit Mission(BT::Tree && missionTree);
 
   BT::Tree tree_;
   std::string description_;   //  Description of the mission

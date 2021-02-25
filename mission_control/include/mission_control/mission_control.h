@@ -68,7 +68,6 @@
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
 
-#include "mission_control/behavior.h"
 #include "mission_control/behaviors/waypoint.h"
 #include "mission_control/behaviors/fixed_rudder.h"
 #include "mission_control/behaviors/depth_heading.h"
@@ -78,8 +77,8 @@
 
 #define NODE_VERSION "1.0x"
 
-using namespace BT;
-
+using BT::NodeStatus;
+using BT::Tree;
 using mission_control::LoadMission;
 using mission_control::Mission;
 using mission_control::MissionData;
@@ -113,7 +112,7 @@ class MissionControlNode
   ros::Timer reportHeartbeatTimer;
   ros::Timer executeMissionTimer;
 
-  MissionControlNode(ros::NodeHandle& h);
+  explicit MissionControlNode(ros::NodeHandle& h);
   ~MissionControlNode();
 
   int loadMissionFile(std::string mission_full_path);
@@ -141,13 +140,15 @@ private:
   double reportHeartbeatRate;
   double executeMissionAsynchronousRate;
 
+  int currentMissionId;
+  int MissionIdCounter;
+
   int m_current_mission_id;
   int m_mission_id_counter;
 
   std::unordered_map<int, std::unique_ptr<Mission>> m_mission_map;
   uint64_t heartbeat_sequence_id;
   BT::BehaviorTreeFactory missionFactory_;
-
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

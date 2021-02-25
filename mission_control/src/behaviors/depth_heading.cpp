@@ -33,9 +33,10 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include <string>
 #include "mission_control/behaviors/depth_heading.h"
 
-using namespace mission_control;
+using mission_control::DepthHeadingBehavior;
 
 DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
                                            const BT::NodeConfiguration& config)

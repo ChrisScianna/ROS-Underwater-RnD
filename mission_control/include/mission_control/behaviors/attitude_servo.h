@@ -41,6 +41,7 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "mission_control/AttitudeServo.h"
 #include "mission_control/behavior.h"
@@ -57,14 +58,17 @@ class AttitudeServoBehavior : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("roll", 0.0, "roll"),
-                           BT::InputPort<double>("pitch", 0.0, "pitch"),
-                           BT::InputPort<double>("yaw", 0.0, "yaw"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-                           BT::InputPort<double>("time_out", 0.0, "time_out"),
-                           BT::InputPort<double>("roll_tol",0.0,"roll_tol"),
-                           BT::InputPort<double>("pitch_tol",0.0,"pitch_tol"),
-                           BT::InputPort<double>("yaw_tol",0.0,"yaw_tol")};
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("roll", 0.0, "roll"),
+      BT::InputPort<double>("pitch", 0.0, "pitch"),
+      BT::InputPort<double>("yaw", 0.0, "yaw"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out"),
+      BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
+      BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
+      BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")
+    };
     return ports;
   }
 

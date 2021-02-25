@@ -33,9 +33,10 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include <string>
 #include "mission_control/behaviors/waypoint.h"
 
-using namespace mission_control;
+using mission_control::GoToWaypoint;
 
 GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config)
     : Behavior(name, config)
@@ -121,12 +122,14 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
     // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
     // investigating hypot it looks like it does the squaring and square root to figure out the
     // return value. Need to add depth or altitude (whatever we are using).
-    //   distToWaypoint = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
-    //   data.depth-depth_);
-    // distToWaypoint = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
+    //   distToWaypoint = std::hypot((currentNorthing-desiredNorthing,
+    //   currentEasting-desiredEasting, data.depth-depth_);
+    // distToWaypoint = hypot(abs(currentNorthing-desiredNorthing),
+    // abs(currentEasting-desiredEasting));
 
-    distToWaypoint = sqrt(pow((currentNorthing - desiredNorthing), 2) +
-                      pow((currentEasting - desiredEasting), 2) + pow((data.depth - depth_), 2));
+    distToWaypoint =
+        sqrt(pow((currentNorthing - desiredNorthing), 2) +
+             pow((currentEasting - desiredEasting), 2) + pow((data.depth - depth_), 2));
 
     if (distToWaypoint < wpRadius_)
     {

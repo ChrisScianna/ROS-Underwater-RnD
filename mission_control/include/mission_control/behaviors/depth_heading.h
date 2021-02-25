@@ -41,6 +41,7 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "mission_control/DepthHeading.h"
 #include "mission_control/behavior.h"
@@ -57,10 +58,13 @@ class DepthHeadingBehavior : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
-                           BT::InputPort<double>("heading", 0.0, "heading"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-                           BT::InputPort<double>("time_out", 0.0, "time_out")};
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("heading", 0.0, "heading"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out")
+    };
     return ports;
   }
 

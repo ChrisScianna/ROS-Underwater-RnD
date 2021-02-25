@@ -41,6 +41,7 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "mission_control/Waypoint.h"
 #include "mission_control/behavior.h"
@@ -61,13 +62,16 @@ class GoToWaypoint : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
-                           BT::InputPort<double>("altitude", 0.0, "altitude"),
-                           BT::InputPort<double>("latitude", 0.0, "latitude"),
-                           BT::InputPort<double>("longitude", 0.0, "longitude"),
-                           BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-                           BT::InputPort<double>("time_out", 0.0, "time_out")};
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("altitude", 0.0, "altitude"),
+      BT::InputPort<double>("latitude", 0.0, "latitude"),
+      BT::InputPort<double>("longitude", 0.0, "longitude"),
+      BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out")
+    };
     return ports;
   }
 

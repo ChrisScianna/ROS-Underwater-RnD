@@ -33,9 +33,10 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include <string>
 #include "mission_control/behaviors/attitude_servo.h"
 
-using namespace mission_control;
+using mission_control::AttitudeServoBehavior;
 
 AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
                                              const BT::NodeConfiguration& config)
@@ -73,7 +74,7 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   getInput<double>("yaw_tol", yawTolerance_);
 
   subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                              &AttitudeServoBehavior::correctedDataCallback, this);
+                                            &AttitudeServoBehavior::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
   attitudeServoBehaviorPub_ =

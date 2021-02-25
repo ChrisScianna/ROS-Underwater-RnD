@@ -41,6 +41,7 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "mission_control/FixedRudder.h"
 #include "mission_control/behavior.h"
@@ -57,13 +58,16 @@ class MoveWithFixedRudder : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
-                           BT::InputPort<double>("rudder", 0.0, "altitude"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-                           BT::InputPort<double>("behavior_time", 0.0, "behavior_time"),
-                           BT::InputPort<double>("rudder_tol",0.0,"rudder_tol"),
-                           BT::InputPort<double>("depth_tol",0.0,"depth_tol"),
-                           BT::InputPort<double>("altitude_tol",0.0,"altitude_tol")};
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("rudder", 0.0, "altitude"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("behavior_time", 0.0, "behavior_time"),
+      BT::InputPort<double>("rudder_tol", 0.0, "rudder_tol"),
+      BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+      BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol")
+    };
     return ports;
   }
 

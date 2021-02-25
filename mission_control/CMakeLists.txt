@@ -109,15 +109,16 @@ install(FILES
 ## Testing ##
 #############
 
-catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
-target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${MISSION_CONTROL_LIB})
 
 if(CATKIN_ENABLE_TESTING)
-  roslint_add_test()
-  
-  find_package(rostest REQUIRED)
-  add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
-  add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
-  add_rostest(test/test_mission_control_publishes_heartbeat.test)
+roslint_add_test()
+
+find_package(rostest REQUIRED)
+add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
+add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
+add_rostest(test/test_mission_control_publishes_heartbeat.test)
+
+catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
+target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${MISSION_CONTROL_LIB})
 
 endif()
