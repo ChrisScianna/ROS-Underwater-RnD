@@ -40,38 +40,38 @@ using namespace mission_control;
 GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config)
     : Behavior(name, config)
 {
-  getInput<double>("depth", m_depth);
-  if (m_depth != 0.0) m_depth_ena = true;
+  getInput<double>("depth", depth_);
+  if (depth_ != 0.0) depthEnable_ = true;
 
-  getInput<double>("altitude", m_altitude);
-  if (m_altitude != 0.0) m_altitude_ena = true;
+  getInput<double>("altitude", altitude_);
+  if (altitude_ != 0.0) altitudeEnable_ = true;
 
-  getInput<double>("latitude", m_lat);
-  if (m_lat != 0.0) m_lat_ena = true;
+  getInput<double>("latitude", lat_);
+  if (lat_ != 0.0) latEnable_ = true;
 
-  getInput<double>("longitude", m_long);
-  if (m_long != 0.0) m_long_ena = true;
+  getInput<double>("longitude", long_);
+  if (long_ != 0.0) longEnable_ = true;
 
-  getInput<double>("wp_radius", m_wp_radius);
-  if (m_wp_radius != 0.0) m_wp_radius_ena = true;
+  getInput<double>("wp_radius", wpRadius_);
+  if (wpRadius_ != 0.0) wpRadiusEnable_ = true;
 
-  getInput<double>("speed_knots", m_speed_knots);
-  if (m_speed_knots != 0.0) m_speed_knots_ena = true;
+  getInput<double>("speed_knots", speedKnots_);
+  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
 
   getInput<double>("time_out", timeOut_);
-  sub_corrected_data =
-      nodeHandle.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
+  sub_corrected_data_ =
+      nodeHandle_.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
 
-  goalHasBeenPublished = false;
-  waypoint_behavior_pub = nodeHandle.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
+  goalHasBeenPublished_ = false;
+  waypoint_behavior_pub_ = nodeHandle_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
 }
 
 BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
 {
-  if (!goalHasBeenPublished)
+  if (!goalHasBeenPublished_)
   {
     publishGoalMsg();
-    goalHasBeenPublished = true;
+    goalHasBeenPublished_ = true;
   }
   else
   {
@@ -84,23 +84,23 @@ BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
 void GoToWaypoint::publishGoalMsg()
 {  // Altitude is not used.
   Waypoint msg;
-  msg.depth = m_depth;
-  msg.latitude = m_lat;
-  msg.longitude = m_long;
-  msg.speed_knots = m_speed_knots;
+  msg.depth = depth_;
+  msg.latitude = lat_;
+  msg.longitude = long_;
+  msg.speed_knots = speedKnots_;
 
   msg.ena_mask = 0x0;
-  if (m_depth_ena) msg.ena_mask |= Waypoint::DEPTH_ENA;
-  if (m_lat_ena) msg.ena_mask |= Waypoint::LAT_ENA;
-  if (m_long_ena) msg.ena_mask |= Waypoint::LONG_ENA;
-  if (m_speed_knots_ena) msg.ena_mask |= Waypoint::SPEED_KNOTS_ENA;
+  if (depthEnable_) msg.ena_mask |= Waypoint::DEPTH_ENA;
+  if (latEnable_) msg.ena_mask |= Waypoint::LAT_ENA;
+  if (longEnable_) msg.ena_mask |= Waypoint::LONG_ENA;
+  if (speedKnotsEnable_) msg.ena_mask |= Waypoint::SPEED_KNOTS_ENA;
 
   // note: radius is not passed to autopilot, mission manger will determined if we have arrived at
   // waypoint then
   // send autopilot the next waypoint.
 
   msg.header.stamp = ros::Time::now();
-  waypoint_behavior_pub.publish(msg);
+  waypoint_behavior_pub_.publish(msg);
 }
 
 void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
@@ -116,22 +116,22 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
 
     latLongtoUTM(data.position.latitude, data.position.longitude, &currentNorthing,
                  &currentEasting);
-    latLongtoUTM(m_lat, m_long, &desiredNorthing, &desiredEasting);
+    latLongtoUTM(lat_, long_, &desiredNorthing, &desiredEasting);
 
     // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
     // investigating hypot it looks like it does the squaring and square root to figure out the
     // return value. Need to add depth or altitude (whatever we are using).
     //   dist_to_wp = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
-    //   data.depth-m_depth);
+    //   data.depth-depth_);
     // dist_to_wp = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
 
     dist_to_wp = sqrt(pow((currentNorthing - desiredNorthing), 2) +
-                      pow((currentEasting - desiredEasting), 2) + pow((data.depth - m_depth), 2));
+                      pow((currentEasting - desiredEasting), 2) + pow((data.depth - depth_), 2));
 
-    if (dist_to_wp < m_wp_radius)
+    if (dist_to_wp < wpRadius_)
     {
       ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", dist_to_wp,
-               m_wp_radius);
+               wpRadius_);
       setStatus(BT::NodeStatus::SUCCESS);
     }
     else
@@ -142,9 +142,8 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
   // TODO(QNA): check shaft speed?
 }
 
-double degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
-
-void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting)
+void mission_control::latLongtoUTM(double latitude, double longitude, double* ptrNorthing,
+                                   double* ptrEasting)
 {
   // WGS84 Parameters
   static constexpr double WGS84_A = 6378137.0;         // major axis

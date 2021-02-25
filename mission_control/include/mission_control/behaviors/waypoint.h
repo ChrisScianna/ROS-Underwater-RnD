@@ -46,11 +46,12 @@
 #include "mission_control/behavior.h"
 #include "pose_estimator/CorrectedData.h"
 
-void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-double degreesToRadians(double degrees);
-
 namespace mission_control
 {
+double inline degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+
+void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
+
 class GoToWaypoint : public Behavior
 {
  public:
@@ -71,29 +72,29 @@ class GoToWaypoint : public Behavior
   }
 
  private:
-  ros::NodeHandle nodeHandle;
-  ros::Publisher waypoint_behavior_pub;
-  ros::Subscriber sub_corrected_data;
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher waypoint_behavior_pub_;
+  ros::Subscriber sub_corrected_data_;
 
-  double m_altitude;
-  double m_depth;
-  double m_lat;
-  double m_long;
-  double m_speed_knots;
-  double m_wp_radius;
+  double altitude_;
+  double depth_;
+  double lat_;
+  double long_;
+  double speedKnots_;
+  double wpRadius_;
   double timeOut_;
 
-  bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_lat_ena;
-  bool m_long_ena;
-  bool m_speed_knots_ena;
-  bool m_wp_radius_ena;
+  bool altitudeEnable_;
+  bool depthEnable_;
+  bool latEnable_;
+  bool longEnable_;
+  bool speedKnotsEnable_;
+  bool wpRadiusEnable_;
 
-  double m_depth_tol;
+  double depthTolerance_;
 
   void correctedDataCallback(const pose_estimator::CorrectedData& data);
-  bool goalHasBeenPublished;
+  bool goalHasBeenPublished_;
   void publishGoalMsg();
   ros::Time behaviorStartTime_;
 };
