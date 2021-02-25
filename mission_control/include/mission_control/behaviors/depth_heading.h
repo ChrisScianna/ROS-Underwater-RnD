@@ -66,8 +66,8 @@ class DepthHeadingBehavior : public Behavior
 
  private:
   ros::NodeHandle nodeHandle_;
-  ros::Publisher depth_heading_behavior_pub;
-  ros::Subscriber sub_corrected_data_;
+  ros::Publisher depthHeadingBehaviorPub;
+  ros::Subscriber subCorrectedData_;
 
   double depth_;
   double heading_;

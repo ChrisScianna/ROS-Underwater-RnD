@@ -59,11 +59,11 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
   if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
 
   getInput<double>("time_out", timeOut_);
-  sub_corrected_data_ =
+  subCorrectedData_ =
       nodeHandle_.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
-  waypoint_behavior_pub_ = nodeHandle_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
+  waypointBehaviorPub_ = nodeHandle_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
 }
 
 BT::NodeStatus GoToWaypoint::behaviorRunningProcess()
@@ -100,14 +100,14 @@ void GoToWaypoint::publishGoalMsg()
   // send autopilot the next waypoint.
 
   msg.header.stamp = ros::Time::now();
-  waypoint_behavior_pub_.publish(msg);
+  waypointBehaviorPub_.publish(msg);
 }
 
 void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   if (status() == BT::NodeStatus::RUNNING)
   {
-    double dist_to_wp;
+    double distToWaypoint;
     double currentNorthing;
     double currentEasting;
 
@@ -121,16 +121,16 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
     // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
     // investigating hypot it looks like it does the squaring and square root to figure out the
     // return value. Need to add depth or altitude (whatever we are using).
-    //   dist_to_wp = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
+    //   distToWaypoint = std::hypot((currentNorthing-desiredNorthing, currentEasting-desiredEasting,
     //   data.depth-depth_);
-    // dist_to_wp = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
+    // distToWaypoint = hypot(abs(currentNorthing-desiredNorthing), abs(currentEasting-desiredEasting));
 
-    dist_to_wp = sqrt(pow((currentNorthing - desiredNorthing), 2) +
+    distToWaypoint = sqrt(pow((currentNorthing - desiredNorthing), 2) +
                       pow((currentEasting - desiredEasting), 2) + pow((data.depth - depth_), 2));
 
-    if (dist_to_wp < wpRadius_)
+    if (distToWaypoint < wpRadius_)
     {
-      ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", dist_to_wp,
+      ROS_INFO("We have arrived at waypoint distance to wp [%f] , wp radius [%f]", distToWaypoint,
                wpRadius_);
       setStatus(BT::NodeStatus::SUCCESS);
     }

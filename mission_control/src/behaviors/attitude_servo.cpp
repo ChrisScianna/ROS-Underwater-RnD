@@ -72,11 +72,11 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   getInput<double>("pitch_tol", pitchTolerance_);
   getInput<double>("yaw_tol", yawTolerance_);
 
-  sub_corrected_data_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
                                               &AttitudeServoBehavior::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
-  attitude_servo_behavior_pub_ =
+  attitudeServoBehaviorPub_ =
       nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
 
   behaviorStartTime_ = ros::Time::now();
@@ -114,7 +114,7 @@ void AttitudeServoBehavior::publishGoalMsg()
 
   msg.header.stamp = ros::Time::now();
 
-  attitude_servo_behavior_pub_.publish(msg);
+  attitudeServoBehaviorPub_.publish(msg);
 }
 
 void AttitudeServoBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
@@ -124,7 +124,6 @@ void AttitudeServoBehavior::correctedDataCallback(const pose_estimator::Correcte
   if (rollEnable_ && fabs(roll_ - data.rpy_ang.x) > rollTolerance_) behaviorComplete = false;
   if (pitchEnable_ && fabs(pitch_ - data.rpy_ang.y) > pitchTolerance_) behaviorComplete = false;
   if (yawEnable_ && fabs(yaw_ - data.rpy_ang.z) > yawTolerance_) behaviorComplete = false;
-
 
   if (behaviorComplete)
     setStatus(BT::NodeStatus::RUNNING);

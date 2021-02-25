@@ -63,11 +63,11 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
   getInput<double>("heading_tol", headingTolerance_);
   getInput<double>("time_out", timeOut_);
 
-  sub_corrected_data_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                              &DepthHeadingBehavior::correctedDataCallback, this);
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+                                            &DepthHeadingBehavior::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
-  depth_heading_behavior_pub =
+  depthHeadingBehaviorPub =
       nodeHandle_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
 
   behaviorStartTime_ = ros::Time::now();
@@ -103,7 +103,7 @@ void DepthHeadingBehavior::publishGoalMsg()
 
   msg.header.stamp = ros::Time::now();
 
-  depth_heading_behavior_pub.publish(msg);
+  depthHeadingBehaviorPub.publish(msg);
 }
 
 void DepthHeadingBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)

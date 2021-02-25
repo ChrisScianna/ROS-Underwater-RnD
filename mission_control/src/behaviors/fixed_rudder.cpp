@@ -64,11 +64,11 @@ MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
   getInput<double>("depth_tol", depthTolerance_);
   getInput<double>("altitude_tol", altitudeTolerance_);
 
-  sub_corrected_data_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
                                               &MoveWithFixedRudder::correctedDataCallback, this);
 
   goalHasBeenPublished_ = false;
-  fixed_rudder_behavior_pub_ =
+  fixedRudderBehaviorPub_ =
       nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
 
   behaviorStartTime_ = ros::Time::now();
@@ -103,7 +103,7 @@ void MoveWithFixedRudder::publishGoalMsg()
 
   msg.header.stamp = ros::Time::now();
 
-  fixed_rudder_behavior_pub_.publish(msg);
+  fixedRudderBehaviorPub_.publish(msg);
 }
 
 void MoveWithFixedRudder::correctedDataCallback(const pose_estimator::CorrectedData& data)

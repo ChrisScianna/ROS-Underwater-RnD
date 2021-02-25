@@ -73,8 +73,8 @@ class GoToWaypoint : public Behavior
 
  private:
   ros::NodeHandle nodeHandle_;
-  ros::Publisher waypoint_behavior_pub_;
-  ros::Subscriber sub_corrected_data_;
+  ros::Publisher waypointBehaviorPub_;
+  ros::Subscriber subCorrectedData_;
 
   double altitude_;
   double depth_;

@@ -70,8 +70,8 @@ class AttitudeServoBehavior : public Behavior
 
  private:
   ros::NodeHandle nodeHandle_;
-  ros::Publisher attitude_servo_behavior_pub_;
-  ros::Subscriber sub_corrected_data_;
+  ros::Publisher attitudeServoBehaviorPub_;
+  ros::Subscriber subCorrectedData_;
 
   double roll_;
   double pitch_;
