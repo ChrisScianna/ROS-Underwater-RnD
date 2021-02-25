@@ -46,8 +46,6 @@
 #include "mission_control/behavior.h"
 #include "pose_estimator/CorrectedData.h"
 
-using namespace BT;
-
 void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
 double degreesToRadians(double degrees);
 
@@ -60,7 +58,7 @@ class GoToWaypoint : public Behavior
 
   BT::NodeStatus behaviorRunningProcess();
 
-  static PortsList providedPorts()
+  static BT::PortsList providedPorts()
   {
     BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
                            BT::InputPort<double>("altitude", 0.0, "altitude"),

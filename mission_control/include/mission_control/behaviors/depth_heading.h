@@ -46,8 +46,6 @@
 #include "mission_control/behavior.h"
 #include "pose_estimator/CorrectedData.h"
 
-using namespace BT;
-
 namespace mission_control
 {
 class DepthHeadingBehavior : public Behavior
@@ -57,7 +55,7 @@ class DepthHeadingBehavior : public Behavior
 
   BT::NodeStatus behaviorRunningProcess();
 
-  static PortsList providedPorts()
+  static BT::PortsList providedPorts()
   {
     BT::PortsList ports = {BT::InputPort<double>("depth", 0.0, "depth"),
                            BT::InputPort<double>("heading", 0.0, "heading"),

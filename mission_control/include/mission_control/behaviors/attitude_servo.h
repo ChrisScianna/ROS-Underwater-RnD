@@ -46,8 +46,6 @@
 #include "mission_control/behavior.h"
 #include "pose_estimator/CorrectedData.h"
 
-using namespace BT;
-
 namespace mission_control
 {
 class AttitudeServoBehavior : public Behavior
@@ -57,7 +55,7 @@ class AttitudeServoBehavior : public Behavior
 
   BT::NodeStatus behaviorRunningProcess();
 
-  static PortsList providedPorts()
+  static BT::PortsList providedPorts()
   {
     BT::PortsList ports = {BT::InputPort<double>("roll", 0.0, "roll"),
                            BT::InputPort<double>("pitch", 0.0, "pitch"),
