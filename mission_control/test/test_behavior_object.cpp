@@ -17,9 +17,13 @@ class DummyBehavior : public Behavior
   DummyBehavior(const std::string& name, const BT::NodeConfiguration& config)
       : Behavior(name, config)
   {
+    tickCount = 0;
   }
-  BT::NodeStatus behaviorRunningProcess() { return status(); }
+  BT::NodeStatus behaviorRunningProcess() { 
+    tickCount++;
+    return status(); }
 
+  int tickCount;
   void changeStatus(const BT::NodeStatus& newStatus) { setStatus(newStatus); }
 };
 
@@ -60,6 +64,16 @@ GTEST_TEST(BehaviorTest, TestIfBehaviorDontChangeStatusOnTickIfFailure)
   DummyBehavior dummyBehavior("dummy", nodeConfig);
   dummyBehavior.changeStatus(BT::NodeStatus::FAILURE);
   ASSERT_EQ(dummyBehavior.tick(), BT::NodeStatus::FAILURE);
+}
+
+GTEST_TEST(BehaviorTest, TestIfBehaviorTickMultipleTimes)
+{
+  BT::NodeConfiguration nodeConfig;
+  DummyBehavior dummyBehavior("dummy", nodeConfig);
+  dummyBehavior.tick();
+  dummyBehavior.tick();
+  dummyBehavior.tick();
+  ASSERT_EQ(dummyBehavior.tickCount, 2);
 }
 
 int main(int argc, char** argv)

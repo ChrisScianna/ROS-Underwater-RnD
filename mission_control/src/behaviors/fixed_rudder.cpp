@@ -57,7 +57,7 @@ MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
   getInput<double>("rudder", rudder_);
   if (rudder_ != 0.0) rudderEnable_ = true;
 
-  getInput<double>("speedKnots", speedKnots_);
+  getInput<double>("speed_knots", speedKnots_);
   if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
 
   getInput<double>("behavior_time", behaviorTime_);
