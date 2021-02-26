@@ -1,4 +1,5 @@
-/*********************************************************************
+#!/usr/bin/env python
+"""
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2020, QinetiQ, Inc.
@@ -30,39 +31,51 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *********************************************************************/
+"""
+import sys
+import os
+import unittest
+import rosnode
+import rospy
+import rostest
+from mission_control.msg import ReportHeartbeat
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_CONTROL_MISSION_PARSER_H
-#define MISSION_CONTROL_MISSION_PARSER_H
+def wait_for(predicate, period=1):
+    while not rospy.is_shutdown():
+        result = predicate()
+        if result:
+            return result
+        rospy.sleep(period)
+    return predicate()
 
-#include <ros/node_handle.h>
-#include <string>
 
-#include "mission_control/behavior_factory.h"
-#include "mission_control/mission.h"
-#include "tinyxml/tinyxml.h"
+class TestMissionControlPublishesHeartbeat(unittest.TestCase):
+    """
+        this test checks if mission control publishes heartbeats.
+    """
 
-namespace mission_control
-{
+    @classmethod
+    def setUpClass(cls):
+        rospy.init_node('heartbeat_mission_control')
 
-class MissionParser
-{
- public:
-  MissionParser();
-  explicit MissionParser(ros::NodeHandle nh);
-  virtual ~MissionParser();
+    def setUp(self):
+        self.mission_manager_heart_beat_count = None
+        self.heart_beat_sub = rospy.Subscriber('/mission_control_node/report_heartbeat',
+                                               ReportHeartbeat, self.callback_mission_manager_heart_beat)
 
-  bool parseMissionFile(Mission& mission, const std::string& mission_file);
+    def callback_mission_manager_heart_beat(self, msg):
+        self.mission_manager_heart_beat_count = msg.seq_id
+        rospy.loginfo(self.mission_manager_heart_beat_count)
 
-  void cleanupMission(Mission& mission);
+    def test_mission_control_published_heartbeat(self):
 
- protected:
-  BehaviorFactory m_factory;
-  ros::NodeHandle node_handle;
-};
+        def mission_control_publishes_heartbeat():
+            return self.mission_manager_heart_beat_count > 0
+        self.assertTrue(wait_for(mission_control_publishes_heartbeat),
+                        msg='Mission control must report HeartBeat')
 
-}   //  namespace mission_control
 
-#endif  //  MISSION_CONTROL_MISSION_PARSER_H
+if __name__ == "__main__":
+    rostest.rosrun('mission_control_node', 'mission_control_heartbeat',
+                   TestMissionControlPublishesHeartbeat)

@@ -41,15 +41,21 @@
 #ifndef MISSION_CONTROL_MISSION_CONTROL_H
 #define MISSION_CONTROL_MISSION_CONTROL_H
 
+#include <behaviortree_cpp_v3/action_node.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 #include <dirent.h>
 #include <ros/ros.h>
 #include <stdint.h>
 
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "health_monitor/ReportFault.h"
+#include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_control/AbortMission.h"
 #include "mission_control/ExecuteMission.h"
 #include "mission_control/LoadMission.h"
@@ -61,31 +67,29 @@
 #include "mission_control/ReportMissions.h"
 #include "mission_control/behavior.h"
 #include "mission_control/mission.h"
-#include "mission_control/mission_parser.h"
-#include "pose_estimator/CorrectedData.h"
+
+#include "mission_control/behaviors/waypoint.h"
+#include "mission_control/behaviors/fixed_rudder.h"
+#include "mission_control/behaviors/depth_heading.h"
+#include "mission_control/behaviors/attitude_servo.h"
 
 #define LOGGING (1)
 
-// Version 2.0 rewritten in 2019 for SeaScout mkIII
-// Version 2.1 removed the battery handling for faults. There is now a
-//      HeatlhMonitor ROS Node that publishes a ReportFault message.
-//      The mission manager now subscribes to the ReportFault message.
-#define NODE_VERSION "2.1x"
+#define NODE_VERSION "1.0x"
 
+using BT::NodeStatus;
+using BT::Tree;
 using mission_control::LoadMission;
 using mission_control::Mission;
 using mission_control::MissionData;
-using mission_control::MissionParser;
 using mission_control::ReportExecuteMissionState;
 using mission_control::ReportHeartbeat;
 using mission_control::ReportLoadMissionState;
 using mission_control::ReportMissions;
-using pose_estimator::CorrectedData;
 
 class MissionControlNode
 {
  public:
-  ros::NodeHandle node_handle;
   ros::Subscriber sub_corrected_data;
 
   ros::Subscriber report_fault_sub;
@@ -100,54 +104,51 @@ class MissionControlNode
   ros::Publisher pub_report_mission_execute_state;
   ros::Publisher pub_report_missions;
   ros::Publisher pub_report_heartbeat;
+  ros::Publisher pub_activate_manual_control;
 
   ros::Timer reportExecuteMissionStateTimer;
-  Mission::MissionState last_state;
-  int last_id;
+  Mission::State last_state;
 
   ros::Timer reportHeartbeatTimer;
+  ros::Timer executeMissionTimer;
 
- private:
-  // Vars holding runtime params
-  std::string mission_path;
-  bool disable_abort;
-  double reportExecuteMissionStateRate;
-  double reportHeartbeatRate;
-
-  pose_estimator::CorrectedData m_correctedData;
-
-  int m_current_mission_id;
-  int m_mission_id_counter;
-  Mission* m_cur_mission;
-
-  std::map<int, Mission*> m_mission_map;
-
-  uint64_t heartbeat_sequence_id;
-
- public:
   explicit MissionControlNode(ros::NodeHandle& h);
   ~MissionControlNode();
 
   int loadMissionFile(std::string mission_full_path);
   int executeMission(int missionId);
   int abortMission(int missionId);
-
-  int start();
-  int stop();
-  bool spin();
+  void processAbort();
+  int stopMission();
 
   void reportHeartbeat(const ros::TimerEvent& timer);
+  void executeMissionT(const ros::TimerEvent& timer);
   void reportExecuteMissionState(const ros::TimerEvent& timer);
   void loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg);
   void executeMissionCallback(const mission_control::ExecuteMission::ConstPtr& msg);
   void abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg);
   void queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg);
   void removeMissionsCallback(const mission_control::RemoveMissions::ConstPtr& msg);
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
   void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
 
-  bool endsWith(const std::string& str, const char* suffix);
-  bool FoundMissionFile();
+private:
+  void registerBehaviorActions();
+
+  ros::NodeHandle pnh;
+  // Vars holding runtime params
+  double reportExecuteMissionStateRate;
+  double reportHeartbeatRate;
+  double executeMissionAsynchronousRate;
+
+  int currentMissionId;
+  int MissionIdCounter;
+
+  int m_current_mission_id;
+  int m_mission_id_counter;
+
+  std::unordered_map<int, std::unique_ptr<Mission>> m_mission_map;
+  uint64_t heartbeat_sequence_id;
+  BT::BehaviorTreeFactory missionFactory_;
 };
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

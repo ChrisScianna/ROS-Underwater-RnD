@@ -33,64 +33,76 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-/*  Behavioral Waipoint
-  <waypoint>
-      <description>
-          00:00:00 - .
-      </description>
-      <when unit="sec">0</when>
-      <timeout unit="sec">50</timeout>
-      <depth unit="m">10.0</depth>
-      <latitude>42.656040</latitude>
-      <longitude>-70.591213</longitude>
-      <radius unit="m">14.0</radius>
-      <speed_knots>0.0</speed_knots>
-  </waypoint>
-*/
 
 #ifndef MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 #define MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
 
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
+#include <string>
+
+#include "mission_control/Waypoint.h"
 #include "mission_control/behavior.h"
-#include "mission_control/Waypoint.h"  // this is the ROS Message
+#include "pose_estimator/CorrectedData.h"
 
 namespace mission_control
 {
+double inline degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-class WaypointBehavior : public Behavior
+void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
+
+class GoToWaypoint : public Behavior
 {
  public:
-  WaypointBehavior();
-  virtual ~WaypointBehavior();
+  GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config);
 
-  virtual bool parseMissionFileParams();
-  bool getParams(ros::NodeHandle nh);
+  BT::NodeStatus behaviorRunningProcess();
 
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  static BT::PortsList providedPorts()
+  {
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("altitude", 0.0, "altitude"),
+      BT::InputPort<double>("latitude", 0.0, "latitude"),
+      BT::InputPort<double>("longitude", 0.0, "longitude"),
+      BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out")
+    };
+    return ports;
+  }
 
  private:
-  ros::Publisher waypoint_behavior_pub;
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher waypointBehaviorPub_;
+  ros::Subscriber subCorrectedData_;
 
-  float m_altitude;
-  float m_depth;
-  float m_lat;
-  float m_long;
-  float m_speed_knots;
-  double m_wp_radius;
+  double altitude_;
+  double depth_;
+  double lat_;
+  double long_;
+  double speedKnots_;
+  double wpRadius_;
+  double timeOut_;
 
-  bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_lat_ena;
-  bool m_long_ena;
-  bool m_speed_knots_ena;
-  bool m_wp_radius_ena;
+  bool altitudeEnable_;
+  bool depthEnable_;
+  bool latEnable_;
+  bool longEnable_;
+  bool speedKnotsEnable_;
+  bool wpRadiusEnable_;
 
-  float m_depth_tol;
-  void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-  double degreesToRadians(double degrees);
+  double depthTolerance_;
+
+  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  bool goalHasBeenPublished_;
+  void publishGoalMsg();
+  ros::Time behaviorStartTime_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_WAYPOINT_H

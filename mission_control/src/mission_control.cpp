@@ -34,165 +34,100 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include <map>
-#include <string>
-
 #include "mission_control/mission_control.h"
 
-MissionControlNode::MissionControlNode(ros::NodeHandle& h) : node_handle(h)
+#include <string>
+
+MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
 {
   heartbeat_sequence_id = 0;
-  last_id = -1;
-  last_state = Mission::MissionState::READY;
+  last_state = Mission::State::READY;
   reportExecuteMissionStateRate = 1.0;  // every 1 second
   reportHeartbeatRate = 1.0;            // every 1 second
-  m_current_mission_id = 0;
-  m_cur_mission = NULL;
-  m_mission_id_counter = 0;
+  currentMissionId = 0;
+  MissionIdCounter = 0;
 
-  disable_abort = false;
   reportExecuteMissionStateRate = 1.0;
   reportHeartbeatRate = 1.0;
 
   // Get runtime parameters
-  node_handle.getParam("/mission_control_node/mission_path", mission_path);
-  node_handle.getParam("/mission_control_node/disable_abort", disable_abort);
+  pnh.getParam("report_execute_mission_state_rate", reportExecuteMissionStateRate);
+  pnh.getParam("report_heart_beat_rate", reportHeartbeatRate);
+  pnh.getParam("execute_mission_asynchronous_rate", executeMissionAsynchronousRate);
 
-  node_handle.getParam("/mission_control_node/report_execute_mission_state_rate",
-                       reportExecuteMissionStateRate);
-  node_handle.getParam("/mission_control_node/report_heart_beat_rate", reportHeartbeatRate);
-
-  ROS_INFO("mission path:[%s]", mission_path.c_str());
-  ROS_INFO("disable abort:[%s]", disable_abort ? "true" : "false");
-  ROS_INFO("report executemissionstate rate:[%lf]", reportExecuteMissionStateRate);
-  ROS_INFO("report heartbeat rate:[%lf]", reportHeartbeatRate);
+  ROS_DEBUG_STREAM("report executemissionstate rate: " << reportExecuteMissionStateRate);
+  ROS_DEBUG_STREAM("report heartbeat rate: " << reportHeartbeatRate);
 
   // Subscribe to all topics
-  sub_corrected_data = node_handle.subscribe("/pose/corrected_data", 1,
-                                             &MissionControlNode::correctedDataCallback, this);
-  report_fault_sub = node_handle.subscribe("/health_monitor/report_fault", 1,
-                                           &MissionControlNode::reportFaultCallback, this);
-
-  load_mission_sub = node_handle.subscribe("/mngr/load_mission", 1,
-                                           &MissionControlNode::loadMissionCallback, this);
-  execute_mission_sub = node_handle.subscribe("/mngr/execute_mission", 1,
-                                              &MissionControlNode::executeMissionCallback, this);
-  abort_mission_sub = node_handle.subscribe("/mngr/abort_mission", 1,
-                                            &MissionControlNode::abortMissionCallback, this);
-  query_mission_sub = node_handle.subscribe("/mngr/query_missions", 1,
-                                            &MissionControlNode::queryMissionsCallback, this);
-  remove_mission_sub = node_handle.subscribe("/mngr/remove_missions", 1,
-                                             &MissionControlNode::removeMissionsCallback, this);
+  report_fault_sub = pnh.subscribe("/health_monitor/report_fault", 1,
+                                   &MissionControlNode::reportFaultCallback, this);
+  load_mission_sub =
+      pnh.subscribe("load_mission", 1, &MissionControlNode::loadMissionCallback, this);
+  execute_mission_sub =
+      pnh.subscribe("execute_mission", 1, &MissionControlNode::executeMissionCallback, this);
+  abort_mission_sub =
+      pnh.subscribe("abort_mission", 1, &MissionControlNode::abortMissionCallback, this);
+  query_mission_sub =
+      pnh.subscribe("query_missions", 1, &MissionControlNode::queryMissionsCallback, this);
+  remove_mission_sub =
+      pnh.subscribe("remove_missions", 1, &MissionControlNode::removeMissionsCallback, this);
 
   // Advertise all topics and services
-  pub_report_mission_load_state = node_handle.advertise<mission_control::ReportLoadMissionState>(
-      "/mngr/report_mission_load_state", 100);
-  pub_report_mission_execute_state =
-      node_handle.advertise<mission_control::ReportExecuteMissionState>(
-          "/mngr/report_mission_execute_state", 100);
-  pub_report_missions =
-      node_handle.advertise<mission_control::ReportMissions>("/mngr/report_missions", 100);
-  pub_report_heartbeat =
-      node_handle.advertise<mission_control::ReportHeartbeat>("/mngr/report_heartbeat", 100);
+  pub_report_mission_load_state =
+      pnh.advertise<mission_control::ReportLoadMissionState>("report_mission_load_state", 100);
+  pub_report_mission_execute_state = pnh.advertise<mission_control::ReportExecuteMissionState>(
+      "report_mission_execute_state", 100);
+  pub_report_missions = pnh.advertise<mission_control::ReportMissions>("report_missions", 100);
+  pub_report_heartbeat = pnh.advertise<mission_control::ReportHeartbeat>("report_heartbeat", 100);
+  pub_activate_manual_control = pnh.advertise<jaus_ros_bridge::ActivateManualControl>(
+      "/jaus_ros_bridge/activate_manual_control", 1);
 
   reportExecuteMissionStateTimer =
-      node_handle.createTimer(ros::Duration(reportExecuteMissionStateRate),
-                              &MissionControlNode::reportExecuteMissionState, this);
-  reportHeartbeatTimer = node_handle.createTimer(ros::Duration(reportHeartbeatRate),
-                                                 &MissionControlNode::reportHeartbeat, this);
+      pnh.createTimer(ros::Duration(reportExecuteMissionStateRate),
+                      &MissionControlNode::reportExecuteMissionState, this);
+  reportHeartbeatTimer = pnh.createTimer(ros::Duration(reportHeartbeatRate),
+                                         &MissionControlNode::reportHeartbeat, this);
+
+  executeMissionTimer = pnh.createTimer(ros::Duration(executeMissionAsynchronousRate),
+                                        &MissionControlNode::executeMissionT, this);
+  executeMissionTimer.stop();
+
+  registerBehaviorActions();
 }
 
-MissionControlNode::~MissionControlNode()
-{
-  stop();
-
-  std::map<int, Mission*>::iterator it;
-
-  for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
-  {
-    if (it->second != NULL)
-    {
-      delete it->second;
-    }
-  }
-
-  m_mission_map.clear();
-}
+MissionControlNode::~MissionControlNode() {}
 
 int MissionControlNode::loadMissionFile(std::string mission_full_path)
 {
-  MissionParser parser(node_handle);
+  std::unique_ptr<Mission> newMission =
+      Mission::FromMissionDefinition(mission_full_path, missionFactory_);
 
-  Mission* newMission = new Mission();
-  // Parse the specified mission
-  if (parser.parseMissionFile(*newMission, mission_full_path) == false)
+  if (newMission)
   {
-    delete newMission;
+    MissionIdCounter++;
+    m_mission_map[MissionIdCounter] = std::move(newMission);
+    return 0;
+  }
+  else
     return -1;
-  }
-
-  m_mission_id_counter++;
-
-  m_mission_map[m_mission_id_counter] = newMission;
-
-  return 0;
-}
-
-int MissionControlNode::executeMission(int missionId)
-{
-  if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
-  {
-    last_state = Mission::MissionState::READY;
-    last_id = -1;
-    m_current_mission_id = missionId;
-    m_mission_map[m_current_mission_id]->ExecuteMission(node_handle);
-  }
 }
 
 int MissionControlNode::abortMission(int missionId)
 {
-  if ((missionId > 0) && (m_mission_map.size() > 0) && (m_mission_map.count(missionId) > 0))
+  if (currentMissionId == missionId)
   {
-    last_state = Mission::MissionState::READY;
-    last_id = -1;
-    m_current_mission_id = missionId;
-    m_mission_map[m_current_mission_id]->AbortMissionWrapper(node_handle);
+    executeMissionTimer.stop();
+    m_mission_map[currentMissionId]->stop();
+
+    processAbort();
+    ROS_DEBUG_STREAM("Aborting Mission " << currentMissionId);
   }
-}
-
-int MissionControlNode::start()
-{
-  stop();
-
-  int retval = loadMissionFile(mission_path);
-
-  if (retval != -1) m_mission_map[m_current_mission_id]->ExecuteMission(node_handle);
-
-  return retval;
-}
-
-int MissionControlNode::stop()
-{
-  if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
-      (m_mission_map.count(m_current_mission_id) > 0))
-    m_mission_map[m_current_mission_id]->Stop();
-
-  return 0;
-}
-
-bool MissionControlNode::spin()
-{
-  if (start() == 0)
+  else
   {
-    while (node_handle.ok())
-    {
-      ros::spin();
-    }
+    ROS_ERROR_STREAM("The mission currently running is different from request");
+    ROS_ERROR_STREAM("Current mission: " << currentMissionId
+                                         << " - Request mission to abort: " << missionId);
   }
-
-  stop();
-
-  return true;
 }
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
@@ -203,66 +138,53 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
   pub_report_heartbeat.publish(outmsg);
 }
 
+void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
+{
+  NodeStatus missionStatus = m_mission_map[currentMissionId]->getStatus();
+  if (missionStatus != NodeStatus::SUCCESS)
+  {
+    missionStatus = m_mission_map[currentMissionId]->Continue();
+  }
+}
+
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
 {
-  if ((m_current_mission_id != 0) && (m_mission_map.size() > 0) &&
-      (m_mission_map.count(m_current_mission_id) > 0))
+  if ((currentMissionId != 0) && (m_mission_map.size() > 0) &&
+      (m_mission_map.count(currentMissionId) > 0))
   {
-    Mission::MissionState state = m_mission_map[m_current_mission_id]->GetState();
+    BT::NodeStatus state = m_mission_map[currentMissionId]->getStatus();
+    ReportExecuteMissionState outmsg;
 
-    int id = -1;
-    std::string name = "";
-    if (state == Mission::MissionState::ABORTING)
+    // we implement a transformation between BehavioralTree NodeStatus
+    // and Jaus Ros Bridge Report msg
+    switch (state)
     {
-      id = m_mission_map[m_current_mission_id]->getCurrentAbortBehaviorId();
-      name = m_mission_map[m_current_mission_id]->getCurrentAbortBehaviorsName();
-    }
-    else
-    {
-      id = m_mission_map[m_current_mission_id]->getCurrentBehaviorId();
-      name = m_mission_map[m_current_mission_id]->getCurrentBehaviorsName();
-    }
-
-    if ((state != last_state) || (id != last_id))
-    {
-      ReportExecuteMissionState outmsg;
-
-      outmsg.current_behavior_name = name;
-      outmsg.current_behavior_id = id;
-      outmsg.execute_mission_state = ReportExecuteMissionState::PAUSED;
-      std::string stateStr = "PAUSED";
-      if (state == Mission::MissionState::EXECUTING)
-      {
-        outmsg.execute_mission_state = ReportExecuteMissionState::EXECUTING;
-        stateStr = "EXECUTING";
-      }
-      if (state == Mission::MissionState::ABORTING)
-      {
-        outmsg.execute_mission_state = ReportExecuteMissionState::ABORTING;
-        stateStr = "ABORTING";
-      }
-      if (state == Mission::MissionState::COMPLETE)
-      {
-        outmsg.execute_mission_state = ReportExecuteMissionState::COMPLETE;
-        stateStr = "COMPLETE";
-      }
-
-      outmsg.mission_id = m_current_mission_id;
-      outmsg.header.stamp = ros::Time::now();
-      pub_report_mission_execute_state.publish(outmsg);
-      ROS_INFO("In reportExecuteMissionState, mission id[%d] behavior name:[%s] status is [%s]",
-               m_current_mission_id, name.c_str(), stateStr.c_str());
+      case BT::NodeStatus::IDLE:
+        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::PAUSED;
+        break;
+      case BT::NodeStatus::RUNNING:
+        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::EXECUTING;
+        break;
+      case BT::NodeStatus::SUCCESS:
+        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::COMPLETE;
+        break;
+      case BT::NodeStatus::FAILURE:
+        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::ABORTING;
+        abortMission(currentMissionId);
+        break;
     }
 
-    last_state = state;
-    last_id = id;
+    outmsg.current_behavior_name = m_mission_map[currentMissionId]->getCurrentMissionDescription();
+    outmsg.mission_id = currentMissionId;
+    outmsg.header.stamp = ros::Time::now();
+    pub_report_mission_execute_state.publish(outmsg);
   }
 }
 
 void MissionControlNode::loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg)
 {
-  ROS_INFO("loadMissionCallback - just received mission file '%s'",
-           (msg->mission_file_full_path).c_str());
+  ROS_DEBUG_STREAM("loadMissionCallback - just received mission file "
+                   << msg->mission_file_full_path.c_str());
 
   int retval = loadMissionFile(msg->mission_file_full_path);
 
@@ -271,91 +193,88 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission:
   {
     outmsg.load_state = ReportLoadMissionState::FAILED;
     outmsg.mission_id = 0;
-    ROS_INFO("loadMissionCallback - FAILED to parse mission file '%s'",
-             (msg->mission_file_full_path).c_str());
+    ROS_ERROR_STREAM("loadMissionCallback - FAILED to parse mission file "
+                     << msg->mission_file_full_path.c_str());
   }
   else
   {
     outmsg.load_state = ReportLoadMissionState::SUCCESS;
-    outmsg.mission_id = m_mission_id_counter;
-    ROS_INFO("loadMissionCallback - SUCCESSFULLY parsed mission file '%s'",
-             (msg->mission_file_full_path).c_str());
+    outmsg.mission_id = MissionIdCounter;
+    ROS_DEBUG_STREAM("loadMissionCallback - SUCCESSFULLY parsed mission file "
+                     << msg->mission_file_full_path.c_str());
   }
 
   outmsg.header.stamp = ros::Time::now();
-
   pub_report_mission_load_state.publish(outmsg);
 }
 
 void MissionControlNode::executeMissionCallback(
     const mission_control::ExecuteMission::ConstPtr& msg)
 {
-  // TODO(qna): Need to shutdown any mission that is currently running.
-  ROS_INFO("executeMissionCallback - Executing mission id[%d]", msg->mission_id);
-  executeMission(msg->mission_id);
+  if (currentMissionId > 0)
+  {
+    BT::NodeStatus missionStatus = m_mission_map[currentMissionId]->getStatus();
+    if ((missionStatus != BT::NodeStatus::IDLE) && (missionStatus != BT::NodeStatus::SUCCESS))
+    {
+      ROS_WARN_STREAM("There is a mission being executed - mission id["
+                      << currentMissionId
+                      << "] - Mission Status: " << m_mission_map[currentMissionId]->getStatus());
+      return;
+    }
+  }
+
+  if ((msg->mission_id > 0) && (m_mission_map.size() > 0) &&
+      (m_mission_map.count(msg->mission_id) > 0))
+  {
+    currentMissionId = msg->mission_id;
+    executeMissionTimer.start();
+    ROS_DEBUG_STREAM("executeMissionCallback - Executing mission id[" << currentMissionId << "]");
+  }
+  else
+  {
+    ROS_ERROR_STREAM("Error - Wrong Mission Number. "
+                     << "Mission Number: " << msg->mission_id);
+  }
 }
 
 void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
 {
-  // TODO(qna): Need to shutdown any mission that is currently running.
-  // TODO(qna): should probably also check the timestamp from the message
-  ROS_INFO("abortMissionCallback - Aborting mission id[%d]", msg->mission_id);
-  abortMission(msg->mission_id);  // assume mission ID is the current mission
+  abortMission(msg->mission_id);
+  ROS_DEBUG_STREAM("abortMissionCallback - Aborting mission id " << msg->mission_id);
 }
 
 void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg)
 {
   ReportMissions outmsg;
   MissionData data;
-  std::map<int, Mission*>::iterator it;
 
-  for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
+  ROS_DEBUG_STREAM("queryMissionsCallback - Reporting these missions");
+  for (const auto& entry : m_mission_map)
   {
-    data.mission_id = it->first;
-    data.mission_description = it->second->getMissionDescription();
+    data.mission_id = entry.first;
+    data.mission_description = entry.second->getCurrentMissionDescription();
     outmsg.missions.push_back(data);
+    ROS_DEBUG_STREAM("Mission Id: " << data.mission_id
+                                    << " Description: " << data.mission_description.c_str());
   }
-
   outmsg.header.stamp = ros::Time::now();
   pub_report_missions.publish(outmsg);
-
-  ROS_INFO("queryMissionsCallback - Reporting these missions");
-  for (int i = 0; i < outmsg.missions.size(); ++i)
-  {
-    const mission_control::MissionData& mdata = outmsg.missions[i];
-    ROS_INFO("Mission Id:[%d] Description:[%s]", mdata.mission_id,
-             mdata.mission_description.c_str());
-  }
 }
 
 void MissionControlNode::removeMissionsCallback(
     const mission_control::RemoveMissions::ConstPtr& msg)
 {
-  MissionData data;
-  std::map<int, Mission*>::iterator it;
-
-  ROS_INFO("removeMissionsCallback - Removing missions");
-
-  for (it = m_mission_map.begin(); it != m_mission_map.end(); it++)
+  if (m_mission_map.size() > 0)
   {
-    if ((it->second->GetState() != Mission::MissionState::ABORTING) &&
-        (it->second->GetState() != Mission::MissionState::EXECUTING))
+    if (currentMissionId != 0)
     {
-      ROS_INFO("Deleting mission id[%d] with description[%s]", it->first,
-               (it->second->getMissionDescription()).c_str());
-      delete it->second;
-      m_mission_map.erase(it);
+      executeMissionTimer.stop();
+      m_mission_map[currentMissionId]->stop();
+      currentMissionId = 0;
+      MissionIdCounter = 0;
     }
-  }
-}
-
-void MissionControlNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
-{
-  // mission_map.count checks to see if a key is in the map
-  if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
-      (m_mission_map.count(m_current_mission_id) > 0))
-  {
-    m_mission_map[m_current_mission_id]->ProcessCorrectedPoseData(data);
+    ROS_DEBUG_STREAM("removeMissionsCallback - Removing missions");
+    m_mission_map.clear();
   }
 }
 
@@ -363,75 +282,22 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
 {
   if (msg->fault_id != 0)
   {
-    ROS_WARN_STREAM("Fault Detected [" << msg->fault_id << "] aborting mission");
-    abortMission(m_current_mission_id);
+    ROS_ERROR_STREAM("Fault Detected by health monitor[" << msg->fault_id << "] aborting mission");
+    abortMission(currentMissionId);
   }
 }
 
-bool MissionControlNode::endsWith(const std::string& str, const char* suffix)
+void MissionControlNode::processAbort()
 {
-  unsigned suffixLen = std::string::traits_type::length(suffix);
-  return str.size() >= suffixLen &&
-         0 == str.compare(str.size() - suffixLen, suffixLen, suffix, suffixLen);
+  jaus_ros_bridge::ActivateManualControl msg;
+  msg.activate_manual_control = true;
+  pub_activate_manual_control.publish(msg);
 }
 
-bool MissionControlNode::FoundMissionFile()
+void MissionControlNode::registerBehaviorActions()
 {
-  ROS_INFO("Mission path is [%s]", mission_path.c_str());
-
-  bool retval = false;
-  DIR* d;
-  struct dirent* dir;
-  d = opendir(mission_path.c_str());
-
-  if (d)  // if the directory is valid
-  {
-    if (endsWith(mission_path, ".xml")) return true;
-
-    while (retval == false)
-    {
-      while ((dir = readdir(d)) != NULL)  // read file in directory
-      {
-        // Condition to check regular file.
-        if (dir->d_type == DT_REG)
-        {
-          mission_path.append("/");
-          mission_path.append(dir->d_name);
-
-          ROS_INFO("Found mission file. full path is: %s\n", mission_path.c_str());
-          retval = true;
-          break;
-        }
-      }
-
-      if (retval == false)
-      {
-        ROS_INFO("sleeping");
-        usleep(250000);
-      }
-    }
-  }
-  else
-  {
-    ROS_ERROR("The directory path to the mission file is invalid: %s", mission_path.c_str());
-  }
-
-  closedir(d);
-  return retval;
-}
-
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "mission_control_node");
-
-  ros::NodeHandle nh;
-  ROS_INFO("Starting Mission mgr node Version: [%s]", NODE_VERSION);
-  nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
-
-  MissionControlNode mmn(nh);
-  ros::spin();
-
-  ROS_INFO("Mission mgr shutting down");
-
-  return 0;
+  missionFactory_.registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
+  missionFactory_.registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
+  missionFactory_.registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
+  missionFactory_.registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
 }

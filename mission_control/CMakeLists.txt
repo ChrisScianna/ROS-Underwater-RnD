@@ -7,14 +7,18 @@ add_compile_options(-std=c++11)
 add_compile_options(-DTIXML_USE_STL)
 
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  actionlib_msgs
+  behaviortree_cpp_v3
   health_monitor
+  jaus_ros_bridge
+  message_generation
   pose_estimator
   payload_manager
   roscpp
   roslint
   rospy
   std_msgs
-  message_generation
 )
 
 add_message_files(
@@ -46,7 +50,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS pose_estimator payload_manager roscpp rospy std_msgs
+ CATKIN_DEPENDS pose_estimator payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
 )
 
 ###########
@@ -61,20 +65,21 @@ include_directories(
 add_executable(${NODE_APP_NAME} 
    src/mission.cpp
    src/mission_control.cpp
-   src/mission_parser.cpp
-   src/behavior_factory.cpp
-   src/behaviors/attitude_servo.cpp
-   src/behaviors/depth_heading.cpp
-   src/behaviors/fixed_rudder.cpp
-   src/behaviors/pinger.cpp
-   src/behaviors/podlog.cpp
+   src/mission_control_main.cpp
    src/behaviors/waypoint.cpp
-   src/behaviors/altitude_heading.cpp
-   src/behaviors/payload_command.cpp
-   src/tinyxml/tinystr.cpp
-   src/tinyxml/tinyxml.cpp
-   src/tinyxml/tinyxmlerror.cpp
-   src/tinyxml/tinyxmlparser.cpp
+   src/behaviors/fixed_rudder.cpp
+   src/behaviors/depth_heading.cpp
+   src/behaviors/attitude_servo.cpp
+)
+
+add_library(MISSION_CONTROL_LIB SHARED
+  src/mission.cpp
+  src/mission_control.cpp
+  src/mission_control_main.cpp
+  src/behaviors/waypoint.cpp
+  src/behaviors/fixed_rudder.cpp
+  src/behaviors/depth_heading.cpp
+  src/behaviors/attitude_servo.cpp
 )
 
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -83,33 +88,7 @@ target_link_libraries(${NODE_APP_NAME}
   ${catkin_LIBRARIES}
 )
 
-roslint_cpp(
-  src/mission.cpp
-  src/mission_control.cpp
-  src/mission_parser.cpp
-  src/behavior_factory.cpp
-  src/behaviors/attitude_servo.cpp
-  src/behaviors/depth_heading.cpp
-  src/behaviors/fixed_rudder.cpp
-  src/behaviors/pinger.cpp
-  src/behaviors/podlog.cpp
-  src/behaviors/waypoint.cpp
-  src/behaviors/altitude_heading.cpp
-  src/behaviors/payload_command.cpp
-  include/mission_control/mission_control.h
-  include/mission_control/behavior.h
-  include/mission_control/behavior_factory.h
-  include/mission_control/mission.h
-  include/mission_control/mission_parser.h
-  include/mission_control/behaviors/altitude_heading.h
-  include/mission_control/behaviors/attitude_servo.h
-  include/mission_control/behaviors/depth_heading.h
-  include/mission_control/behaviors/fixed_rudder.h
-  include/mission_control/behaviors/payload_command.h
-  include/mission_control/behaviors/pinger.h
-  include/mission_control/behaviors/podlog.h
-  include/mission_control/behaviors/waypoint.h
-)
+roslint_cpp()
 
 #############
 ## Install ##
@@ -130,4 +109,16 @@ install(FILES
 ## Testing ##
 #############
 
+
+if(CATKIN_ENABLE_TESTING)
 roslint_add_test()
+
+find_package(rostest REQUIRED)
+add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
+add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
+add_rostest(test/test_mission_control_publishes_heartbeat.test)
+
+catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
+target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${MISSION_CONTROL_LIB})
+
+endif()

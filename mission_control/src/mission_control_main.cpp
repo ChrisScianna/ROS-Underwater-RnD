@@ -34,64 +34,30 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#include "mission_control/behaviors/podlog.h"
+/*
+ * mission_control_main.cpp
+ */
 
-#include <ros/console.h>
 #include <ros/ros.h>
-#include <string>
-#include <map>
-#include <list>
 
-using mission_control::PodlogBehavior;
+#include "mission_control/mission_control.h"
 
-PodlogBehavior::PodlogBehavior()
-    : Behavior("podlog", BEHAVIOR_TYPE_SRV, "/podlog/set_log_state", "")
+int main(int argc, char** argv)
 {
-  m_logging = false;
-  m_logid = "";
-}
+  ros::init(argc, argv, "mission_control_node");
 
-PodlogBehavior::~PodlogBehavior() {}
+  ros::NodeHandle nh("~");
+  ROS_INFO("Starting Mission control node Version: [%s]", NODE_VERSION);
+  nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
 
-bool PodlogBehavior::parseMissionFileParams()
-{
-  bool retval = true;
-  std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  MissionControlNode mcn(nh);
+  ros::Rate loop_rate(10);
+  while (ros::ok())
   {
-    std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
-    {
-      retval = parseTimeStamps(it);
-    }
-    else if (xmlParamTag.compare("log_id") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        m_logging = false;
-        if (it->second.compare("on") == 0)
-        {
-          m_logging = true;
-        }
-      }
-      else
-      {
-        std::cout << "No attributes for log_id tag" << std::endl;
-      }
-
-      m_logid = it->getXMLTagValue();
-    }
-    else
-    {
-      std::cout << "Podlog behavior found invalid parameter " << xmlParamTag << std::endl;
-    }
+    ros::spinOnce();
+    loop_rate.sleep();
   }
+  ROS_INFO("Mission control shutting down");
 
-  return retval;
+  return 0;
 }
-
-// TODO(QNA) - commented out for now 9/9/2019 - Not sure if we are using logging node or service.
-void PodlogBehavior::callService(ros::NodeHandle node_handle) {}

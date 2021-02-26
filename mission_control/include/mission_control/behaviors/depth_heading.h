@@ -34,59 +34,63 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/*  Behavioral - Depth Heading
-
-        <depth_heading>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="deg">10.0</depth>
-            <heading unit="deg">180.0</heading>
-            <speed_knots>0.0</speed_knots>
-        </depth_heading>
-*/
-
 #ifndef MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
 #define MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
 
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
 #include <string>
-#include "mission_control/behavior.h"
+
 #include "mission_control/DepthHeading.h"
+#include "mission_control/behavior.h"
+#include "pose_estimator/CorrectedData.h"
 
 namespace mission_control
 {
-
 class DepthHeadingBehavior : public Behavior
 {
  public:
-  DepthHeadingBehavior();
-  virtual ~DepthHeadingBehavior();
-  virtual bool parseMissionFileParams();
-  virtual void publishMsg();
+  DepthHeadingBehavior(const std::string& name, const BT::NodeConfiguration& config);
 
-  bool getParams(ros::NodeHandle nh);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  BT::NodeStatus behaviorRunningProcess();
+
+  static BT::PortsList providedPorts()
+  {
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("heading", 0.0, "heading"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out")
+    };
+    return ports;
+  }
 
  private:
-  ros::Publisher depth_heading_behavior_pub;
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher depthHeadingBehaviorPub;
+  ros::Subscriber subCorrectedData_;
 
-  float m_depth;
-  float m_heading;
-  float m_speed_knots;
+  double depth_;
+  double heading_;
+  double speedKnots_;
+  double timeOut_;
 
-  std::string m_depth_unit;
-  std::string m_heading_unit;
+  bool depthEnable_;
+  bool headingEnable_;
+  bool speedKnotsEnable_;
 
-  bool m_depth_ena;
-  bool m_heading_ena;
-  bool m_speed_knots_ena;
+  double depthTolerance_;
+  double headingTolerance_;
 
-  float m_depth_tol;
-  float m_heading_tol;
+  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  bool goalHasBeenPublished_;
+  void publishGoalMsg();
+  ros::Time behaviorStartTime_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H

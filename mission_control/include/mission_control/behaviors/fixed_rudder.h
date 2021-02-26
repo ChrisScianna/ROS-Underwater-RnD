@@ -34,63 +34,69 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/* Behavioral fixed rudder
-
-        <fixed_rudder>
-            <description>
-                00:00:00 - .
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">50</timeout>
-            <depth unit="deg">10.0</depth>
-            <rudder unit="deg">180.0</rudder>
-            <speed_knots>0.0</speed_knots>
-        </fixed_rudder>
-*/
-
 #ifndef MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H
 #define MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H
 
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
 #include <string>
-#include "mission_control/behavior.h"
+
 #include "mission_control/FixedRudder.h"
+#include "mission_control/behavior.h"
+#include "pose_estimator/CorrectedData.h"
 
 namespace mission_control
 {
-
-class FixedRudderBehavior : public Behavior
+class MoveWithFixedRudder : public Behavior
 {
  public:
-  FixedRudderBehavior();
-  virtual ~FixedRudderBehavior();
-  virtual bool parseMissionFileParams();
-  virtual void publishMsg();
+  MoveWithFixedRudder(const std::string& name, const BT::NodeConfiguration& config);
 
-  bool getParams(ros::NodeHandle nh);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  BT::NodeStatus behaviorRunningProcess();
+
+  static BT::PortsList providedPorts()
+  {
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("depth", 0.0, "depth"),
+      BT::InputPort<double>("rudder", 0.0, "altitude"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("behavior_time", 0.0, "behavior_time"),
+      BT::InputPort<double>("rudder_tol", 0.0, "rudder_tol"),
+      BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+      BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol")
+    };
+    return ports;
+  }
 
  private:
-  ros::Publisher fixed_rudder_behavior_pub;
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher fixedRudderBehaviorPub_;
+  ros::Subscriber subCorrectedData_;
 
-  float m_depth;
-  float m_altitude;
-  float m_rudder;
-  float m_speed_knots;
+  double depth_;
+  double altitude_;
+  double rudder_;
+  double speedKnots_;
+  double behaviorTime_;
 
-  std::string m_depth_unit;
-  std::string m_altitude_unit;
-  std::string m_rudder_unit;
+  bool altitudeEnable_;
+  bool depthEnable_;
+  bool rudderEnable_;
+  bool speedKnotsEnable_;
 
-  bool m_altitude_ena;
-  bool m_depth_ena;
-  bool m_rudder_ena;
-  bool m_speed_knots_ena;
+  double depthTolerance_;
+  double rudderTolerance_;
+  double altitudeTolerance_;
 
-  float m_depth_tol;
-  float m_rudder_tol;
-  float m_altitude_tol;
+  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  bool goalHasBeenPublished_;
+  void publishGoalMsg();
+  ros::Time behaviorStartTime_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H

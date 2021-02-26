@@ -33,146 +33,84 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
+#include <string>
 #include "mission_control/behaviors/fixed_rudder.h"
 
-#include <ros/console.h>
-#include <ros/ros.h>
-#include <map>
-#include <list>
-#include <string>
+using mission_control::MoveWithFixedRudder;
 
-#include "mission_control/FixedRudder.h"
-using mission_control::FixedRudder;
-using mission_control::FixedRudderBehavior;
-
-FixedRudderBehavior::FixedRudderBehavior()
-    : Behavior("fixed_rudder", BEHAVIOR_TYPE_MSG, "/mngr/fixed_rudder", "")
+MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
+                                         const BT::NodeConfiguration& config)
+    : Behavior(name, config)
 {
-  m_depth_ena = m_rudder_ena = m_altitude_ena = false;
-  m_speed_knots_ena = false;
-  m_depth_tol = m_rudder_tol = m_altitude_tol = 0.0;
-  m_depth = m_rudder = m_altitude = 0.0;
-  m_speed_knots = 0.0;
+  depthEnable_ = rudderEnable_ = altitudeEnable_ = false;
+  speedKnotsEnable_ = false;
+  depthTolerance_ = rudderTolerance_ = altitudeTolerance_ = 0.0;
+  depth_ = rudder_ = altitude_ = 0.0;
+  speedKnots_ = 0.0;
 
-  ros::NodeHandle node_handle;
-  fixed_rudder_behavior_pub =
-      node_handle.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 100);
+  getInput<double>("depth", depth_);
+  if (depth_ != 0.0) depthEnable_ = true;
+
+  getInput<double>("altitude", altitude_);
+  if (altitude_ != 0.0) altitudeEnable_ = true;
+
+  getInput<double>("rudder", rudder_);
+  if (rudder_ != 0.0) rudderEnable_ = true;
+
+  getInput<double>("speed_knots", speedKnots_);
+  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
+
+  getInput<double>("behavior_time", behaviorTime_);
+  getInput<double>("rudder_tol", rudderTolerance_);
+  getInput<double>("depth_tol", depthTolerance_);
+  getInput<double>("altitude_tol", altitudeTolerance_);
+
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+                                            &MoveWithFixedRudder::correctedDataCallback, this);
+
+  goalHasBeenPublished_ = false;
+  fixedRudderBehaviorPub_ =
+      nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
+
+  behaviorStartTime_ = ros::Time::now();
 }
 
-FixedRudderBehavior::~FixedRudderBehavior() {}
-
-bool FixedRudderBehavior::getParams(ros::NodeHandle nh)
+BT::NodeStatus MoveWithFixedRudder::behaviorRunningProcess()
 {
-  double f = 0.0;
-
-  nh.getParam("/mission_control_node/fixed_rudder_depth_tol", f);
-  if (f != 0.0) m_depth_tol = static_cast<float>(f);
-  f = 0.0;
-  nh.getParam("/mission_control_node/fixed_rudder_rudder_tol", f);
-  if (f != 0.0) m_rudder_tol = static_cast<float>(f);
-
-  return true;
-}
-
-bool FixedRudderBehavior::parseMissionFileParams()
-{
-  bool retval = true;
-  std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  if (!goalHasBeenPublished_)
   {
-    std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
-    {
-      retval = parseTimeStamps(it);
-    }
-    else if (xmlParamTag.compare("depth") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_depth_unit = it->second;
-        }
-      }
-
-      m_depth = std::atof(it->getXMLTagValue().c_str());
-      m_depth_ena = true;
-    }
-    else if (xmlParamTag.compare("altitude") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_altitude_unit = it->second;
-        }
-      }
-
-      m_altitude = std::atof(it->getXMLTagValue().c_str());
-      m_altitude_ena = true;
-    }
-    else if (xmlParamTag.compare("rudder") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_rudder_unit = it->second;
-        }
-      }
-
-      m_rudder = std::atof(it->getXMLTagValue().c_str());
-      m_rudder_ena = true;
-    }
-    else if (xmlParamTag.compare("speed_knots") == 0)
-    {
-      m_speed_knots = std::atof(it->getXMLTagValue().c_str());
-      m_speed_knots_ena = true;
-    }
-    else
-    {
-      std::cout << "Fixed Rudder behavior found invalid parameter " << xmlParamTag << std::endl;
-    }
+    publishGoalMsg();
+    goalHasBeenPublished_ = true;
   }
-
-  return retval;
+  else
+  {
+    ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
+    if (delta_t.toSec() > behaviorTime_) setStatus(BT::NodeStatus::SUCCESS);
+  }
+  return (status());
 }
 
-void FixedRudderBehavior::publishMsg()
+void MoveWithFixedRudder::publishGoalMsg()
 {
   FixedRudder msg;
-
-  msg.depth = m_depth;
-  msg.rudder = m_rudder;
-  msg.speed_knots = m_speed_knots;
+  msg.depth = depth_;
+  msg.rudder = rudder_;
+  msg.speed_knots = speedKnots_;
 
   msg.ena_mask = 0x0;
-  if (m_depth_ena) msg.ena_mask |= FixedRudder::DEPTH_ENA;
-  if (m_rudder_ena) msg.ena_mask |= FixedRudder::RUDDER_ENA;
-  if (m_speed_knots_ena) msg.ena_mask |= FixedRudder::SPEED_KNOTS_ENA;
+  if (depthEnable_) msg.ena_mask |= FixedRudder::DEPTH_ENA;
+  if (rudderEnable_) msg.ena_mask |= FixedRudder::RUDDER_ENA;
+  if (speedKnotsEnable_) msg.ena_mask |= FixedRudder::SPEED_KNOTS_ENA;
 
   msg.header.stamp = ros::Time::now();
 
-  fixed_rudder_behavior_pub.publish(msg);
+  fixedRudderBehaviorPub_.publish(msg);
 }
 
-bool FixedRudderBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+void MoveWithFixedRudder::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our depth matches, note: rudder is not part of corrected data.
-  // TODO(QNA): put back in when depth working  if (m_depth_ena && (abs(m_depth - data.depth) >
-  // m_depth_tol)) return false;
+  // TODO(QNA): put back in when depth working  if (depthEnable_ && (abs(depth_ - data.depth) >
+  // depth_Tolerance_)) return false;
   // TODO(QNA): check shaft speed?
-  ROS_INFO("corrected data returning true");
-
-  return true;
 }

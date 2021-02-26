@@ -33,159 +33,104 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
+#include <string>
 #include "mission_control/behaviors/attitude_servo.h"
 
-#include <ros/console.h>
-#include <ros/ros.h>
-#include <string>
-#include <map>
-#include <list>
-
-#include "mission_control/AttitudeServo.h"
-using mission_control::AttitudeServo;
 using mission_control::AttitudeServoBehavior;
 
-AttitudeServoBehavior::AttitudeServoBehavior()
-    : Behavior("attitude_servo", BEHAVIOR_TYPE_MSG, "/mngr/attitude_servo", "")
+AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
+                                             const BT::NodeConfiguration& config)
+    : Behavior(name, config)
 {
-  m_roll_ena = m_pitch_ena = m_yaw_ena = false;
-  m_speed_knots_ena = false;
-  m_roll_tol = m_pitch_tol = m_yaw_tol = 0.0;
-  m_roll = m_pitch = m_yaw = 0.0;
-  m_speed_knots = 0.0;
+  roll_ = 0.0;
+  pitch_ = 0.0;
+  yaw_ = 0.0;
+  speedKnots_ = 0.0;
 
-  ros::NodeHandle node_handle;
-  attitude_servo_behavior_pub =
-      node_handle.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+  rollEnable_ = false;
+  pitchEnable_ = false;
+  yawEnable_ = false;
+  speedKnotsEnable_ = false;
+
+  rollTolerance_ = 0;
+  pitchTolerance_ = 0;
+  yawTolerance_ = 0;
+
+  getInput<double>("roll", roll_);
+  if (roll_ != 0.0) rollEnable_ = true;
+
+  getInput<double>("pitch", pitch_);
+  if (pitch_ != 0.0) pitchEnable_ = true;
+
+  getInput<double>("yaw", yaw_);
+  if (yaw_ != 0.0) yawEnable_ = true;
+
+  getInput<double>("speed_knots", speedKnots_);
+  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
+
+  getInput<double>("time_out", timeOut_);
+  getInput<double>("roll_tol", rollTolerance_);
+  getInput<double>("pitch_tol", pitchTolerance_);
+  getInput<double>("yaw_tol", yawTolerance_);
+
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+                                            &AttitudeServoBehavior::correctedDataCallback, this);
+
+  goalHasBeenPublished_ = false;
+  attitudeServoBehaviorPub_ =
+      nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+
+  behaviorStartTime_ = ros::Time::now();
 }
 
-AttitudeServoBehavior::~AttitudeServoBehavior() {}
-
-bool AttitudeServoBehavior::getParams(ros::NodeHandle nh)
+BT::NodeStatus AttitudeServoBehavior::behaviorRunningProcess()
 {
-  double f = 0.0;
-
-  nh.getParam("/mission_control_node/attitude_servo_roll_tol", f);
-  if (f != 0.0) m_roll_tol = static_cast<float>(f);
-  f = 0.0;
-  nh.getParam("/mission_control_node/attitude_servo_pitch_tol", f);
-  if (f != 0.0) m_pitch_tol = static_cast<float>(f);
-  f = 0.0;
-  nh.getParam("/mission_control_node/attitude_servo_yaw_tol", f);
-  if (f != 0.0) m_yaw_tol = static_cast<float>(f);
-
-  return true;
-}
-
-bool AttitudeServoBehavior::parseMissionFileParams()
-{
-  bool retval = true;
-  std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  if (!goalHasBeenPublished_)
   {
-    std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
-    {
-      retval = parseTimeStamps(it);
-    }
-    else if (xmlParamTag.compare("roll") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_roll_unit = it->second;
-        }
-      }
-
-      m_roll = std::atof(it->getXMLTagValue().c_str());
-      m_roll_ena = true;
-    }
-    else if (xmlParamTag.compare("pitch") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_pitch_unit = it->second;
-        }
-      }
-
-      m_pitch = std::atof(it->getXMLTagValue().c_str());
-      m_pitch_ena = true;
-    }
-    else if (xmlParamTag.compare("yaw") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_yaw_unit = it->second;
-        }
-      }
-
-      m_yaw = std::atof(it->getXMLTagValue().c_str());
-      m_yaw_ena = true;
-    }
-    else if (xmlParamTag.compare("speed_knots") == 0)
-    {
-      m_speed_knots = std::atof(it->getXMLTagValue().c_str());
-      m_speed_knots_ena = true;
-    }
-    else
-    {
-      std::cout << "Attitude Servo behavior found invalid parameter " << xmlParamTag << std::endl;
-    }
+    publishGoalMsg();
+    goalHasBeenPublished_ = true;
   }
-
-  return retval;
+  else
+  {
+    ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
+    if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+  }
+  return (status());
 }
 
-void AttitudeServoBehavior::publishMsg()
+void AttitudeServoBehavior::publishGoalMsg()
 {
   AttitudeServo msg;
 
-  msg.roll = m_roll;
-  msg.pitch = m_pitch;
-  msg.yaw = m_yaw;
-  msg.speed_knots = m_speed_knots;
+  msg.roll = roll_;
+  msg.pitch = pitch_;
+  msg.yaw = yaw_;
+  msg.speed_knots = speedKnots_;
 
   msg.ena_mask = 0x0;
-  if (m_roll_ena) msg.ena_mask |= AttitudeServo::ROLL_ENA;
-  if (m_pitch_ena) msg.ena_mask |= AttitudeServo::PITCH_ENA;
-  if (m_yaw_ena) msg.ena_mask |= AttitudeServo::YAW_ENA;
-  if (m_speed_knots_ena) msg.ena_mask |= AttitudeServo::SPEED_KNOTS_ENA;
-
-  while (0 == attitude_servo_behavior_pub.getNumSubscribers())
-  {
-    ROS_INFO("Waiting for attitude_servo subscribers to connect");
-    ros::Duration(0.1).sleep();
-  }
+  if (rollEnable_) msg.ena_mask |= AttitudeServo::ROLL_ENA;
+  if (pitchEnable_) msg.ena_mask |= AttitudeServo::PITCH_ENA;
+  if (yawEnable_) msg.ena_mask |= AttitudeServo::YAW_ENA;
+  if (speedKnotsEnable_) msg.ena_mask |= AttitudeServo::SPEED_KNOTS_ENA;
 
   msg.header.stamp = ros::Time::now();
 
-  attitude_servo_behavior_pub.publish(msg);
+  attitudeServoBehaviorPub_.publish(msg);
 }
 
-bool AttitudeServoBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+void AttitudeServoBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
-  // A quick check to see if our RPY angles match
-  if (m_roll_ena && (abs(m_roll - data.rpy_ang.x) > m_roll_tol)) return false;
-  if (m_pitch_ena && (abs(m_pitch - data.rpy_ang.y) > m_pitch_tol)) return false;
-  if (m_yaw_ena && (abs(m_yaw - data.rpy_ang.z) > m_yaw_tol)) return false;
+  bool behaviorComplete = true;
+
+  if (rollEnable_ && fabs(roll_ - data.rpy_ang.x) > rollTolerance_) behaviorComplete = false;
+  if (pitchEnable_ && fabs(pitch_ - data.rpy_ang.y) > pitchTolerance_) behaviorComplete = false;
+  if (yawEnable_ && fabs(yaw_ - data.rpy_ang.z) > yawTolerance_) behaviorComplete = false;
+
+  if (behaviorComplete)
+    setStatus(BT::NodeStatus::RUNNING);
+  else
+    setStatus(BT::NodeStatus::SUCCESS);
 
   // TODO(QNA): check shaft speed and/or battery position?
   // TODO(QNA): make sure our RPY rates are close to zero?
-
-  return true;
 }

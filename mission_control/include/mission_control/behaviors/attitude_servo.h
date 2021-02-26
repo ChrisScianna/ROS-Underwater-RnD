@@ -34,63 +34,70 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/* Behavioral Attitude Servo
-        <attitude_servo>
-            <description>
-                00:00:00 - At the beginning of the mission, set everything to initial conditions.
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">5</timeout>
-            <roll unit="deg">0.0</roll>
-            <pitch unit="deg">0.0</pitch>
-            <yaw unit="deg">0.0</yaw>
-            <speed_knots>0.0</speed_knots>
-        </attitude_servo>
-*/
-
 #ifndef MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
 #define MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
 
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
 #include <string>
-#include "mission_control/behavior.h"
+
 #include "mission_control/AttitudeServo.h"
+#include "mission_control/behavior.h"
+#include "pose_estimator/CorrectedData.h"
 
 namespace mission_control
 {
-
 class AttitudeServoBehavior : public Behavior
 {
  public:
-  AttitudeServoBehavior();
-  virtual ~AttitudeServoBehavior();
+  AttitudeServoBehavior(const std::string& name, const BT::NodeConfiguration& config);
 
-  virtual bool parseMissionFileParams();
-  bool getParams(ros::NodeHandle nh);
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  BT::NodeStatus behaviorRunningProcess();
+
+  static BT::PortsList providedPorts()
+  {
+    BT::PortsList ports =
+    {
+      BT::InputPort<double>("roll", 0.0, "roll"),
+      BT::InputPort<double>("pitch", 0.0, "pitch"),
+      BT::InputPort<double>("yaw", 0.0, "yaw"),
+      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("time_out", 0.0, "time_out"),
+      BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
+      BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
+      BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")
+    };
+    return ports;
+  }
 
  private:
-  ros::Publisher attitude_servo_behavior_pub;
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher attitudeServoBehaviorPub_;
+  ros::Subscriber subCorrectedData_;
 
-  float m_roll;
-  float m_pitch;
-  float m_yaw;
-  float m_speed_knots;
+  double roll_;
+  double pitch_;
+  double yaw_;
+  double speedKnots_;
+  double timeOut_;
 
-  std::string m_roll_unit;
-  std::string m_pitch_unit;
-  std::string m_yaw_unit;
+  bool rollEnable_;
+  bool pitchEnable_;
+  bool yawEnable_;
+  bool speedKnotsEnable_;
 
-  bool m_roll_ena;
-  bool m_pitch_ena;
-  bool m_yaw_ena;
-  bool m_speed_knots_ena;
+  double rollTolerance_;
+  double pitchTolerance_;
+  double yawTolerance_;
 
-  float m_roll_tol;
-  float m_pitch_tol;
-  float m_yaw_tol;
+  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  bool goalHasBeenPublished_;
+  void publishGoalMsg();
+  ros::Time behaviorStartTime_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H

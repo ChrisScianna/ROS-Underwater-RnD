@@ -33,134 +33,88 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
+#include <string>
 #include "mission_control/behaviors/depth_heading.h"
 
-#include <ros/console.h>
-#include <ros/ros.h>
-#include <string>
-#include <map>
-#include <list>
-
-#include "mission_control/DepthHeading.h"
-using mission_control::DepthHeading;
 using mission_control::DepthHeadingBehavior;
 
-DepthHeadingBehavior::DepthHeadingBehavior()
-    : Behavior("depth_heading", BEHAVIOR_TYPE_MSG, "/mngr/depth_heading", "")
+DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
+                                           const BT::NodeConfiguration& config)
+    : Behavior(name, config)
 {
-  m_depth_ena = m_heading_ena = false;
-  m_speed_knots_ena = false;
-  m_depth_tol = m_heading_tol = 0.0;
-  m_depth = m_heading = 0.0;
-  m_speed_knots = 0.0;
+  depthEnable_ = false;
+  headingEnable_ = false;
+  speedKnotsEnable_ = false;
+  depthTolerance_ = 0.0;
+  headingTolerance_ = 0.0;
+  depth_ = 0.0;
+  heading_ = 0.0;
+  speedKnots_ = 0.0;
 
-  ros::NodeHandle node_handle;
-  depth_heading_behavior_pub =
-      node_handle.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
+  getInput<double>("depth", depth_);
+  if (depth_ != 0.0) depthEnable_ = true;
+
+  getInput<double>("heading", heading_);
+  if (heading_ != 0.0) headingEnable_ = true;
+
+  getInput<double>("speedKnots", speedKnots_);
+  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
+
+  getInput<double>("depth_tol", depthTolerance_);
+  getInput<double>("heading_tol", headingTolerance_);
+  getInput<double>("time_out", timeOut_);
+
+  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+                                            &DepthHeadingBehavior::correctedDataCallback, this);
+
+  goalHasBeenPublished_ = false;
+  depthHeadingBehaviorPub =
+      nodeHandle_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
+
+  behaviorStartTime_ = ros::Time::now();
 }
 
-DepthHeadingBehavior::~DepthHeadingBehavior() {}
-
-bool DepthHeadingBehavior::getParams(ros::NodeHandle nh)
+BT::NodeStatus DepthHeadingBehavior::behaviorRunningProcess()
 {
-  double f = 0.0;
-
-  nh.getParam("/mission_control_node/depth_heading_depth_tol", f);
-  if (f != 0.0) m_depth_tol = static_cast<float>(f);
-  f = 0.0;
-  nh.getParam("/mission_control_node/depth_heading_heading_tol", f);
-  if (f != 0.0) m_heading_tol = static_cast<float>(f);
-
-  return true;
-}
-
-bool DepthHeadingBehavior::parseMissionFileParams()
-{
-  bool retval = true;
-  std::list<BehaviorXMLParam>::iterator it;
-  for (it = m_behaviorXMLParams.begin(); it != m_behaviorXMLParams.end(); it++)
+  if (!goalHasBeenPublished_)
   {
-    std::string xmlParamTag = it->getXMLTag();
-    if ((xmlParamTag.compare("when") == 0) || (xmlParamTag.compare("timeout") == 0))
-    {
-      retval = parseTimeStamps(it);
-    }
-    else if (xmlParamTag.compare("depth") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_depth_unit = it->second;
-        }
-      }
-
-      m_depth = std::atof(it->getXMLTagValue().c_str());
-      m_depth_ena = true;
-    }
-    else if (xmlParamTag.compare("heading") == 0)
-    {
-      std::map<std::string, std::string> attribMap = it->getXMLTagAttribute();
-      if (attribMap.size() > 0)
-      {
-        std::map<std::string, std::string>::iterator it;
-        it = attribMap.begin();
-        if (it->first.compare("unit") == 0)
-        {
-          m_heading_unit = it->second;
-        }
-      }
-
-      m_heading = std::atof(it->getXMLTagValue().c_str());
-      m_heading_ena = true;
-    }
-    else if (xmlParamTag.compare("speed_knots") == 0)
-    {
-      m_speed_knots = std::atof(it->getXMLTagValue().c_str());
-      m_speed_knots_ena = true;
-    }
-    else
-    {
-      std::cout << "Depth Heading behavior found invalid parameter " << xmlParamTag << std::endl;
-    }
+    publishGoalMsg();
+    goalHasBeenPublished_ = true;
   }
-
-  return retval;
+  else
+  {
+    ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
+    if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+  }
+  return (status());
 }
 
-void DepthHeadingBehavior::publishMsg()
+void DepthHeadingBehavior::publishGoalMsg()
 {
-  DepthHeading msg;
+  mission_control::DepthHeading msg;
 
-  msg.depth = m_depth;
-  msg.heading = m_heading;
-  msg.speed_knots = m_speed_knots;
+  msg.depth = depth_;
+  msg.heading = heading_;
+  msg.speed_knots = speedKnots_;
 
   msg.ena_mask = 0x0;
-  if (m_depth_ena) msg.ena_mask |= DepthHeading::DEPTH_ENA;
-  if (m_heading_ena) msg.ena_mask |= DepthHeading::HEADING_ENA;
-  if (m_speed_knots_ena) msg.ena_mask |= DepthHeading::SPEED_KNOTS_ENA;
+  if (depthEnable_) msg.ena_mask |= DepthHeading::DEPTH_ENA;
+  if (headingEnable_) msg.ena_mask |= DepthHeading::HEADING_ENA;
+  if (speedKnotsEnable_) msg.ena_mask |= DepthHeading::SPEED_KNOTS_ENA;
 
   msg.header.stamp = ros::Time::now();
 
-  depth_heading_behavior_pub.publish(msg);
+  depthHeadingBehaviorPub.publish(msg);
 }
 
-bool DepthHeadingBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+void DepthHeadingBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our RPY angles match
   // tjw debug  if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
-  if (m_heading_ena && (abs(m_heading - data.rpy_ang.z) > m_heading_tol))
+  if (headingEnable_ && (abs(heading_ - data.rpy_ang.z) > headingTolerance_))
   {
-    ROS_INFO("heading corrected data returning false");
-    return false;
+    setStatus(BT::NodeStatus::RUNNING);
   }
-  // TODO(QNA): check shaft speed?
-  ROS_INFO("corrected data returning true");
-
-  return true;
+  else
+    setStatus(BT::NodeStatus::SUCCESS);
 }
