@@ -33,8 +33,9 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include <string>
 #include "mission_control/behaviors/attitude_servo.h"
+
+#include <string>
 
 using mission_control::AttitudeServoBehavior;
 
@@ -127,9 +128,9 @@ void AttitudeServoBehavior::correctedDataCallback(const pose_estimator::Correcte
   if (yawEnable_ && fabs(yaw_ - data.rpy_ang.z) > yawTolerance_) behaviorComplete = false;
 
   if (behaviorComplete)
-    setStatus(BT::NodeStatus::RUNNING);
-  else
     setStatus(BT::NodeStatus::SUCCESS);
+  else
+    setStatus(BT::NodeStatus::RUNNING);
 
   // TODO(QNA): check shaft speed and/or battery position?
   // TODO(QNA): make sure our RPY rates are close to zero?
