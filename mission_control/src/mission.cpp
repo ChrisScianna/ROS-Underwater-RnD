@@ -34,14 +34,15 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include <string>
 #include "mission_control/mission.h"
 
-using mission_control::Mission;
+#include <string>
+
 using BT::NodeStatus;
 using BT::Tree;
+using mission_control::Mission;
 
-Mission::Mission(BT::Tree && missionTree) : tree_(std::move(missionTree))
+Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
 {
   description_ = tree_.rootNode()->name();
 }
@@ -62,8 +63,12 @@ std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missi
 
 void Mission::stop() { tree_.haltTree(); }
 
-BT::NodeStatus Mission::getStatus() { return tree_.rootNode()->status(); }
+BT::NodeStatus Mission::getStatus() { return behaviorStatus_; }
 
 std::string Mission::getCurrentMissionDescription() { return description_; }
 
-BT::NodeStatus Mission::Continue() { return tree_.tickRoot(); }
+BT::NodeStatus Mission::Continue()
+{
+  behaviorStatus_ = tree_.tickRoot();
+  return behaviorStatus_;
+}

@@ -145,6 +145,9 @@ void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
   {
     missionStatus = m_mission_map[currentMissionId]->Continue();
   }
+  else
+    executeMissionTimer.stop();
+    ROS_DEBUG_STREAM("Mission successfully completed");
 }
 
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
@@ -227,6 +230,7 @@ void MissionControlNode::executeMissionCallback(
       (m_mission_map.count(msg->mission_id) > 0))
   {
     currentMissionId = msg->mission_id;
+    BT::NodeStatus m = m_mission_map[currentMissionId]->Continue();
     executeMissionTimer.start();
     ROS_DEBUG_STREAM("executeMissionCallback - Executing mission id[" << currentMissionId << "]");
   }
