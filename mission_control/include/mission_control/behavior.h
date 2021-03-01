@@ -76,7 +76,7 @@ class Behavior : public BT::ActionNodeBase
     }
     return status();
   }
-  virtual void halt() override { setStatus(BT::NodeStatus::IDLE); }
+  void halt() override { setStatus(BT::NodeStatus::IDLE); }
 
   /// Method (to be implemented by the user) to implement the function when the satus is RUNNING
   /// User should return the NodeStatus of the action (RUNNING, SUCCESS or FAILURE).

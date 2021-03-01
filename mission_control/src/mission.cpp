@@ -42,7 +42,7 @@ using BT::NodeStatus;
 using BT::Tree;
 using mission_control::Mission;
 
-Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
+Mission::Mission(BT::Tree && missionTree) : tree_(std::move(missionTree))
 {
   description_ = tree_.rootNode()->name();
 }
