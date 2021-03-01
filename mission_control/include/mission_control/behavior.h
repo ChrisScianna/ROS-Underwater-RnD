@@ -43,13 +43,12 @@
 
 namespace mission_control
 {
-class Behavior : public BT::AsyncActionNode
+class Behavior : public BT::ActionNodeBase
 {
  public:
   Behavior(const std::string& name, const BT::NodeConfiguration& config)
-      : AsyncActionNode(name, config)
+      : BT::ActionNodeBase(name, config)
   {
-    idleToRunning = true;
   }
 
   ~Behavior() {}
@@ -66,7 +65,7 @@ class Behavior : public BT::AsyncActionNode
         setStatus(behaviorRunningProcess());
         break;
       case BT::NodeStatus::SUCCESS:
-        halt();
+        setStatus(BT::NodeStatus::SUCCESS);
         break;
       case BT::NodeStatus::FAILURE:
         setStatus(BT::NodeStatus::FAILURE);
@@ -78,14 +77,10 @@ class Behavior : public BT::AsyncActionNode
     return status();
   }
   virtual void halt() override { setStatus(BT::NodeStatus::IDLE); }
-  
+
   /// Method (to be implemented by the user) to implement the function when the satus is RUNNING
   /// User should return the NodeStatus of the action (RUNNING, SUCCESS or FAILURE).
   virtual BT::NodeStatus behaviorRunningProcess() = 0;
-
- private:
-  bool idleToRunning;
-  BT::NodeStatus behaviorStatus;
 };
 
 }  //  namespace mission_control
