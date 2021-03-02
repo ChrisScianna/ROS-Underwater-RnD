@@ -230,7 +230,6 @@ void MissionControlNode::executeMissionCallback(
       (m_mission_map.count(msg->mission_id) > 0))
   {
     currentMissionId = msg->mission_id;
-    if(currentMissionId>0) BT::NodeStatus m = m_mission_map[currentMissionId]->Continue();
     executeMissionTimer.start();
     ROS_DEBUG_STREAM("executeMissionCallback - Executing mission id[" << currentMissionId << "]");
   }
