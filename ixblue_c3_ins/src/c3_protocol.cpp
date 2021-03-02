@@ -65,7 +65,7 @@ struct PACKED nav_long_pkt
 
 // constructor
 // on error, should the nav_long_data_t struct be memset to zero?
-nav_long::nav_long(char *buf, ssize_t nbytes)
+nav_long::nav_long(char *buf, size_t nbytes)
 {
   nav_long_pkt *nl;
   uint8_t *phdr;
@@ -85,9 +85,9 @@ nav_long::nav_long(char *buf, ssize_t nbytes)
   }
 
   // NAVIGATION LONG message must be exactly 90 bytes
-  if (nbytes != NAV_LONG_MSG_LENGTH)
+  if (nbytes != 90u)
   {
-    ROS_ERROR("nav_long: incorrect message length [%ld]", nbytes);
+    ROS_ERROR("nav_long: incorrect message length [%zd]", nbytes);
     return;
   }
 

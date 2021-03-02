@@ -19,7 +19,7 @@ namespace ixblue_c3_ins
 {
 namespace c3_protocol
 {
-#define NAV_LONG_MSG_LENGTH 90
+
 /* contents of a ixBlue C3 'navigation long' packetconverted
  * into a host data structure for publishing to other nodes.
  */
@@ -27,7 +27,7 @@ class nav_long
 {
 public:
   // constructor/destructor
-  nav_long(char *buf, ssize_t nbytes);
+  nav_long(char *buf, size_t nbytes);
   ~nav_long();
   // accessors
 
