@@ -82,7 +82,7 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         self.mission_load_state = None
         self.report_mission = None
         self.report_execute_mission = None
-        self.depth_heading_goal = []
+        self.depth_heading_goal = DepthHeading()
 
         # Subscribers
         self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
@@ -117,10 +117,7 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         self.mission_load_state = msg.load_state
 
     def callback_publish_depth_heading_goal(self, msg):
-        self.depth_heading_goal = [msg.depth,
-                                  msg.heading,
-                                  msg.speed_knots,
-                                  msg.ena_mask]
+        self.depth_heading_goal = msg
 
     def test_mission_with_depth_heading_behavior(self):
 
@@ -142,7 +139,10 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         rospy.loginfo("execute msg")
 
         def depth_heading_goals_are_setted():
-            return self.depth_heading_goal == [1.0, 2.0, 3.0, 7]
+            return (self.depth_heading_goal.depth == 1.0 and
+                    self.depth_heading_goal.heading == 2.0 and
+                    self.depth_heading_goal.speed_knots == 3.0 and
+                    self.depth_heading_goal.ena_mask == 7)
         self.assertTrue(wait_for(depth_heading_goals_are_setted),
                         msg='Mission control must publish goals')
 
