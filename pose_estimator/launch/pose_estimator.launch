@@ -2,18 +2,20 @@
 	<arg name="maxDepth" default="100.0"/>
 	<arg name="maxRollAng" default="3.14159265358979323846"/>
 	<arg name="maxPitchAng" default="3.14159265358979323846"/>
-	<arg name="maxYauAng" default="6.283185307"/>
+	<arg name="maxYawAng" default="6.283185307"/>
 	
 	<!-- pose_estimator -->
 	<node pkg="pose_estimator" type="pose_estimator_node" name="pose_estimator_node" output="screen">
 		<param name="rate" type="double" value="100.0"/>
 		<param name="min_rate" type="double" value="50.0"/>
 		<param name="max_rate" type="double" value="200.0"/>
-		<param name="saltwater_flag" type="bool" value="false"/>
+		<param name="in_saltwater" type="bool" value="false"/>
+    <param name="rpm_per_knot" type="double" value="303.0"/>
 		<param name="max_depth" type="double" value="$(arg maxDepth)"/>
-		<param name="max_roll_ang" type="double" value="$(arg maxRollAng)"/>
-		<param name="max_pitch_ang" type="double" value="$(arg maxPitchAng)"/>
-		<param name="max_yau_ang" type="double" value="$(arg maxYauAng)"/>
-		<param name="pose_data_steady_band" type="double" value="0.0"/>
+		<param name="max_roll_angle" type="double" value="$(arg maxRollAng)"/>
+		<param name="max_pitch_angle" type="double" value="$(arg maxPitchAng)"/>
+		<param name="max_yau_angle" type="double" value="$(arg maxYawAng)"/>
+		<param name="linear_data_steady_band" type="double" value="0.0"/>
+    <param name="angular_data_steady_band" type="double" value="0.0"/>
 	</node>
 </launch>

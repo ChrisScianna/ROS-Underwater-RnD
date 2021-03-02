@@ -1,40 +1,25 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(pose_estimator)
 
-set(NODE_APP_NAME ${PROJECT_NAME}_node)
-
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
+  auv_interfaces
   diagnostic_updater
   diagnostic_tools
   health_monitor
   roscpp
   roslint
-  rospy
   sensor_msgs
-  std_msgs
-  geometry_msgs
-  geographic_msgs
+  tf
   thruster_control
-  message_generation
-)
-
-add_message_files(
-  FILES
-  CorrectedData.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  sensor_msgs
-  std_msgs  
-  geometry_msgs
-  geographic_msgs
 )
 
 catkin_package(
- CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs geometry_msgs geographic_msgs thruster_control
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS auv_interfaces
+    diagnostic_updater diagnostic_tools
+    roscpp sensor_msgs tf thruster_control
 )
 
 ###########
@@ -46,28 +31,30 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(${NODE_APP_NAME} 
+add_library(${PROJECT_NAME}
   src/pose_estimator.cpp
-  src/pose_estimator_main.cpp
 )
 
-add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(${NODE_APP_NAME}
-  ${catkin_LIBRARIES}
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
+set(NODE_EXECUTABLE_NAME ${PROJECT_NAME}_node)
+add_executable(${NODE_EXECUTABLE_NAME}
+  src/pose_estimator_node.cpp
 )
 
-roslint_cpp(
-  src/pose_estimator.cpp
-  src/pose_estimator_main.cpp
-  include/pose_estimator/pose_estimator.h
-)
+add_dependencies(${NODE_EXECUTABLE_NAME} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${NODE_EXECUTABLE_NAME} ${PROJECT_NAME} ${catkin_LIBRARIES})
+
+roslint_cpp()
 
 #############
 ## Install ##
 #############
 
-install(TARGETS ${NODE_APP_NAME}
+install(TARGETS ${PROJECT_NAME} ${NODE_EXECUTABLE_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
