@@ -75,4 +75,5 @@ private:
 }  // namespace c3_protocol
 }  // namespace ixblue_c3_ins
 
+
 #endif  // IXBLUE_C3_INS_C3_PROTOCOL_H

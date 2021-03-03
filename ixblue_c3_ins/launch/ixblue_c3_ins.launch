@@ -5,5 +5,9 @@
   <node pkg="ixblue_c3_ins" type="ixblue_c3_ins_node" name="ixblue_c3_ins_node" output="screen">
     <param name="iface_addr" type="string" value="$(arg ip)"/>
     <param name="listen_port" type="int" value="$(arg port)"/>
+    <param name="min_rate" type="double" value="1"/>
+    <param name="max_rate" type="double" value="100"/>
+    <param name="absolute_steady_band" type="double" value="0"/>
+    <param name="relative_steady_band" type="double" value="0"/>
   </node>
 </launch>

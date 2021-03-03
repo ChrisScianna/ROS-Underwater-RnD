@@ -28,17 +28,10 @@ int main(int argc, char** argv)
   ros::init(argc, argv, NODE_NAME);
   ROS_INFO("Node version: [%s]", NODE_VERSION);
 
-  try
-  {
-    ixblue_c3_ins::ixBlueC3InsDriver driver;
+  ixblue_c3_ins::ixBlueC3InsDriver driver;
 
-    driver.spin();
-  }
-  catch (const std::runtime_error& e)
-  {
-    ROS_ERROR("%s", e.what());
-    return -1;
-  }
+  driver.spin();
+
   return 0;
 }
 

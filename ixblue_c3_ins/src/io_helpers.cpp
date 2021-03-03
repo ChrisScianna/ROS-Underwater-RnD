@@ -88,4 +88,3 @@ size_t readFor(int fd, void * buffer, size_t size, struct timeval timeout)
 
 }  // namespace io_helpers
 }  // namespace ixblue_c3_ins
-
