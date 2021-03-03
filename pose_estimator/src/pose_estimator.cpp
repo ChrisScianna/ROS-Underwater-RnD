@@ -40,6 +40,7 @@
 #include <limits>
 
 #include <auv_interfaces/CartesianPose.h>
+#include <auv_interfaces/helpers.h>
 #include <health_monitor/ReportFault.h>
 #include <sensor_msgs/NavSatStatus.h>
 
@@ -59,9 +60,9 @@ PoseEstimator::PoseEstimator()
   pnh_.param("rate", rate, 20.);
   pnh_.param("min_rate", min_rate, rate / 2.);
   pnh_.param("max_rate", max_rate, rate * 2.);
-  double linear_data_steady_band, angular_data_steady_band;
-  pnh_.param("linear_data_steady_band", linear_data_steady_band, 0.);
-  pnh_.param("angular_data_steady_band", angular_data_steady_band, 0.);
+
+  double relative_steady_band;
+  pnh_.param("relative_steady_band", relative_steady_band, 0.);
 
   constexpr double inf = std::numeric_limits<double>::infinity();
   double max_depth, max_roll_angle, max_pitch_angle, max_yaw_angle;
@@ -102,15 +103,10 @@ PoseEstimator::PoseEstimator()
   });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(state_pub_.add_check<diagnostic_tools::MessageStagnationCheck>(
       "stagnation check",
-      [linear_data_steady_band, angular_data_steady_band](const auv_interfaces::StateStamped &a,
-                                                          const auv_interfaces::StateStamped &b)
+      [relative_steady_band](const auv_interfaces::StateStamped &a,
+                             const auv_interfaces::StateStamped &b)
       {
-        const auv_interfaces::CartesianPose &pose_a = a.state.manoeuvring.pose.mean;
-        const auv_interfaces::CartesianPose &pose_b = b.state.manoeuvring.pose.mean;
-        return ((std::abs(pose_a.position.z - pose_b.position.z) < linear_data_steady_band) &&
-                (std::abs(pose_a.orientation.x - pose_b.orientation.x) < angular_data_steady_band) &&
-                (std::abs(pose_a.orientation.y - pose_b.orientation.y) < angular_data_steady_band) &&
-                (std::abs(pose_a.orientation.z - pose_b.orientation.z) < angular_data_steady_band));
+        return auv_interfaces::almost_equal(a.state, b.state, rel_tol);
       }, state_stagnation_check_params));  // NOLINT
 
   // Report if message data is out of range

@@ -15,7 +15,6 @@
 		<param name="max_roll_angle" type="double" value="$(arg maxRollAng)"/>
 		<param name="max_pitch_angle" type="double" value="$(arg maxPitchAng)"/>
 		<param name="max_yau_angle" type="double" value="$(arg maxYawAng)"/>
-		<param name="linear_data_steady_band" type="double" value="0.0"/>
-    <param name="angular_data_steady_band" type="double" value="0.0"/>
+		<param name="relative_steady_band" type="double" value="0.0"/>
 	</node>
 </launch>
