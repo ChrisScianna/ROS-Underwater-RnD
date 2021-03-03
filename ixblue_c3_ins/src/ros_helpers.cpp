@@ -11,6 +11,8 @@
 
 #include "ixblue_c3_ins/ros_helpers.h"
 
+#include <cmath>
+
 #include <ros/ros.h>
 
 #include "auv_interfaces/State.h"
@@ -21,6 +23,25 @@ namespace ixblue_c3_ins
 {
 namespace ros_helpers
 {
+
+namespace
+{
+
+double wrap_to_pi(double rads)
+{
+  rads = std::fmod(rads, 2. * M_PI);
+  if (rads >= M_PI)
+  {
+    rads -= 2. * M_PI;
+  }
+  else if (rads < -M_PI)
+  {
+    rads += 2. * M_PI;
+  }
+  return rads;
+}
+
+}  // namespace
 
 template<>
 ixblue_c3_ins::NavigationLong
@@ -76,7 +97,7 @@ to_ros_message(const c3_protocol::nav_long::nav_long_data_t& data)
   // TODO(hidmic): add terrestrial reference frame
   msg.manoeuvring.pose.mean.orientation.x = data.roll;
   msg.manoeuvring.pose.mean.orientation.y = -data.pitch;  // flip y-axis
-  msg.manoeuvring.pose.mean.orientation.z = data.heading;
+  msg.manoeuvring.pose.mean.orientation.z = wrap_to_pi(data.heading);
   msg.manoeuvring.pose.covariance[21] = std::pow(data.roll_err_sd, 2);
   msg.manoeuvring.pose.covariance[28] = std::pow(data.pitch_err_sd, 2);
   msg.manoeuvring.pose.covariance[35] = std::pow(data.heading_err_sd, 2);
@@ -93,4 +114,3 @@ to_ros_message(const c3_protocol::nav_long::nav_long_data_t& data)
 
 }  // namespace ros_helpers
 }  // namespace ixblue_c3_ins
-
