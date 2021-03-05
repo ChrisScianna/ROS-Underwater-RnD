@@ -61,7 +61,9 @@ PoseEstimator::PoseEstimator()
   pnh_.param("min_rate", min_rate, rate / 2.);
   pnh_.param("max_rate", max_rate, rate * 2.);
 
+  double absolute_steady_band;
   double relative_steady_band;
+  pnh_.param("absolute_steady_band", absolute_steady_band, 0.);
   pnh_.param("relative_steady_band", relative_steady_band, 0.);
 
   constexpr double inf = std::numeric_limits<double>::infinity();
@@ -103,10 +105,11 @@ PoseEstimator::PoseEstimator()
   });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(state_pub_.add_check<diagnostic_tools::MessageStagnationCheck>(
       "stagnation check",
-      [relative_steady_band](const auv_interfaces::StateStamped &a,
-                             const auv_interfaces::StateStamped &b)
+      [absolute_steady_band, relative_steady_band](const auv_interfaces::StateStamped &a,
+                                                   const auv_interfaces::StateStamped &b)
       {
-        return auv_interfaces::almost_equal(a.state, b.state, rel_tol);
+        return auv_interfaces::almost_equal(
+            a.state, b.state, absolute_steady_band, relative_steady_band);
       }, state_stagnation_check_params));  // NOLINT
 
   // Report if message data is out of range
