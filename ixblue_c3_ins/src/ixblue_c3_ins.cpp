@@ -52,22 +52,22 @@ namespace ixblue_c3_ins
 ixBlueC3InsDriver::ixBlueC3InsDriver()
   : pnh_("~"), diagnostics_updater_(nh_)
 {
-  constexpr char default_ipaddress[] = "192.168.36.112";
+  diagnostics_updater_.setHardwareID("ins");
 
   std::string iface_addr;
   /* get operating parameters */
   if (!pnh_.getParam("iface_addr", iface_addr))
   {
+    constexpr char default_ipaddress[] = "192.168.36.112";
     ROS_INFO("No configured IPv4 interface address."
              " Using default [%s]", default_ipaddress);
     iface_addr = default_ipaddress;
   }
 
-  constexpr int default_port = 2255;
-
   int listen_port;
   if (!pnh_.getParam("listen_port", listen_port))
   {
+    constexpr int default_port = 2255;
     ROS_WARN("No configured UDP listening port."
              " Using default [%d]", default_port);
     listen_port = default_port;
@@ -260,6 +260,8 @@ void ixBlueC3InsDriver::spin()
     {
       ROS_ERROR("%s (%d)", e.what(), e.code().value());
     }
+
+    diagnostics_updater_.update();
 
     ros::spinOnce();
   }
