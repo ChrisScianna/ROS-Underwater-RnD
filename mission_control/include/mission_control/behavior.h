@@ -64,12 +64,6 @@ class Behavior : public BT::ActionNodeBase
       case BT::NodeStatus::RUNNING:
         setStatus(behaviorRunningProcess());
         break;
-      case BT::NodeStatus::SUCCESS:
-        setStatus(BT::NodeStatus::SUCCESS);
-        break;
-      case BT::NodeStatus::FAILURE:
-        setStatus(BT::NodeStatus::FAILURE);
-        break;
       default:
         throw std::logic_error("Unexpected state in ::tick()");
         break;

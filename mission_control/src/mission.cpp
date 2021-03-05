@@ -62,7 +62,11 @@ std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missi
     return nullptr;
 }
 
-void Mission::stop() { tree_.haltTree(); }
+void Mission::stop()
+{
+  tree_.haltTree();
+  behaviorStatus_ = BT::NodeStatus::IDLE;
+}
 
 BT::NodeStatus Mission::getStatus() { return behaviorStatus_; }
 
@@ -70,6 +74,10 @@ std::string Mission::getCurrentMissionDescription() { return description_; }
 
 BT::NodeStatus Mission::Continue()
 {
-  behaviorStatus_ = tree_.tickRoot();
+  if (behaviorStatus_ == BT::NodeStatus::IDLE || behaviorStatus_ == BT::NodeStatus::RUNNING)
+  {
+    behaviorStatus_ = tree_.tickRoot();
+  }
+
   return behaviorStatus_;
 }

@@ -116,9 +116,6 @@ int MissionControlNode::abortMission(int missionId)
 {
   if (currentMissionId == missionId)
   {
-    executeMissionTimer.stop();
-    m_mission_map[currentMissionId]->stop();
-
     processAbort();
     ROS_DEBUG_STREAM("Aborting Mission " << currentMissionId);
   }
@@ -141,13 +138,17 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
 {
   NodeStatus missionStatus = m_mission_map[currentMissionId]->getStatus();
-  if (missionStatus != NodeStatus::SUCCESS)
+
+  if (missionStatus == BT::NodeStatus::IDLE || missionStatus == BT::NodeStatus::RUNNING)
   {
     missionStatus = m_mission_map[currentMissionId]->Continue();
   }
-  else
+
+  if (missionStatus == BT::NodeStatus::FAILURE)
+  {
     executeMissionTimer.stop();
-    ROS_DEBUG_STREAM("Mission successfully completed");
+    abortMission(currentMissionId);
+  }
 }
 
 void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
@@ -170,10 +171,12 @@ void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
         break;
       case BT::NodeStatus::SUCCESS:
         outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::COMPLETE;
+        executeMissionTimer.stop();
+        m_mission_map[currentMissionId]->stop();
         break;
       case BT::NodeStatus::FAILURE:
+        m_mission_map[currentMissionId]->stop();
         outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::ABORTING;
-        abortMission(currentMissionId);
         break;
     }
 
@@ -225,7 +228,6 @@ void MissionControlNode::executeMissionCallback(
       return;
     }
   }
-
   if ((msg->mission_id > 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(msg->mission_id) > 0))
   {
