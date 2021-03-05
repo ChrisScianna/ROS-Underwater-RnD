@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
   geometry_msgs
   message_generation
+  roslint
   std_msgs
 )
 
@@ -41,9 +42,59 @@ generate_messages(
 ## catkin specific configuration ##
 ###################################
 catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}_helpers
   CATKIN_DEPENDS
     geographic_msgs
     geometry_msgs
     message_runtime
     std_msgs
 )
+
+###########
+## Build ##
+###########
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_library(${PROJECT_NAME}_helpers
+  src/helpers.cpp
+)
+
+add_dependencies(${PROJECT_NAME}_helpers
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${PROJECT_NAME}_helpers ${catkin_LIBRARIES})
+
+#############
+## Install ##
+#############
+
+install(TARGETS ${PROJECT_NAME}_helpers
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
+
+#############
+## Testing ##
+#############
+
+roslint_cpp()
+
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_helpers test/test_helpers.cpp)
+  target_link_libraries(test_helpers
+    ${PROJECT_NAME}_helpers ${catkin_LIBRARIES})
+
+  roslint_add_test()
+endif()
