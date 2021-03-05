@@ -33,11 +33,12 @@
  *********************************************************************/
 
 // Original version: Jie Sun <Jie.Sun@us.QinetiQ.com>
+// TODO(hidmic): migrate to ReportState
 
 #ifndef REPORTPOSEESTIMATORDATA_H
 #define REPORTPOSEESTIMATORDATA_H
 
-#include <pose_estimator/CorrectedData.h>
+#include <auv_interfaces/StateStamped.h>
 #include "JausMessageOut.h"
 
 struct PoseEstimatorData {
@@ -52,13 +53,12 @@ struct PoseEstimatorData {
 class ReportPoseEstimatorData : public JausMessageOut {
  private:
   PoseEstimatorData m_poseData;
-  ros::Subscriber _subscriber_reportPoseData;
-  bool HasNewData(const pose_estimator::CorrectedData::ConstPtr& msg);
+  ros::Subscriber _subscriber_state;
 
  public:
   void init(ros::NodeHandle* nodeHandle, udpserver* udp);
 
-  void handleReportPoseEstimatorData(const pose_estimator::CorrectedData::ConstPtr& msg);
+  void handleState(const auv_interfaces::StateStamped::ConstPtr& msg);
 
   virtual DataInfo GetPackedMessage(void* data);
   virtual void Reset();

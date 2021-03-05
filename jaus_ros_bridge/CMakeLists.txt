@@ -12,6 +12,7 @@ project(jaus_ros_bridge)
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
+  auv_interfaces
   roscpp
   rospy
   sensor_msgs
@@ -129,7 +130,7 @@ catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES jaus_ros_bridge
 #  LIBRARIES fin_control
-  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs health_monitor fin_control
+  CATKIN_DEPENDS auv_interfaces roscpp rospy sensor_msgs std_msgs health_monitor fin_control
 #  DEPENDS system_lib
 )
 
