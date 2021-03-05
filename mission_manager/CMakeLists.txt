@@ -7,8 +7,8 @@ add_compile_options(-std=c++11)
 add_compile_options(-DTIXML_USE_STL)
 
 find_package(catkin REQUIRED COMPONENTS
+  auv_interfaces
   health_monitor
-  pose_estimator
   payload_manager
   roscpp
   roslint
@@ -40,14 +40,13 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
-  pose_estimator
   payload_manager
   std_msgs
 )
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS pose_estimator payload_manager roscpp rospy std_msgs
+ CATKIN_DEPENDS payload_manager roscpp rospy std_msgs
 )
 
 ###########
