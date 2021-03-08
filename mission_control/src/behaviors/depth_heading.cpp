@@ -72,6 +72,7 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
   depthHeadingBehaviorPub =
       nodeHandle_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
 
+  behaviorComplete_ = false;
   behaviorStartTime_ = ros::Time::now();
 }
 
@@ -79,15 +80,21 @@ BT::NodeStatus DepthHeadingBehavior::behaviorRunningProcess()
 {
   if (!goalHasBeenPublished_)
   {
+    behaviorComplete_ = false;
     publishGoalMsg();
+    behaviorStartTime_ = ros::Time::now();
     goalHasBeenPublished_ = true;
   }
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
     if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+    else
+    {
+      if (behaviorComplete_) setStatus(BT::NodeStatus::SUCCESS);
+    }
   }
-  return (status());
+  return status();
 }
 
 void DepthHeadingBehavior::publishGoalMsg()
@@ -111,11 +118,6 @@ void DepthHeadingBehavior::publishGoalMsg()
 void DepthHeadingBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our RPY angles match
-  // tjw debug  if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
-  if (headingEnable_ && (fabs(heading_ - data.rpy_ang.z) > headingTolerance_))
-  {
-    setStatus(BT::NodeStatus::RUNNING);
-  }
-  else
-    setStatus(BT::NodeStatus::SUCCESS);
+  if (headingEnable_ && (fabs(heading_ - data.rpy_ang.z) < headingTolerance_))
+    behaviorComplete_ = true;
 }

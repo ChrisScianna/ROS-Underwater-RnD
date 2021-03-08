@@ -39,24 +39,12 @@ import math
 import rosnode
 import rospy
 import rostest
-from mission_control.msg import LoadMission
-from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import ReportLoadMissionState
-from mission_control.msg import ReportMissions
 from mission_control.msg import DepthHeading
 from pose_estimator.msg import CorrectedData
 from geometry_msgs.msg import Vector3
-
-
-def wait_for(predicate, period=1):
-    while not rospy.is_shutdown():
-        result = predicate()
-        if result:
-            return result
-        rospy.sleep(period)
-    return predicate()
-
+from mission_interface import MissionInterface
+from mission_interface import wait_for
 
 class TestDepthHeadingBehavior(unittest.TestCase):
     """ 
@@ -73,77 +61,45 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         rospy.init_node('test_depth_heading_behavior')
 
     def setUp(self):
-        mission_execute_state = ReportExecuteMissionState.PAUSED
-        mission_load_state = False
-        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/test_files/'
-        mission_load_state_flag = False
-        report_mission_flag = False
-        report_mission = ReportMissions()
-        self.mission_load_state = None
-        self.report_mission = None
-        self.report_execute_mission = None
         self.depth_heading_goal = DepthHeading()
-
-        # Subscribers
-        self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
-                                               ReportExecuteMissionState, self.callback_mission_execute_state)
-
-        self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
-                                               ReportLoadMissionState, self.callback_mission_load_state)
-
-        self.report_missions_sub = rospy.Subscriber('/mission_control_node/report_missions',
-                                                    ReportMissions, self.callback_report_mission)
-
-        self.depth_heading_msg = rospy.Subscriber('/mngr/depth_heading',
-                                                 DepthHeading, self.callback_publish_depth_heading_goal)
-
-        # Publishers
-        self.simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
-                                                                          LoadMission, latch=True, queue_size=1)
-
-        self.simulated_mission_control_execute_mission_pub = rospy.Publisher(
-            '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
+        self.mission = MissionInterface()
         
-        self.simulated_pose_estimator_pub = rospy.Publisher('/pose/corrected_data',
-                                                            CorrectedData, queue_size=1)
+        self.depth_heading_msg = rospy.Subscriber(
+            '/mngr/depth_heading',
+            DepthHeading,
+            self.depth_heading_goal_callback)
 
-    def callback_mission_execute_state(self, msg):
-        self.report_execute_mission = msg
+        self.simulated_pose_estimator_pub = rospy.Publisher(
+            '/pose/corrected_data',
+            CorrectedData,
+            queue_size=1)
 
-    def callback_report_mission(self, msg):
-        self.report_mission = msg
-
-    def callback_mission_load_state(self, msg):
-        self.mission_load_state = msg.load_state
-
-    def callback_publish_depth_heading_goal(self, msg):
+    def depth_heading_goal_callback(self, msg):
         self.depth_heading_goal = msg
 
     def test_mission_with_depth_heading_behavior(self):
+        self.mission.load_mission('depth_heading_mission_test.xml')
+        self.mission.execute_mission()
+        
+        self.mission.read_behavior_parameters('DepthHeadingBehavior')
+        depth = self.mission.get_behavior_parameter('depth')
+        heading = self.mission.get_behavior_parameter('heading')
+        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        enable_mask = 0
 
-        self.mission_load_state_flag = False
-        mission_to_load = LoadMission()
-        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/depth_heading_mission_test.xml"
-        self.simulated_mission_control_load_mission_pub.publish(mission_to_load)
-
-        def load_mission():
-            return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(load_mission),
-                        msg='Mission control must report SUCCESS')
-        rospy.loginfo("Mission Loaded")
-
-        mission_to_execute = ExecuteMission()
-        mission_to_execute.mission_id = 1
-        self.simulated_mission_control_execute_mission_pub.publish(
-            mission_to_execute)
-        rospy.loginfo("execute msg")
-
-        def depth_heading_goals_are_setted():
-            return (self.depth_heading_goal.depth == 1.0 and
-                    self.depth_heading_goal.heading == 2.0 and
-                    self.depth_heading_goal.speed_knots == 3.0 and
-                    self.depth_heading_goal.ena_mask == 7)
-        self.assertTrue(wait_for(depth_heading_goals_are_setted),
+        #Calculate the mask
+        def get_mask(value, mask):
+            return mask if value > 0 else 0
+        enable_mask |= get_mask(depth, DepthHeading.DEPTH_ENA)
+        enable_mask |= get_mask(heading, DepthHeading.HEADING_ENA)
+        enable_mask |= get_mask(speed_knots, DepthHeading.SPEED_KNOTS_ENA)
+        
+        def depth_heading_goals_are_set():
+            return (self.depth_heading_goal.depth == depth and
+                    self.depth_heading_goal.heading == heading and
+                    self.depth_heading_goal.speed_knots == speed_knots and
+                    self.depth_heading_goal.ena_mask == enable_mask)
+        self.assertTrue(wait_for(depth_heading_goals_are_set),
                         msg='Mission control must publish goals')
 
         #send data to finish the mission
@@ -157,9 +113,9 @@ class TestDepthHeadingBehavior(unittest.TestCase):
             pose_estimator_corrected_data)
 
         def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
-        self.assertTrue(wait_for(success_mission_status_is_reported), 
-            msg='Mission control must report SUCCESS')
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(success_mission_status_is_reported),
+                        msg='Mission control must report SUCCESS')
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_test_depth_heading_behavior',
