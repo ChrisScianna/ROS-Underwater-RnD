@@ -39,27 +39,16 @@ import math
 import rosnode
 import rospy
 import rostest
-from mission_control.msg import LoadMission
-from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import ReportLoadMissionState
-from mission_control.msg import ReportMissions
 from mission_control.msg import AttitudeServo
 from pose_estimator.msg import CorrectedData
 from geometry_msgs.msg import Vector3
-
-
-def wait_for(predicate, period=1):
-    while not rospy.is_shutdown():
-        result = predicate()
-        if result:
-            return result
-        rospy.sleep(period)
-    return predicate()
+from mission_interface import MissionInterface
+from mission_interface import wait_for
 
 
 class TestAttitudeServoBehavior(unittest.TestCase):
-    """ 
+    """
         The test loads and execute a attitude servo mission.
         -   Load the mission attitude_servo_mission_test.xml
         -   Execute the mission
@@ -73,83 +62,43 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         rospy.init_node('test_attitude_servo_behavioral')
 
     def setUp(self):
-        mission_execute_state = ReportExecuteMissionState.PAUSED
-        mission_load_state = False
-        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/test_files/'
-        mission_load_state_flag = False
-        report_mission_flag = False
-        report_mission = ReportMissions()
-        self.mission_load_state = None
-        self.report_mission = None
-        self.report_execute_mission = None
-        self.attitude_servo_goal = []
+        self.attitude_servo_goal = AttitudeServo()
+        self.mission = MissionInterface()
 
         # Subscribers
-        self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
-                                               ReportExecuteMissionState, self.callback_mission_execute_state)
-
-        self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
-                                               ReportLoadMissionState, self.callback_mission_load_state)
-
-        self.report_missions_sub = rospy.Subscriber('/mission_control_node/report_missions',
-                                                    ReportMissions, self.callback_report_mission)
-
         self.attitude_servo_msg = rospy.Subscriber('/mngr/attitude_servo',
-                                                 AttitudeServo, self.callback_publish_attitude_servo_goal)
-
-        # Publishers
-        self.simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
-                                                                          LoadMission, latch=True, queue_size=1)
-
-        self.simulated_mission_control_execute_mission_pub = rospy.Publisher(
-            '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
+                                                   AttitudeServo, self.callback_publish_attitude_servo_goal)
 
         self.simulated_pose_estimator_pub = rospy.Publisher('/pose/corrected_data',
-                                                       CorrectedData, queue_size=1)
-
-    def callback_mission_execute_state(self, msg):
-        self.report_execute_mission = msg
-
-    def callback_report_mission(self, msg):
-        self.report_mission = msg
-
-    def callback_mission_load_state(self, msg):
-        self.mission_load_state = msg.load_state
+                                                            CorrectedData, queue_size=1)
 
     def callback_publish_attitude_servo_goal(self, msg):
-        self.attitude_servo_goal = [msg.roll,
-                                    msg.pitch,
-                                    msg.yaw,
-                                    msg.speed_knots,
-                                    msg.ena_mask
-                                    ]
-        rospy.loginfo(self.attitude_servo_goal)
+        self.attitude_servo_goal = msg
+        rospy.loginfo(msg)
 
     def test_mission_with_attitude_servo_behavioral(self):
+        self.mission.load_mission("attitude_servo_mission_test.xml")
+        self.mission.execute_mission()
+        rospy.loginfo("Ejecutando")
 
-        self.mission_load_state_flag = False
-        mission_to_load = LoadMission()
-        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/attitude_servo_mission_test.xml"
-        self.simulated_mission_control_load_mission_pub.publish(mission_to_load)
+        self.mission.read_behavior_parameters('AttitudeServoBehavior')
+        roll = self.mission.get_behavior_parameter('roll')
+        pitch = self.mission.get_behavior_parameter('pitch')
+        yaw = self.mission.get_behavior_parameter('yaw')
+        speed_knots = self.mission.get_behavior_parameter('speed_knots')
 
-        def load_mission():
-            return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(load_mission),
-                        msg='Mission control must report SUCCESS')
-        rospy.loginfo("Mission Loaded")
-
-        mission_to_execute = ExecuteMission()
-        mission_to_execute.mission_id = 1
-        self.simulated_mission_control_execute_mission_pub.publish(
-            mission_to_execute)
-        rospy.loginfo("execute msg")
-
-        def attitude_servo_goals_are_setted():
-            return self.attitude_servo_goal == [1.0, 1.0, 1.0, 3.0, 15]
-        self.assertTrue(wait_for(attitude_servo_goals_are_setted),
+        # Check if the behavior publishes the goal
+        def attitude_servo_goals_are_set():
+            return (self.attitude_servo_goal.roll == roll and
+                    self.attitude_servo_goal.pitch == pitch and
+                    self.attitude_servo_goal.yaw == yaw and
+                    self.attitude_servo_goal.speed_knots == speed_knots and
+                    self.attitude_servo_goal.ena_mask == 15)
+        self.assertTrue(wait_for(attitude_servo_goals_are_set),
                         msg='Mission control must publish goals')
-        
-        #send data to finish the mission
+
+        rospy.sleep(2)
+        # send data to finish the mission
         rpy_data = Vector3()
         pose_estimator_corrected_data = CorrectedData()
         rpy_data.x = 1.0
@@ -160,10 +109,10 @@ class TestAttitudeServoBehavior(unittest.TestCase):
             pose_estimator_corrected_data)
 
         def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
-        self.assertTrue(wait_for(success_mission_status_is_reported), 
-            msg='Mission control must report SUCCESS')
-        
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(success_mission_status_is_reported),
+                        msg='Mission control must report SUCCESS')
+
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavioral',
