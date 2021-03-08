@@ -43,7 +43,16 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ROS_INFO("Starting Pose Estimator node Version: [%s]", NODE_VERSION);
   n.setParam("/version_numbers/pose_estimator", NODE_VERSION);
-  qna::robot::PoseEstimatorNode poseObject(n);
-  poseObject.spin();
+
+  try
+  {
+    qna::robot::PoseEstimator node;
+    node.spin();
+  }
+  catch (const std::runtime_error& e)
+  {
+    ROS_ERROR("%s", e.what());
+    return -1;
+  }
   return 0;
 }

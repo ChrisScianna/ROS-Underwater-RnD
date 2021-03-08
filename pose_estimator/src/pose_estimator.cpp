@@ -36,317 +36,277 @@
 
 #include "pose_estimator/pose_estimator.h"
 
-using health_monitor::ReportFault;
-using qna::robot::PoseEstimatorNode;
-using pose_estimator::CorrectedData;
+#include <cmath>
+#include <limits>
 
-// assumes that the pressure is in absolute pascal and a true flag indicates saltwater
-PoseEstimatorNode::PoseEstimatorNode(ros::NodeHandle h)
-    : node_handle(h),
-      private_node_handle("~"),
-      running(false),
-      data_valid(false),
-      pubRate(20.0),
-      ahrs_ok(false),
-      pressure_ok(false),
-      diagnosticsUpdater(h)
+#include <auv_interfaces/CartesianPose.h>
+#include <auv_interfaces/helpers.h>
+#include <health_monitor/ReportFault.h>
+#include <sensor_msgs/NavSatStatus.h>
+
+
+namespace qna
 {
-  diagnosticsUpdater.setHardwareID("pose_estimator");
+namespace robot
+{
 
-  ros::NodeHandle pose_node_handle(node_handle, "pose");
+PoseEstimator::PoseEstimator()
+    : pnh_("~"),
+      synchronizer_(DataPolicy(10)),
+      diagnostics_updater_(nh_)
+{
+  diagnostics_updater_.setHardwareID("pose_estimator");
 
-  minRate = pubRate / 2;
-  maxRate = pubRate * 2;
-  double poseDataSteadyBand = 0.0;
   // Get runtime parameters
-  private_node_handle.getParam("rate", pubRate);
-  private_node_handle.getParam("min_rate", minRate);
-  private_node_handle.getParam("max_rate", maxRate);
-  private_node_handle.getParam("pose_data_steady_band", poseDataSteadyBand);
-  private_node_handle.getParam("saltwater_flag", saltwater_flag);
-  private_node_handle.getParam("max_depth", maxDepth);
-  private_node_handle.getParam("max_roll_ang", maxRollAng);
-  private_node_handle.getParam("max_pitch_ang", maxPitchAng);
-  private_node_handle.getParam("max_yaw_ang", maxYawAng);
-  pose_node_handle.param<double>("/autopilot_node/rpm_per_knot", rpmPerKnot, 303.0);  // knots
+  double min_rate, max_rate;
+  pnh_.param("min_rate", min_rate, 1.);  // Hz
+  pnh_.param("max_rate", max_rate, 50.);  // Hz
+
+  double absolute_steady_band;
+  double relative_steady_band;
+  pnh_.param("absolute_steady_band", absolute_steady_band, 0.);
+  pnh_.param("relative_steady_band", relative_steady_band, 0.);
+
+  constexpr double inf = std::numeric_limits<double>::infinity();
+  double max_depth, max_roll_angle, max_pitch_angle, max_yaw_angle;
+  pnh_.param("max_depth", max_depth, inf);
+  pnh_.param("max_roll_angle", max_roll_angle, inf);
+  pnh_.param("max_pitch_angle", max_pitch_angle, inf);
+  pnh_.param("max_yaw_angle", max_yaw_angle, inf);
+
+  pnh_.param("in_saltwater", in_saltwater_, false);
+  pnh_.param("rpm_per_knot", rpm_per_kn_, 303.0);
 
   // Subscribe to all topics
-  sub_pressure_data = pose_node_handle.subscribe("/pressure_sensor/pressure", 1,
-                                                 &PoseEstimatorNode::pressureDataCallback, this);
-  sub_ahrs_data =
-      pose_node_handle.subscribe("/vectornav/IMU", 1, &PoseEstimatorNode::ahrsDataCallback, this);
+  ahrs_sub_.subscribe(nh_, "imu/data", 10);
+  pressure_sub_.subscribe(nh_, "pressure", 10);
+  rpms_sub_.subscribe(nh_, "rpms", 10);
+  synchronizer_.connectInput(ahrs_sub_, pressure_sub_, rpms_sub_);
+  synchronizer_.registerCallback(
+      boost::bind(&PoseEstimator::dataCallback, this, _1, _2, _3));
+
+  fix_sub_ = nh_.subscribe("fix", 1, &PoseEstimator::fixCallback, this);
 
   // Advertise all topics and services
-  pub_corrected_data = diagnostic_tools::create_publisher<pose_estimator::CorrectedData>(
-      pose_node_handle, "corrected_data", 1);
-  sub_rpm_data = pose_node_handle.subscribe("/thruster_control/report_rpm", 1,
-                                            &PoseEstimatorNode::rpmDataCallback, this);
-  sub_gps_data = pose_node_handle.subscribe("/fix", 1, &PoseEstimatorNode::gpsDataCallback, this);
+  state_pub_ =
+      diagnostic_tools::create_publisher<auv_interfaces::StateStamped>(nh_, "state", 1);
 
-  diagnostic_tools::Diagnostic diagnosticCorrectedDataInfoStale
-  {
-    diagnostic_tools::Diagnostic::ERROR, ReportFault::POSE_DATA_STALE
-  };
-  diagnostic_tools::PeriodicMessageStatusParams paramsCorrectedDataCheckPeriod;
-  paramsCorrectedDataCheckPeriod.min_acceptable_period(1.0 / maxRate);
-  paramsCorrectedDataCheckPeriod.max_acceptable_period(1.0 / minRate);
-  paramsCorrectedDataCheckPeriod.abnormal_diagnostic(diagnosticCorrectedDataInfoStale);
-  diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::PeriodicMessageStatus>(
-      "rate check", paramsCorrectedDataCheckPeriod));
+  // Setup diagnostics
+  diagnostic_tools::PeriodicMessageStatusParams state_rate_check_params;
+  state_rate_check_params.min_acceptable_period(1.0 / max_rate);
+  state_rate_check_params.max_acceptable_period(1.0 / min_rate);
+  state_rate_check_params.abnormal_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::ERROR,
+      health_monitor::ReportFault::POSE_DATA_STALE
+  });  // NOLINT(whitespace/braces)
+  diagnostics_updater_.add(
+      state_pub_.add_check<diagnostic_tools::PeriodicMessageStatus>(
+          "rate check", state_rate_check_params));
 
-  diagnostic_tools::Diagnostic diagnosticCorrectedDataInfoStagnate
-  {
-      diagnostic_tools::Diagnostic::ERROR, ReportFault::POSE_DATA_STAGNATED
-  };
-  diagnostic_tools::MessageStagnationCheckParams paramsCorrectedDataCheckStagnation;
-  paramsCorrectedDataCheckStagnation.stagnation_diagnostic(diagnosticCorrectedDataInfoStagnate);
-  diagnosticsUpdater.add(pub_corrected_data.add_check<diagnostic_tools::MessageStagnationCheck>(
+  diagnostic_tools::MessageStagnationCheckParams state_stagnation_check_params;
+  state_stagnation_check_params.stagnation_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::ERROR,
+      health_monitor::ReportFault::POSE_DATA_STAGNATED
+  });  // NOLINT(whitespace/braces)
+  diagnostics_updater_.add(state_pub_.add_check<diagnostic_tools::MessageStagnationCheck>(
       "stagnation check",
-      [poseDataSteadyBand](const pose_estimator::CorrectedData &a,
-                           const pose_estimator::CorrectedData &b)
+      [absolute_steady_band, relative_steady_band](const auv_interfaces::StateStamped &a,
+                                                   const auv_interfaces::StateStamped &b)
       {
-        return (std::fabs((a.depth - b.depth) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.x - b.rpy_ang.x) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.y - b.rpy_ang.y) < poseDataSteadyBand) &&
-                std::fabs((a.rpy_ang.z - b.rpy_ang.z) < poseDataSteadyBand));
-      }
-      , paramsCorrectedDataCheckStagnation));
+        return auv_interfaces::almost_equal(
+            a.state, b.state, absolute_steady_band, relative_steady_band);
+      }, state_stagnation_check_params));  // NOLINT
 
   // Report if message data is out of range
-  depthCheck = diagnostic_tools::create_health_check<double>(
-      "Vehicle depth within range", [this](double depth) -> diagnostic_tools::Diagnostic
+  depth_check_ = diagnostic_tools::create_health_check<double>(
+      "Vehicle position - Depth check",
+      [max_depth](double depth)
       {
         using diagnostic_tools::Diagnostic;
-        if (depth < 0. || depth > maxDepth)
+        using health_monitor::ReportFault;
+        if (depth < 0. || depth > max_depth)
         {
           return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_DEPTH_THRESHOLD_REACHED)
-              .description("%f m outside [%f m, %m m] range", depth, maxDepth);
+              .description("NOT OK - %f m outside [%f m, 0 m] range", depth, max_depth);
         }
-        return Diagnostic::OK;
-      }
-);
-  diagnosticsUpdater.add(depthCheck);
+        return Diagnostic(Diagnostic::OK).description(
+            "OK - %f m within [%f m, 0 m] range", depth, max_depth);
+      });  // NOLINT(whitespace/braces)
 
-  orientationRollCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
-      "Vehicle orientation - Roll Angle check",
-      [this](const geometry_msgs::Vector3 &rpy) -> diagnostic_tools::Diagnostic
+  diagnostics_updater_.add(depth_check_);
+
+  orientation_roll_check_ =
+    diagnostic_tools::create_health_check<double>(
+      "Vehicle orientation - Roll angle check",
+      [max_roll_angle](double roll) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
+        using health_monitor::ReportFault;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (std::abs(rpy.x) > maxRollAng)
+        if (std::abs(roll) > max_roll_angle)
         {
           diagnostic.status(Diagnostic::ERROR)
-              .description("Roll Angle - NOT OK -> |%f rad| > %f rad", rpy.x, maxRollAng)
+              .description("Roll angle - NOT OK -> |%f rad| > %f rad",
+                           roll, max_roll_angle)
               .code(ReportFault::POSE_ROLL_THRESHOLD_REACHED);
         }
         else
         {
-          diagnostic.description("Roll Angle - OK (%f)", rpy.x);
+          diagnostic.description("Roll angle - OK (%f)", roll);
         }
         return diagnostic;
-      }
-);
-  diagnosticsUpdater.add(orientationRollCheck);
+      });  // NOLINT(whitespace/braces)
+  diagnostics_updater_.add(orientation_roll_check_);
 
-  orientationPitchCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
-      "Vehicle orientation - Pitch Angle check",
-      [this](const geometry_msgs::Vector3 &rpy) -> diagnostic_tools::Diagnostic
+  orientation_pitch_check_ =
+    diagnostic_tools::create_health_check<double>(
+      "Vehicle orientation - Pitch angle check",
+      [max_pitch_angle](double pitch) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
+        using health_monitor::ReportFault;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (std::abs(rpy.y) > maxPitchAng)
+        if (std::abs(pitch) > max_pitch_angle)
         {
           diagnostic.status(Diagnostic::ERROR)
-              .description("Pitch Angle - NOT OK -> |%f rad| > %f rad", rpy.y, maxPitchAng)
+              .description("Pitch angle - NOT OK -> |%f rad| > %f rad",
+                           pitch, max_pitch_angle)
               .code(ReportFault::POSE_PITCH_THRESHOLD_REACHED);
         }
         else
         {
-          diagnostic.description("Pitch Angle - OK (%f)", rpy.y);
+          diagnostic.description("Pitch angle - OK (%f)", pitch);
         }
         return diagnostic;
-      }
-);
-  diagnosticsUpdater.add(orientationPitchCheck);
+      });  // NOLINT(whitespace/braces)
+  diagnostics_updater_.add(orientation_pitch_check_);
 
-  orientationYawCheck = diagnostic_tools::create_health_check<geometry_msgs::Vector3>(
-      "Vehicle orientation - Roll Yaw check",
-      [this](const geometry_msgs::Vector3 &rpy) -> diagnostic_tools::Diagnostic
+  orientation_yaw_check_ =
+    diagnostic_tools::create_health_check<double>(
+      "Vehicle orientation - Yaw angle check",
+      [max_yaw_angle](double yaw) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
+        using health_monitor::ReportFault;
         Diagnostic diagnostic{Diagnostic::OK};
-        if (std::abs(rpy.z) > maxYawAng)
+        if (std::abs(yaw) > max_yaw_angle)
         {
           diagnostic.status(Diagnostic::ERROR)
-              .description("Yaw Angle - NOT OK -> |%f rad| > %f rad", rpy.z, maxYawAng)
+              .description("Yaw angle - NOT OK -> |%f rad| > %f rad",
+                           yaw, max_yaw_angle)
               .code(ReportFault::POSE_HEADING_THRESHOLD_REACHED);
         }
         else
         {
-          diagnostic.description("Yaw Angle - OK (%f)", rpy.z);
+          diagnostic.description("Yaw angle - OK (%f)", yaw);
         }
         return diagnostic;
-      }
-);
+      });  // NOLINT(whitespace/braces)
+  diagnostics_updater_.add(orientation_yaw_check_);
 
-  diagnosticsUpdater.add(orientationYawCheck);
-
-  // Initialize corrected data header
-  m_correctedData.header.frame_id = "corrected_data";
+  // Start diagnostics publishing timer
+  diagnostics_timer_ = nh_.createTimer(
+      ros::Duration(diagnostics_updater_.getPeriod()),
+      boost::bind(&diagnostic_updater::Updater::update, &diagnostics_updater_));
 }
 
-PoseEstimatorNode::~PoseEstimatorNode()
+bool PoseEstimator::spin()
 {
-  stop();
-}
-
-double PoseEstimatorNode::calculateDepth(double pressure, bool flag)
-{
-  double depth;
-  pressure = pressure - ABSOLUTE_PASCAL_TO_GAUGE_PASCAL;
-  // Calculate Depth
-  if (flag)  // if saltwater
+  while (ros::ok())
   {
-    depth = pressure / GRAVITY / SALTWATER_DENSITY;
+    ros::spin();
   }
-  else
+}
+
+namespace
+{
+
+// assumes that the pressure is in absolute pascal and a true flag indicates saltwater
+double calculateDepth(double pressure, bool saltwater)
+{
+  constexpr double absolute_pascal_to_gauge_pascal = 101325;
+  constexpr double gravity_acceleration = 9.80665;  // m/s^2
+  constexpr double freshwater_density = 997.0474;  // kg/m^3
+  constexpr double saltwater_density = 1023.6;  // kg/m^3
+
+  const double density = saltwater ? saltwater_density : freshwater_density;
+  const double gauge_pressure = pressure - absolute_pascal_to_gauge_pascal;
+  return gauge_pressure / gravity_acceleration / density;
+}
+
+}  // namespace
+
+void PoseEstimator::dataCallback(
+    const sensor_msgs::Imu::ConstPtr& ahrs_msg,
+    const sensor_msgs::FluidPressure::ConstPtr& pressure_msg,
+    const thruster_control::ReportRPM::ConstPtr& rpms_msg)
+{
+  auv_interfaces::StateStamped msg;
+  msg.header.stamp = ros::Time::now();
+
+  if (last_fix_msg_)
   {
-    depth = pressure / GRAVITY / FRESHWATER_DENSITY;
+    // Use GPS for geolocation (should consider validity time?)
+    msg.state.geolocation.position.latitude = last_fix_msg_->latitude;
+    msg.state.geolocation.position.longitude = last_fix_msg_->longitude;
+    msg.state.geolocation.position.altitude = last_fix_msg_->altitude;
+    msg.state.geolocation.covariance = last_fix_msg_->position_covariance;
   }
-  return depth;
-}
 
-int PoseEstimatorNode::start()
-{
-  stop();
-  running = true;
-  // Start data publishing timer
-  ROS_INFO("Starting data publishing timer");
-  m_timerPub = node_handle.createTimer(ros::Duration(1.0 / pubRate),
-                                       boost::bind(&PoseEstimatorNode::publishData, this));
-  return 0;
-}
+  // Use orientation from AHRS
+  tf::Quaternion orientation(
+      ahrs_msg->orientation.x, ahrs_msg->orientation.y,
+      ahrs_msg->orientation.z, ahrs_msg->orientation.w);
 
-int PoseEstimatorNode::stop()
-{
-  if (running)
-  {
-    running = false;
-    m_timerPub.stop();
-  }
-  return 0;
-}
-
-bool PoseEstimatorNode::spin()
-{
-  while (!ros::isShuttingDown())
-  {
-    if (start() == 0)
-    {
-      while (node_handle.ok())
-      {
-        ros::spin();
-      }
-    }
-  }
-  stop();
-  return true;
-}
-
-void PoseEstimatorNode::ahrsDataCallback(const sensor_msgs::Imu &data)
-{
-  boost::mutex::scoped_lock lock(m_mutDataLock);
-  tf::Quaternion quat(data.orientation.x, data.orientation.y, data.orientation.z,
-                      data.orientation.w);
-  tf::Matrix3x3 m(quat);
+  tf::Matrix3x3 m(orientation);
   double roll, pitch, yaw;
   m.getRPY(roll, pitch, yaw);
-  cur_rpy_ang[CorrectedData::ROLL] = roll * -1.0;
-  cur_rpy_ang[CorrectedData::PITCH] = pitch * -1.0;
-  cur_rpy_ang[CorrectedData::YAW] = yaw;
-  ahrs_ok = true;
+  msg.state.manoeuvring.pose.mean.orientation.x = roll;
+  msg.state.manoeuvring.pose.mean.orientation.y = pitch;
+  msg.state.manoeuvring.pose.mean.orientation.z = yaw;
+  msg.state.manoeuvring.pose.covariance[21] = ahrs_msg->orientation_covariance[0];
+  msg.state.manoeuvring.pose.covariance[22] = ahrs_msg->orientation_covariance[1];
+  msg.state.manoeuvring.pose.covariance[23] = ahrs_msg->orientation_covariance[2];
+  msg.state.manoeuvring.pose.covariance[27] = ahrs_msg->orientation_covariance[3];
+  msg.state.manoeuvring.pose.covariance[28] = ahrs_msg->orientation_covariance[4];
+  msg.state.manoeuvring.pose.covariance[29] = ahrs_msg->orientation_covariance[5];
+  msg.state.manoeuvring.pose.covariance[33] = ahrs_msg->orientation_covariance[6];
+  msg.state.manoeuvring.pose.covariance[34] = ahrs_msg->orientation_covariance[7];
+  msg.state.manoeuvring.pose.covariance[35] = ahrs_msg->orientation_covariance[8];
+
+  orientation_roll_check_.test(roll);
+  orientation_pitch_check_.test(pitch);
+  orientation_yaw_check_.test(yaw);
+
+  // Estimate depth from pressure sensor
+  double depth = calculateDepth(pressure_msg->fluid_pressure, in_saltwater_);
+  msg.state.manoeuvring.pose.mean.position.z = depth;
+  msg.state.manoeuvring.pose.covariance[14] = pressure_msg->variance;
+
+  depth_check_.test(depth);
+
+  // Estimate velocity from AHRS and thruster RPMs
+  const double speed_kn = static_cast<double>(rpms_msg->rpms) / rpm_per_kn_;
+  constexpr double kn_per_ms = 1852. / 3600.;  // exact conversion
+  const tf::Quaternion nominal_velocity(speed_kn * kn_per_ms, 0., 0., 0.);
+  const tf::Quaternion velocity =
+      orientation * nominal_velocity * orientation.inverse();
+  msg.state.manoeuvring.velocity.mean.linear.x = velocity.x();
+  msg.state.manoeuvring.velocity.mean.linear.y = velocity.y();
+  msg.state.manoeuvring.velocity.mean.linear.z = velocity.z();
+
+  state_pub_.publish(msg);
 }
 
-void PoseEstimatorNode::rpmDataCallback(const thruster_control::ReportRPM &data)
+void PoseEstimator::fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
-  boost::mutex::scoped_lock lock(m_mutDataLock);
-  cur_speed = static_cast<double>(data.rpms) / rpmPerKnot;
-}
-
-void PoseEstimatorNode::gpsDataCallback(const sensor_msgs::NavSatFix &data)
-{
-  if (data.status.status >= 0)
+  if (msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX)
   {
-    boost::mutex::scoped_lock lock(m_mutDataLock);
-    cur_latitude = data.latitude;
-    cur_longitude = data.longitude;
-    cur_gps_time = data.header.stamp.toSec();
+    ROS_DEBUG("GPS unable to fix position! Ignoring...");
+    last_fix_msg_.reset();
   }
+  last_fix_msg_ = msg;
 }
 
-void PoseEstimatorNode::pressureDataCallback(const sensor_msgs::FluidPressure &data)
-{
-  boost::mutex::scoped_lock lock(m_mutDataLock);
-  cur_pressure = data.fluid_pressure;
-  pressure_ok = true;
-}
-
-void PoseEstimatorNode::processDynPos()
-{
-  boost::mutex::scoped_lock data_lock(m_mutDataLock);
-  m_correctedData.rpy_ang.x = cur_rpy_ang[CorrectedData::ROLL];
-  m_correctedData.rpy_ang.y = cur_rpy_ang[CorrectedData::PITCH];
-  m_correctedData.rpy_ang.z = cur_rpy_ang[CorrectedData::YAW];
-}
-
-void PoseEstimatorNode::processLatLong()
-{
-  boost::mutex::scoped_lock data_lock(m_mutDataLock);
-  m_correctedData.position.latitude = cur_latitude;
-  m_correctedData.position.longitude = cur_longitude;
-}
-
-void PoseEstimatorNode::processDepth()
-{
-  boost::mutex::scoped_lock data_lock(m_mutDataLock);
-  cur_depth = calculateDepth(cur_pressure, saltwater_flag);
-  m_correctedData.depth = cur_depth;
-}
-
-void PoseEstimatorNode::processSpeed()
-{
-  boost::mutex::scoped_lock data_lock(m_mutDataLock);
-  m_correctedData.speed = cur_speed;
-}
-
-void PoseEstimatorNode::publishData()
-{
-  // Ensure that we have started getting data from all critical sensors
-  // before we start publishing data
-  if (!data_valid)
-  {
-    if (ahrs_ok && pressure_ok)
-    {
-      data_valid = true;
-    }
-  }
-  else
-  {
-    // these next 3 methods just copy the
-    // current data to the message structure
-    processDepth();
-    processSpeed();
-    processLatLong();
-    processDynPos();
-    // Publish the latest set of corrected data
-    boost::mutex::scoped_lock data_lock(m_mutDataLock);
-    m_correctedData.header.stamp = ros::Time::now();
-
-    depthCheck.test(m_correctedData.depth);
-    orientationRollCheck.test(m_correctedData.rpy_ang);
-    orientationPitchCheck.test(m_correctedData.rpy_ang);
-    orientationYawCheck.test(m_correctedData.rpy_ang);
-    pub_corrected_data.publish(m_correctedData);
-    diagnosticsUpdater.update();
-  }
-}
+}  // namespace robot
+}  // namespace qna
