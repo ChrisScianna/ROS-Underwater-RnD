@@ -51,15 +51,16 @@ namespace robot
 {
 
 PoseEstimator::PoseEstimator()
-    : pnh_("~"), diagnostics_updater_(nh_)
+    : pnh_("~"),
+      synchronizer_(DataPolicy(10)),
+      diagnostics_updater_(nh_)
 {
   diagnostics_updater_.setHardwareID("pose_estimator");
 
   // Get runtime parameters
-  double rate, min_rate, max_rate;
-  pnh_.param("rate", rate, 20.);
-  pnh_.param("min_rate", min_rate, rate / 2.);
-  pnh_.param("max_rate", max_rate, rate * 2.);
+  double min_rate, max_rate;
+  pnh_.param("min_rate", min_rate, 1.);  // Hz
+  pnh_.param("max_rate", max_rate, 50.);  // Hz
 
   double absolute_steady_band;
   double relative_steady_band;
@@ -77,10 +78,14 @@ PoseEstimator::PoseEstimator()
   pnh_.param("rpm_per_knot", rpm_per_kn_, 303.0);
 
   // Subscribe to all topics
-  pressure_sub_ = nh_.subscribe("pressure", 1, &PoseEstimator::pressureDataCallback, this);
-  ahrs_sub_ = nh_.subscribe("imu/data", 1, &PoseEstimator::ahrsDataCallback, this);
-  rpms_sub_ = nh_.subscribe("rpms", 1, &PoseEstimator::rpmDataCallback, this);
-  gps_sub_ = nh_.subscribe("fix", 1, &PoseEstimator::gpsDataCallback, this);
+  ahrs_sub_.subscribe(nh_, "imu/data", 10);
+  pressure_sub_.subscribe(nh_, "pressure", 10);
+  rpms_sub_.subscribe(nh_, "rpms", 10);
+  synchronizer_.connectInput(ahrs_sub_, pressure_sub_, rpms_sub_);
+  synchronizer_.registerCallback(
+      boost::bind(&PoseEstimator::dataCallback, this, _1, _2, _3));
+
+  fix_sub_ = nh_.subscribe("fix", 1, &PoseEstimator::fixCallback, this);
 
   // Advertise all topics and services
   state_pub_ =
@@ -114,17 +119,18 @@ PoseEstimator::PoseEstimator()
 
   // Report if message data is out of range
   depth_check_ = diagnostic_tools::create_health_check<double>(
-      "Vehicle depth within range",
-      [max_depth](double depth) -> diagnostic_tools::Diagnostic
+      "Vehicle position - Depth check",
+      [max_depth](double depth)
       {
         using diagnostic_tools::Diagnostic;
         using health_monitor::ReportFault;
         if (depth < 0. || depth > max_depth)
         {
           return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_DEPTH_THRESHOLD_REACHED)
-              .description("%f m outside [%f m, %m m] range", depth, max_depth);
+              .description("NOT OK - %f m outside [%f m, 0 m] range", depth, max_depth);
         }
-        return Diagnostic::OK;
+        return Diagnostic(Diagnostic::OK).description(
+            "OK - %f m within [%f m, 0 m] range", depth, max_depth);
       });  // NOLINT(whitespace/braces)
 
   diagnostics_updater_.add(depth_check_);
@@ -198,9 +204,10 @@ PoseEstimator::PoseEstimator()
       });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(orientation_yaw_check_);
 
-  // Start data publishing timer
-  timer_ = nh_.createTimer(
-      ros::Duration(1.0 / rate), boost::bind(&PoseEstimator::publish, this));
+  // Start diagnostics publishing timer
+  diagnostics_timer_ = nh_.createTimer(
+      ros::Duration(diagnostics_updater_.getPeriod()),
+      boost::bind(&diagnostic_updater::Updater::update, &diagnostics_updater_));
 }
 
 bool PoseEstimator::spin()
@@ -208,64 +215,6 @@ bool PoseEstimator::spin()
   while (ros::ok())
   {
     ros::spin();
-  }
-}
-
-void PoseEstimator::ahrsDataCallback(const sensor_msgs::Imu &msg)
-{
-  // Keep orientation to rotate speed vector
-  orientation_ = tf::Quaternion(
-      msg.orientation.x, msg.orientation.y,
-      msg.orientation.z, msg.orientation.w);
-
-  tf::Matrix3x3 m(orientation_);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
-  state_.manoeuvring.pose.mean.orientation.x = roll;
-  state_.manoeuvring.pose.mean.orientation.y = pitch;
-  state_.manoeuvring.pose.mean.orientation.z = yaw;
-  state_.manoeuvring.pose.covariance[21] = msg.orientation_covariance[0];
-  state_.manoeuvring.pose.covariance[22] = msg.orientation_covariance[1];
-  state_.manoeuvring.pose.covariance[23] = msg.orientation_covariance[2];
-  state_.manoeuvring.pose.covariance[27] = msg.orientation_covariance[3];
-  state_.manoeuvring.pose.covariance[28] = msg.orientation_covariance[4];
-  state_.manoeuvring.pose.covariance[29] = msg.orientation_covariance[5];
-  state_.manoeuvring.pose.covariance[33] = msg.orientation_covariance[6];
-  state_.manoeuvring.pose.covariance[34] = msg.orientation_covariance[7];
-  state_.manoeuvring.pose.covariance[35] = msg.orientation_covariance[8];
-
-  orientation_roll_check_.test(roll);
-  orientation_pitch_check_.test(pitch);
-  orientation_yaw_check_.test(yaw);
-
-  ahrs_ok_ = true;
-}
-
-void PoseEstimator::rpmDataCallback(const thruster_control::ReportRPM &msg)
-{
-  if (ahrs_ok_)
-  {
-    const double speed_kn = static_cast<double>(msg.rpms) / rpm_per_kn_;
-    constexpr double kn_per_ms = 1852. / 3600.;  // exact conversion
-    const tf::Quaternion nominal_velocity(speed_kn * kn_per_ms, 0., 0., 0.);
-    const tf::Quaternion velocity =
-      orientation_ * nominal_velocity * orientation_.inverse();
-    state_.manoeuvring.velocity.mean.linear.x = velocity.x();
-    state_.manoeuvring.velocity.mean.linear.y = velocity.y();
-    state_.manoeuvring.velocity.mean.linear.z = velocity.z();
-
-    rpms_ok_ = true;
-  }
-}
-
-void PoseEstimator::gpsDataCallback(const sensor_msgs::NavSatFix &msg)
-{
-  if (msg.status.status != sensor_msgs::NavSatStatus::STATUS_NO_FIX)
-  {
-    state_.geolocation.position.latitude = msg.latitude;
-    state_.geolocation.position.longitude = msg.longitude;
-    state_.geolocation.position.altitude = msg.altitude;
-    state_.geolocation.covariance = msg.position_covariance;
   }
 }
 
@@ -287,33 +236,76 @@ double calculateDepth(double pressure, bool saltwater)
 
 }  // namespace
 
-void PoseEstimator::pressureDataCallback(const sensor_msgs::FluidPressure &msg)
+void PoseEstimator::dataCallback(
+    const sensor_msgs::Imu::ConstPtr& ahrs_msg,
+    const sensor_msgs::FluidPressure::ConstPtr& pressure_msg,
+    const thruster_control::ReportRPM::ConstPtr& rpms_msg)
 {
-  double depth = calculateDepth(msg.fluid_pressure, in_saltwater_);
+  auv_interfaces::StateStamped msg;
+  msg.header.stamp = ros::Time::now();
 
-  state_.manoeuvring.pose.mean.position.z = depth;
-  state_.manoeuvring.pose.covariance[14] = msg.variance;
+  if (last_fix_msg_)
+  {
+    // Use GPS for geolocation (should consider validity time?)
+    msg.state.geolocation.position.latitude = last_fix_msg_->latitude;
+    msg.state.geolocation.position.longitude = last_fix_msg_->longitude;
+    msg.state.geolocation.position.altitude = last_fix_msg_->altitude;
+    msg.state.geolocation.covariance = last_fix_msg_->position_covariance;
+  }
+
+  // Use orientation from AHRS
+  tf::Quaternion orientation(
+      ahrs_msg->orientation.x, ahrs_msg->orientation.y,
+      ahrs_msg->orientation.z, ahrs_msg->orientation.w);
+
+  tf::Matrix3x3 m(orientation);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+  msg.state.manoeuvring.pose.mean.orientation.x = roll;
+  msg.state.manoeuvring.pose.mean.orientation.y = pitch;
+  msg.state.manoeuvring.pose.mean.orientation.z = yaw;
+  msg.state.manoeuvring.pose.covariance[21] = ahrs_msg->orientation_covariance[0];
+  msg.state.manoeuvring.pose.covariance[22] = ahrs_msg->orientation_covariance[1];
+  msg.state.manoeuvring.pose.covariance[23] = ahrs_msg->orientation_covariance[2];
+  msg.state.manoeuvring.pose.covariance[27] = ahrs_msg->orientation_covariance[3];
+  msg.state.manoeuvring.pose.covariance[28] = ahrs_msg->orientation_covariance[4];
+  msg.state.manoeuvring.pose.covariance[29] = ahrs_msg->orientation_covariance[5];
+  msg.state.manoeuvring.pose.covariance[33] = ahrs_msg->orientation_covariance[6];
+  msg.state.manoeuvring.pose.covariance[34] = ahrs_msg->orientation_covariance[7];
+  msg.state.manoeuvring.pose.covariance[35] = ahrs_msg->orientation_covariance[8];
+
+  orientation_roll_check_.test(roll);
+  orientation_pitch_check_.test(pitch);
+  orientation_yaw_check_.test(yaw);
+
+  // Estimate depth from pressure sensor
+  double depth = calculateDepth(pressure_msg->fluid_pressure, in_saltwater_);
+  msg.state.manoeuvring.pose.mean.position.z = depth;
+  msg.state.manoeuvring.pose.covariance[14] = pressure_msg->variance;
 
   depth_check_.test(depth);
 
-  pressure_ok_ = true;
+  // Estimate velocity from AHRS and thruster RPMs
+  const double speed_kn = static_cast<double>(rpms_msg->rpms) / rpm_per_kn_;
+  constexpr double kn_per_ms = 1852. / 3600.;  // exact conversion
+  const tf::Quaternion nominal_velocity(speed_kn * kn_per_ms, 0., 0., 0.);
+  const tf::Quaternion velocity =
+      orientation * nominal_velocity * orientation.inverse();
+  msg.state.manoeuvring.velocity.mean.linear.x = velocity.x();
+  msg.state.manoeuvring.velocity.mean.linear.y = velocity.y();
+  msg.state.manoeuvring.velocity.mean.linear.z = velocity.z();
+
+  state_pub_.publish(msg);
 }
 
-void PoseEstimator::publish()
+void PoseEstimator::fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
-  // Ensure that we have started getting data
-  // from all critical sensors before we start
-  // publishing data
-  if (ahrs_ok_ && pressure_ok_ && rpms_ok_)
+  if (msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX)
   {
-    // Publish the latest estimated state
-    auv_interfaces::StateStamped msg;
-    msg.header.stamp = ros::Time::now();
-    msg.state = state_;
-    state_pub_.publish(msg);
+    ROS_DEBUG("GPS unable to fix position! Ignoring...");
+    last_fix_msg_.reset();
   }
-
-  diagnostics_updater_.update();
+  last_fix_msg_ = msg;
 }
 
 }  // namespace robot

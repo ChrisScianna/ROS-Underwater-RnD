@@ -39,6 +39,9 @@
 
 #include <auv_interfaces/State.h>
 #include <auv_interfaces/StateStamped.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <ros/ros.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -72,33 +75,31 @@ public:
   bool spin();
 
 private:
-  void ahrsDataCallback(const sensor_msgs::Imu &data);
-  void rpmDataCallback(const thruster_control::ReportRPM &data);
-  void gpsDataCallback(const sensor_msgs::NavSatFix &data);
-  void pressureDataCallback(const sensor_msgs::FluidPressure &data);
+  void dataCallback(
+      const sensor_msgs::Imu::ConstPtr& ahrs_msg,
+      const sensor_msgs::FluidPressure::ConstPtr& pressure_msg,
+      const thruster_control::ReportRPM::ConstPtr& rpms_msg);
 
-  void publish();
+  void fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg);
 
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
-
-  // Flags for signaling if we have received essential data
-  bool ahrs_ok_{false};
-  bool pressure_ok_{false};
-  bool rpms_ok_{false};
 
   // Enviornmental Flags
   bool in_saltwater_;
   double rpm_per_kn_;
 
-  auv_interfaces::State state_;
-  tf::Quaternion orientation_;
+  message_filters::Subscriber<sensor_msgs::Imu> ahrs_sub_;
+  message_filters::Subscriber<sensor_msgs::FluidPressure> pressure_sub_;
+  message_filters::Subscriber<thruster_control::ReportRPM> rpms_sub_;
 
-  ros::Timer timer_;
-  ros::Subscriber ahrs_sub_;
-  ros::Subscriber pressure_sub_;
-  ros::Subscriber rpms_sub_;
-  ros::Subscriber gps_sub_;
+  using DataPolicy = message_filters::sync_policies::ApproximateTime<
+    sensor_msgs::Imu, sensor_msgs::FluidPressure, thruster_control::ReportRPM>;
+  message_filters::Synchronizer<DataPolicy> synchronizer_;
+
+  ros::Subscriber fix_sub_;
+  sensor_msgs::NavSatFix::ConstPtr last_fix_msg_;
+
   diagnostic_tools::DiagnosedPublisher<
     auv_interfaces::StateStamped> state_pub_;
 
@@ -107,6 +108,7 @@ private:
   diagnostic_tools::HealthCheck<double> orientation_pitch_check_;
   diagnostic_tools::HealthCheck<double> orientation_yaw_check_;
   diagnostic_updater::Updater diagnostics_updater_;
+  ros::Timer diagnostics_timer_;
 };
 
 }  // namespace robot
