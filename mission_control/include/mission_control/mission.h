@@ -76,6 +76,7 @@ class Mission
   BT::Tree tree_;
   std::string description_;   //  Description of the mission
   std::string behaviorName_;  //  Name of the action (behavior) being executed.
+  BT::NodeStatus behaviorStatus_;
 };
 
 }  //  namespace mission_control

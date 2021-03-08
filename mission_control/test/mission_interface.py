@@ -39,12 +39,12 @@ import math
 import rosnode
 import rospy
 import rostest
+from xml.etree import ElementTree
 from mission_control.msg import LoadMission
 from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import ReportLoadMissionState
 from mission_control.msg import ReportMissions
-from mission_control.msg import FixedRudder
 
 
 def wait_for(predicate, period=1):
@@ -56,39 +56,35 @@ def wait_for(predicate, period=1):
     return predicate()
 
 
-class TestFixedRudderBehavior(unittest.TestCase):
-    """ 
-        The test loads and execute a fixed rudder mission.
+class MissionInterface:
+    """
+        This class:
+        - simulates the Jaus Ros Bridge commands:
+            a) Load Mission
+            b) Execute Mission
+            c) Subscribe to:
+                -   report_mission_execute_state
+                -   report_mission_load_state
+        - Helper functions:
+            a) Read mission parameters
     """
 
-    @classmethod
-    def setUpClass(cls):
-        rospy.init_node('test_fixed_rudder_behavioral')
-
-    def setUp(self):
-        mission_execute_state = ReportExecuteMissionState.PAUSED
-        mission_load_state = False
-        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/test_files/'
+    def __init__(self):
         mission_load_state_flag = False
         report_mission_flag = False
         report_mission = ReportMissions()
         self.mission_load_state = None
-        self.report_mission = None
-        self.report_execute_mission = None
-        self.fixed_rudder_goal = []
+        self.mission_behavior_parameters = None
+        self.execute_mission_state = ReportExecuteMissionState()
 
         # Subscribers
-        self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
-                                               ReportExecuteMissionState, self.callback_mission_execute_state)
+        self.exec_state_sub = rospy.Subscriber(
+            '/mission_control_node/report_mission_execute_state',
+            ReportExecuteMissionState, self.callback_mission_execute_state)
 
-        self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
-                                               ReportLoadMissionState, self.callback_mission_load_state)
-
-        self.report_missions_sub = rospy.Subscriber('/mission_control_node/report_missions',
-                                                    ReportMissions, self.callback_report_mission)
-
-        self.fixed_rudder_msg = rospy.Subscriber('/mngr/fixed_rudder',
-                                                 FixedRudder, self.callback_publish_fixed_rudder_goal)
+        self.load_state_sub = rospy.Subscriber(
+            '/mission_control_node/report_mission_load_state',
+            ReportLoadMissionState, self.callback_mission_load_state)
 
         # Publishers
         self.simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
@@ -98,50 +94,38 @@ class TestFixedRudderBehavior(unittest.TestCase):
             '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
 
     def callback_mission_execute_state(self, msg):
-        self.report_execute_mission = msg
-        rospy.loginfo(msg)
-
-    def callback_report_mission(self, msg):
-        self.report_mission = msg
+        self.execute_mission_state = msg.execute_mission_state
 
     def callback_mission_load_state(self, msg):
         self.mission_load_state = msg.load_state
 
-    def callback_publish_fixed_rudder_goal(self, msg):
-        self.fixed_rudder_goal = [msg.depth,
-                                  msg.rudder,
-                                  msg.speed_knots,
-                                  msg.ena_mask]
-
-    def test_mission_with_fixed_rudder_behavioral(self):
-
+    def load_mission(self, mission_name):
+        # Simulate Jaus Ros Bridge sending a Load Command and wait for
+        # response that the mission was loaded correctly
+        self.full_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'test_files/test_missions', mission_name)
         self.mission_load_state_flag = False
         mission_to_load = LoadMission()
-        mission_to_load.mission_file_full_path = self.dir_path + "test_missions/fixed_rudder_mission_test.xml"
-        self.simulated_mission_control_load_mission_pub.publish(mission_to_load)
+        mission_to_load.mission_file_full_path = self.full_path
+        self.simulated_mission_control_load_mission_pub.publish(
+            mission_to_load)
 
-        def load_mission():
+        def load_mission_state():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(load_mission),
-                        msg='Mission control must report SUCCESS')
-        rospy.loginfo("Mission Loaded")
+        wait_for(load_mission_state)
 
+    def execute_mission(self, mission_id=1):
+        # Simulate Jaus Ros Bridge sending an Execute Command
         mission_to_execute = ExecuteMission()
-        mission_to_execute.mission_id = 1
+        mission_to_execute.mission_id = mission_id
         self.simulated_mission_control_execute_mission_pub.publish(
             mission_to_execute)
-        rospy.loginfo("execute msg")
 
-        def fixed_rudder_goals_are_setted():
-            return self.fixed_rudder_goal == [1.0, 2.0, 3.0, 7]
-        self.assertTrue(wait_for(fixed_rudder_goals_are_setted),
-                        msg='Mission control must publish goals')
+    def read_behavior_parameters(self, mission_behavior):
+        # Look for the mission behavior in the xml mission file
+        tree = ElementTree.parse(self.full_path)
+        self.mission_behavior_parameters = tree.find('.//' + mission_behavior)
 
-        def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
-        self.assertTrue(wait_for(success_mission_status_is_reported), 
-            msg='Mission control must report SUCCESS')
-
-if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_test_fixed_rudder_behavioral',
-                   TestFixedRudderBehavior)
+    def get_behavior_parameter(self, behavior_parameter):
+        # return the parameter of the mission (mission/behavior/parameter)
+        return float(self.mission_behavior_parameters.attrib.get(behavior_parameter))
