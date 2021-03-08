@@ -39,9 +39,11 @@ import math
 import rosnode
 import rospy
 import rostest
+from xml.etree import ElementTree
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import FixedRudder
-from load_execute_mission import LoadExecuteMission
+from mission_interface import MissionInterface
+from mission_interface import wait_for
 
 
 class TestFixedRudderBehavior(unittest.TestCase):
@@ -58,43 +60,41 @@ class TestFixedRudderBehavior(unittest.TestCase):
 
     def setUp(self):
         mission_execute_state = ReportExecuteMissionState.PAUSED
-        self.report_execute_mission = None
         self.fixed_rudder_goal = []
-        self.mission = LoadExecuteMission()
+        self.mission = MissionInterface()
         self.fixed_rudder_goal = FixedRudder()
 
         # Subscribers
-        self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
-                                               ReportExecuteMissionState, self.callback_mission_execute_state)
-
-        self.fixed_rudder_msg = rospy.Subscriber('/mngr/fixed_rudder',
-                                                 FixedRudder, self.callback_publish_fixed_rudder_goal)
-
-    def callback_mission_execute_state(self, msg):
-        self.report_execute_mission = msg
+        self.fixed_rudder_msg = rospy.Subscriber(
+            '/mngr/fixed_rudder', FixedRudder, self.callback_publish_fixed_rudder_goal)
 
     def callback_publish_fixed_rudder_goal(self, msg):
         self.fixed_rudder_goal = msg
 
     def test_mission_with_fixed_rudder_behavior(self):
-
         self.mission.load_mission("fixed_rudder_mission_test.xml")
         self.mission.execute_mission()
 
+        self.mission.read_behavior_parameters('MoveWithFixedRudder')
+        depth = self.mission.get_behavior_parameter('depth')
+        rudder = self.mission.get_behavior_parameter('rudder')
+        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+
         # Check if the behavior publishes the goal
-        def fixed_rudder_goals_are_setted():
-            return (self.fixed_rudder_goal.depth == 1.0 and
-                    self.fixed_rudder_goal.rudder == 2.0 and
-                    self.fixed_rudder_goal.speed_knots == 3.0 and
+        def fixed_rudder_goals_are_set():
+            return (self.fixed_rudder_goal.depth == depth and
+                    self.fixed_rudder_goal.rudder == rudder and
+                    self.fixed_rudder_goal.speed_knots == speed_knots and
                     self.fixed_rudder_goal.ena_mask == 7)
-        self.assertTrue(self.mission.wait_for(fixed_rudder_goals_are_setted),
+        self.assertTrue(wait_for(fixed_rudder_goals_are_set),
                         msg='Mission control must publish goals')
 
         # Wait for the mission to be complete
         def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
-        self.assertTrue(self.mission.wait_for(success_mission_status_is_reported),
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(success_mission_status_is_reported),
                         msg='Mission control must report COMPLETE')
+
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_test_fixed_rudder_behavior',
