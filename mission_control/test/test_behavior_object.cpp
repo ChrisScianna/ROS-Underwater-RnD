@@ -19,9 +19,11 @@ class DummyBehavior : public Behavior
   {
     tickCount = 0;
   }
-  BT::NodeStatus behaviorRunningProcess() { 
+  BT::NodeStatus behaviorRunningProcess()
+  {
     tickCount++;
-    return status(); }
+    return status();
+  }
 
   int tickCount;
   void changeStatus(const BT::NodeStatus& newStatus) { setStatus(newStatus); }
@@ -50,12 +52,13 @@ GTEST_TEST(BehaviorTest, TestIfBehaviorStopsAfterHalt)
   ASSERT_TRUE(dummyBehavior.isHalted());
 }
 
-GTEST_TEST(BehaviorTest, TestIfBehaviorChangeStatusToIdleAfterSuccess)
+GTEST_TEST(BehaviorTest, TestIfBehaviorDoesntChangeStatusToIdleAfterSuccess)
 {
   BT::NodeConfiguration nodeConfig;
   DummyBehavior dummyBehavior("dummy", nodeConfig);
   dummyBehavior.changeStatus(BT::NodeStatus::SUCCESS);
-  ASSERT_EQ(dummyBehavior.tick(), BT::NodeStatus::IDLE);
+  dummyBehavior.tick();
+  ASSERT_EQ(dummyBehavior.tick(), BT::NodeStatus::SUCCESS);
 }
 
 GTEST_TEST(BehaviorTest, TestIfBehaviorDontChangeStatusOnTickIfFailure)

@@ -1,0 +1,11 @@
+<launch>
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+  <!--
+      These test verifyes the behaviors/actions:
+        -   Fixed Rudder
+        -   Go to Waypoint
+        -   Depth Heading
+        -   Attitude Servo
+  -->
+  <test test-name="test_mission_control_fixed_rudder_action" pkg="mission_control" type="test_fixed_rudder_behavioral.py" time-limit="10.0" />
+</launch>
