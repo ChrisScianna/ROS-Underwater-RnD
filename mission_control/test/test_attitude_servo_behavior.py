@@ -66,26 +66,37 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         self.mission = MissionInterface()
 
         # Subscribers
-        self.attitude_servo_msg = rospy.Subscriber('/mngr/attitude_servo',
-                                                   AttitudeServo, self.callback_publish_attitude_servo_goal)
+        self.attitude_servo_msg = rospy.Subscriber(
+            '/mngr/attitude_servo',
+            AttitudeServo,
+            self.attitude_servo_goal_callback)
 
-        self.simulated_pose_estimator_pub = rospy.Publisher('/pose/corrected_data',
-                                                            CorrectedData, queue_size=1)
+        self.simulated_pose_estimator_pub = rospy.Publisher(
+            '/pose/corrected_data',
+            CorrectedData,
+            queue_size=1)
 
-    def callback_publish_attitude_servo_goal(self, msg):
+    def attitude_servo_goal_callback(self, msg):
         self.attitude_servo_goal = msg
-        rospy.loginfo(msg)
 
-    def test_mission_with_attitude_servo_behavioral(self):
-        self.mission.load_mission("attitude_servo_mission_test.xml")
+    def test_mission_with_attitude_servo_behavior(self):
+        self.mission.load_mission('attitude_servo_mission_test.xml')
         self.mission.execute_mission()
-        rospy.loginfo("Ejecutando")
 
         self.mission.read_behavior_parameters('AttitudeServoBehavior')
         roll = self.mission.get_behavior_parameter('roll')
         pitch = self.mission.get_behavior_parameter('pitch')
         yaw = self.mission.get_behavior_parameter('yaw')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        enable_mask = 0
+        
+        #Calculate the mask
+        def get_mask(value, mask):
+            return mask if value > 0 else 0
+        enable_mask |= get_mask(roll, AttitudeServo.ROLL_ENA)
+        enable_mask |= get_mask(pitch, AttitudeServo.PITCH_ENA)
+        enable_mask |= get_mask(yaw, AttitudeServo.YAW_ENA)
+        enable_mask |= get_mask(speed_knots, AttitudeServo.SPEED_KNOTS_ENA)
 
         # Check if the behavior publishes the goal
         def attitude_servo_goals_are_set():
@@ -93,11 +104,10 @@ class TestAttitudeServoBehavior(unittest.TestCase):
                     self.attitude_servo_goal.pitch == pitch and
                     self.attitude_servo_goal.yaw == yaw and
                     self.attitude_servo_goal.speed_knots == speed_knots and
-                    self.attitude_servo_goal.ena_mask == 15)
+                    self.attitude_servo_goal.ena_mask == enable_mask)
         self.assertTrue(wait_for(attitude_servo_goals_are_set),
                         msg='Mission control must publish goals')
 
-        rospy.sleep(2)
         # send data to finish the mission
         rpy_data = Vector3()
         pose_estimator_corrected_data = CorrectedData()
@@ -115,5 +125,5 @@ class TestAttitudeServoBehavior(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavioral',
+    rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavior',
                    TestAttitudeServoBehavior)

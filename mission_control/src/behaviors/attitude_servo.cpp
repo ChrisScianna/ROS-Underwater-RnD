@@ -81,6 +81,7 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   attitudeServoBehaviorPub_ =
       nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
 
+  behaviorComplete_ = false;
   behaviorStartTime_ = ros::Time::now();
 }
 
@@ -88,15 +89,21 @@ BT::NodeStatus AttitudeServoBehavior::behaviorRunningProcess()
 {
   if (!goalHasBeenPublished_)
   {
+    behaviorComplete_ = false;
     publishGoalMsg();
+    behaviorStartTime_ = ros::Time::now();
     goalHasBeenPublished_ = true;
   }
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
     if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+    else
+    {
+      if (behaviorComplete_) setStatus(BT::NodeStatus::SUCCESS);
+    }
   }
-  return (status());
+  return status();
 }
 
 void AttitudeServoBehavior::publishGoalMsg()
@@ -121,16 +128,11 @@ void AttitudeServoBehavior::publishGoalMsg()
 
 void AttitudeServoBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
-  bool behaviorComplete = true;
+  behaviorComplete_ = true;
 
-  if (rollEnable_ && fabs(roll_ - data.rpy_ang.x) > rollTolerance_) behaviorComplete = false;
-  if (pitchEnable_ && fabs(pitch_ - data.rpy_ang.y) > pitchTolerance_) behaviorComplete = false;
-  if (yawEnable_ && fabs(yaw_ - data.rpy_ang.z) > yawTolerance_) behaviorComplete = false;
-
-  if (behaviorComplete)
-    setStatus(BT::NodeStatus::SUCCESS);
-  else
-    setStatus(BT::NodeStatus::RUNNING);
+  if (rollEnable_ && fabs(roll_ - data.rpy_ang.x) > rollTolerance_) behaviorComplete_ = false;
+  if (pitchEnable_ && fabs(pitch_ - data.rpy_ang.y) > pitchTolerance_) behaviorComplete_ = false;
+  if (yawEnable_ && fabs(yaw_ - data.rpy_ang.z) > yawTolerance_) behaviorComplete_ = false;
 
   // TODO(QNA): check shaft speed and/or battery position?
   // TODO(QNA): make sure our RPY rates are close to zero?
