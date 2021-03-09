@@ -97,10 +97,18 @@ BT::NodeStatus AttitudeServoBehavior::behaviorRunningProcess()
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+    if (delta_t.toSec() > timeOut_)
+    {
+      goalHasBeenPublished_ = false;
+      setStatus(BT::NodeStatus::FAILURE);
+    }
     else
     {
-      if (behaviorComplete_) setStatus(BT::NodeStatus::SUCCESS);
+      if (behaviorComplete_)
+      {
+        setStatus(BT::NodeStatus::SUCCESS);
+        goalHasBeenPublished_ = false;
+      }
     }
   }
   return status();
