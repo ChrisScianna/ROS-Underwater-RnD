@@ -76,7 +76,7 @@ class Mission
 
   boost::shared_ptr<boost::thread> m_threadProcMission, m_threadAbortMission;
 
-  void ProcessCorrectedPoseData(const pose_estimator::CorrectedData &data);
+  void ProcessState(const auv_interfaces::StateStamped &data);
 
   void setMissionDescription(std::string descStr) { m_mission_description = descStr; }
   std::string getMissionDescription() { return m_mission_description; }

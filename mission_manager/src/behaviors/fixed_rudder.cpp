@@ -166,7 +166,7 @@ void FixedRudderBehavior::publishMsg()
   fixed_rudder_behavior_pub.publish(msg);
 }
 
-bool FixedRudderBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+bool FixedRudderBehavior::checkState(const auv_interfaces::StateStamped& data)
 {
   // A quick check to see if our depth matches, note: rudder is not part of corrected data.
   // TODO(QNA): put back in when depth working  if (m_depth_ena && (abs(m_depth - data.depth) >

@@ -43,7 +43,6 @@
 
 #include <autopilot/AutoPilotInControl.h>
 #include <math.h>
-#include <pose_estimator/CorrectedData.h>
 #include <ros/ros.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -55,6 +54,7 @@
 #include <sstream>
 
 #include "autopilot/pid.h"
+#include "auv_interfaces/StateStamped.h"
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
 #include "jaus_ros_bridge/ActivateManualControl.h"
@@ -85,7 +85,7 @@ class AutoPilotNode
 
   ros::Subscriber jausRosSub;
 
-  ros::Subscriber correctedDataSub;
+  ros::Subscriber stateSub;
   ros::Subscriber missionStatusSub;
   ros::Timer missionMgrHeartbeatTimer;
 
@@ -126,7 +126,7 @@ class AutoPilotNode
   double depthIMax;
   double depthIMin;
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  void stateCallback(const auv_interfaces::StateStamped& msg);
   void missionStatusCallback(const mission_manager::ReportExecuteMissionState& data);
 
   void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);

@@ -6,8 +6,8 @@ set(NODE_APP_NAME ${PROJECT_NAME}_node)
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
+  auv_interfaces
   fin_control
-  pose_estimator
   roscpp
   rospy
   roslint
@@ -27,7 +27,6 @@ generate_messages(
   DEPENDENCIES
   fin_control
   thruster_control
-  pose_estimator
   jaus_ros_bridge
   sensor_msgs
   std_msgs
@@ -35,7 +34,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS fin_control pose_estimator roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_manager
+ CATKIN_DEPENDS auv_interfaces fin_control roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_manager
 )
 
 roslint_cpp(

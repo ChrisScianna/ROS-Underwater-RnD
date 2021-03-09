@@ -177,12 +177,15 @@ void AttitudeServoBehavior::publishMsg()
   attitude_servo_behavior_pub.publish(msg);
 }
 
-bool AttitudeServoBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+bool AttitudeServoBehavior::checkState(const auv_interfaces::StateStamped& data)
 {
   // A quick check to see if our RPY angles match
-  if (m_roll_ena && (abs(m_roll - data.rpy_ang.x) > m_roll_tol)) return false;
-  if (m_pitch_ena && (abs(m_pitch - data.rpy_ang.y) > m_pitch_tol)) return false;
-  if (m_yaw_ena && (abs(m_yaw - data.rpy_ang.z) > m_yaw_tol)) return false;
+  double roll = data.state.manoeuvring.pose.mean.orientation.x;
+  double pitch = data.state.manoeuvring.pose.mean.orientation.y;
+  double yaw = data.state.manoeuvring.pose.mean.orientation.z;
+  if (m_roll_ena && (abs(m_roll - roll) > m_roll_tol)) return false;
+  if (m_pitch_ena && (abs(m_pitch - pitch) > m_pitch_tol)) return false;
+  if (m_yaw_ena && (abs(m_yaw - yaw) > m_yaw_tol)) return false;
 
   // TODO(QNA): check shaft speed and/or battery position?
   // TODO(QNA): make sure our RPY rates are close to zero?

@@ -67,7 +67,7 @@ class DepthHeadingBehavior : public Behavior
   virtual void publishMsg();
 
   bool getParams(ros::NodeHandle nh);
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  bool checkState(const auv_interfaces::StateStamped& data);
 
  private:
   ros::Publisher depth_heading_behavior_pub;

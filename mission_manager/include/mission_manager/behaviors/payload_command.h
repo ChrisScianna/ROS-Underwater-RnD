@@ -64,7 +64,7 @@ class PayloadCommandBehavior : public Behavior
   bool getParams(ros::NodeHandle nh);
 
   virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  bool checkState(const auv_interfaces::StateStamped& data);
 
  private:
   ros::Publisher payload_command_behavior_pub;

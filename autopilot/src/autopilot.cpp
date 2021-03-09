@@ -36,6 +36,7 @@
 
 #include "autopilot/autopilot.h"
 
+
 AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 {
   autoPilotInControl = false;
@@ -108,8 +109,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 
   jausRosSub = nh.subscribe("/jaus_ros_bridge/activate_manual_control", 1,
                               &AutoPilotNode::HandleActivateManualControl, this);
-  correctedDataSub =
-      nh.subscribe("pose/corrected_data", 1, &AutoPilotNode::correctedDataCallback, this);
+  stateSub =
+      nh.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
   missionMgrHeartBeatSub =
       nh.subscribe("/mngr/report_heartbeat", 10, &AutoPilotNode::missionMgrHbCallback, this);
   missionStatusSub = nh.subscribe("/mngr/report_mission_execute_state", 1,
@@ -162,15 +163,14 @@ double AutoPilotNode::radiansToDegrees(double radians) { return (radians * (180.
 
 double AutoPilotNode::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-void AutoPilotNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
 {
   boost::mutex::scoped_lock lock(m_mutex);
 
-  currentDepth = data.depth;
-  currentRoll = radiansToDegrees(data.rpy_ang.x);
-  currentPitch = radiansToDegrees(data.rpy_ang.y);
-  currentYaw = radiansToDegrees(data.rpy_ang.z);
-  currentYaw = fmod((currentYaw + 180.0), 360.0) - 180.0;  // translate from INS 0-360 to +/-180
+  currentDepth = msg.state.manoeuvring.pose.mean.position.z;
+  currentRoll = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.x);
+  currentPitch = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.y);
+  currentYaw = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.z);
 }
 
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
