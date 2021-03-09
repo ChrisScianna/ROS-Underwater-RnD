@@ -33,8 +33,9 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include <string>
 #include "mission_control/behaviors/depth_heading.h"
+
+#include <string>
 
 using mission_control::DepthHeadingBehavior;
 
@@ -57,7 +58,7 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
   getInput<double>("heading", heading_);
   if (heading_ != 0.0) headingEnable_ = true;
 
-  getInput<double>("speedKnots", speedKnots_);
+  getInput<double>("speed_knots", speedKnots_);
   if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
 
   getInput<double>("depth_tol", depthTolerance_);
@@ -71,6 +72,7 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
   depthHeadingBehaviorPub =
       nodeHandle_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
 
+  behaviorComplete_ = false;
   behaviorStartTime_ = ros::Time::now();
 }
 
@@ -78,15 +80,29 @@ BT::NodeStatus DepthHeadingBehavior::behaviorRunningProcess()
 {
   if (!goalHasBeenPublished_)
   {
+    behaviorComplete_ = false;
     publishGoalMsg();
+    behaviorStartTime_ = ros::Time::now();
     goalHasBeenPublished_ = true;
   }
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > timeOut_) setStatus(BT::NodeStatus::FAILURE);
+    if (delta_t.toSec() > timeOut_)
+    {
+      goalHasBeenPublished_ = false;
+      setStatus(BT::NodeStatus::FAILURE);
+    }
+    else
+    {
+      if (behaviorComplete_)
+      {
+        setStatus(BT::NodeStatus::SUCCESS);
+        goalHasBeenPublished_ = false;
+      }
+    }
   }
-  return (status());
+  return status();
 }
 
 void DepthHeadingBehavior::publishGoalMsg()
@@ -110,11 +126,6 @@ void DepthHeadingBehavior::publishGoalMsg()
 void DepthHeadingBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
 {
   // A quick check to see if our RPY angles match
-  // tjw debug  if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
-  if (headingEnable_ && (abs(heading_ - data.rpy_ang.z) > headingTolerance_))
-  {
-    setStatus(BT::NodeStatus::RUNNING);
-  }
-  else
-    setStatus(BT::NodeStatus::SUCCESS);
+  if (headingEnable_ && (fabs(heading_ - data.rpy_ang.z) < headingTolerance_))
+    behaviorComplete_ = true;
 }

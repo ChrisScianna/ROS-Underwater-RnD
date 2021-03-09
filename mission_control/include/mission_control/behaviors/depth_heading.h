@@ -63,6 +63,8 @@ class DepthHeadingBehavior : public Behavior
       BT::InputPort<double>("depth", 0.0, "depth"),
       BT::InputPort<double>("heading", 0.0, "heading"),
       BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+      BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+      BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
       BT::InputPort<double>("time_out", 0.0, "time_out")
     };
     return ports;
@@ -89,6 +91,7 @@ class DepthHeadingBehavior : public Behavior
   bool goalHasBeenPublished_;
   void publishGoalMsg();
   ros::Time behaviorStartTime_;
+  bool behaviorComplete_;
 };
 
 }  //  namespace mission_control
