@@ -96,6 +96,7 @@ class AttitudeServoBehavior : public Behavior
   bool goalHasBeenPublished_;
   void publishGoalMsg();
   ros::Time behaviorStartTime_;
+  bool behaviorComplete_;
 };
 
 }  //  namespace mission_control
