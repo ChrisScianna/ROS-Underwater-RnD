@@ -37,11 +37,7 @@
 #ifndef POSE_ESTIMATOR_POSE_ESTIMATOR_H
 #define POSE_ESTIMATOR_POSE_ESTIMATOR_H
 
-#include <auv_interfaces/State.h>
 #include <auv_interfaces/StateStamped.h>
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <ros/ros.h>
 #include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/Imu.h>
@@ -61,11 +57,12 @@ namespace qna
 namespace robot
 {
 
-#define NODE_VERSION "3.0x"
+#define NODE_VERSION "3.1x"
 // Version log
 // 2.0 Initial MK-IV version
 // 2.01 Updating the roll positive direction
 // 3.0 Refactor to publish auv state
+// 3.1 Adapt to consume INS
 
 class PoseEstimator
 {
@@ -75,11 +72,10 @@ public:
   bool spin();
 
 private:
-  void dataCallback(
-      const sensor_msgs::Imu::ConstPtr& ahrs_msg,
-      const sensor_msgs::FluidPressure::ConstPtr& pressure_msg,
-      const thruster_control::ReportRPM::ConstPtr& rpms_msg);
-
+  void insCallback(const auv_interfaces::StateStamped::ConstPtr& msg);
+  void ahrsCallback(const sensor_msgs::Imu::ConstPtr& msg);
+  void pressureCallback(const sensor_msgs::FluidPressure::ConstPtr& msg);
+  void rpmsCallback(const thruster_control::ReportRPM::ConstPtr& msg);
   void fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg);
 
   ros::NodeHandle nh_;
@@ -89,15 +85,14 @@ private:
   bool in_saltwater_;
   double rpm_per_kn_;
 
-  message_filters::Subscriber<sensor_msgs::Imu> ahrs_sub_;
-  message_filters::Subscriber<sensor_msgs::FluidPressure> pressure_sub_;
-  message_filters::Subscriber<thruster_control::ReportRPM> rpms_sub_;
-
-  using DataPolicy = message_filters::sync_policies::ApproximateTime<
-    sensor_msgs::Imu, sensor_msgs::FluidPressure, thruster_control::ReportRPM>;
-  message_filters::Synchronizer<DataPolicy> synchronizer_;
-
+  ros::Subscriber ins_sub_;
+  ros::Subscriber ahrs_sub_;
+  ros::Subscriber pressure_sub_;
+  ros::Subscriber rpms_sub_;
   ros::Subscriber fix_sub_;
+
+  thruster_control::ReportRPM::ConstPtr last_rpms_msg_;
+  sensor_msgs::FluidPressure::ConstPtr last_pressure_msg_;
   sensor_msgs::NavSatFix::ConstPtr last_fix_msg_;
 
   diagnostic_tools::DiagnosedPublisher<

@@ -52,7 +52,6 @@ namespace robot
 
 PoseEstimator::PoseEstimator()
     : pnh_("~"),
-      synchronizer_(DataPolicy(10)),
       diagnostics_updater_(nh_)
 {
   diagnostics_updater_.setHardwareID("pose_estimator");
@@ -78,14 +77,19 @@ PoseEstimator::PoseEstimator()
   pnh_.param("rpm_per_knot", rpm_per_kn_, 303.0);
 
   // Subscribe to all topics
-  ahrs_sub_.subscribe(nh_, "imu/data", 10);
-  pressure_sub_.subscribe(nh_, "pressure", 10);
-  rpms_sub_.subscribe(nh_, "rpms", 10);
-  synchronizer_.connectInput(ahrs_sub_, pressure_sub_, rpms_sub_);
-  synchronizer_.registerCallback(
-      boost::bind(&PoseEstimator::dataCallback, this, _1, _2, _3));
-
-  fix_sub_ = nh_.subscribe("fix", 1, &PoseEstimator::fixCallback, this);
+  bool use_ins;
+  pnh_.param("use_ins", use_ins, false);
+  if (!use_ins)
+  {
+    ahrs_sub_ = nh_.subscribe("imu/data", 1, &PoseEstimator::ahrsCallback, this);
+    pressure_sub_ = nh_.subscribe("pressure", 1, &PoseEstimator::pressureCallback, this);
+    rpms_sub_ = nh_.subscribe("rpms", 1, &PoseEstimator::rpmsCallback, this);
+    fix_sub_ = nh_.subscribe("fix", 1, &PoseEstimator::fixCallback, this);
+  }
+  else
+  {
+    ins_sub_ = nh_.subscribe("ins/state", 1, &PoseEstimator::insCallback, this);
+  }
 
   // Advertise all topics and services
   state_pub_ =
@@ -218,6 +222,11 @@ bool PoseEstimator::spin()
   }
 }
 
+void PoseEstimator::insCallback(const auv_interfaces::StateStamped::ConstPtr& ins_msg)
+{
+  state_pub_.publish(ins_msg);  // forward as-is for now
+}
+
 namespace
 {
 
@@ -236,11 +245,9 @@ double calculateDepth(double pressure, bool saltwater)
 
 }  // namespace
 
-void PoseEstimator::dataCallback(
-    const sensor_msgs::Imu::ConstPtr& ahrs_msg,
-    const sensor_msgs::FluidPressure::ConstPtr& pressure_msg,
-    const thruster_control::ReportRPM::ConstPtr& rpms_msg)
+void PoseEstimator::ahrsCallback(const sensor_msgs::Imu::ConstPtr& ahrs_msg)
 {
+  // TODO(hidmic): set frames
   auv_interfaces::StateStamped msg;
   msg.header.stamp = ros::Time::now();
 
@@ -278,22 +285,28 @@ void PoseEstimator::dataCallback(
   orientation_pitch_check_.test(pitch);
   orientation_yaw_check_.test(yaw);
 
-  // Estimate depth from pressure sensor
-  double depth = calculateDepth(pressure_msg->fluid_pressure, in_saltwater_);
-  msg.state.manoeuvring.pose.mean.position.z = depth;
-  msg.state.manoeuvring.pose.covariance[14] = pressure_msg->variance;
+  if (last_pressure_msg_)
+  {
+    // Estimate depth from pressure sensor
+    double depth = calculateDepth(last_pressure_msg_->fluid_pressure, in_saltwater_);
+    msg.state.manoeuvring.pose.mean.position.z = depth;
+    msg.state.manoeuvring.pose.covariance[14] = last_pressure_msg_->variance;
 
-  depth_check_.test(depth);
+    depth_check_.test(depth);
+  }
 
-  // Estimate velocity from AHRS and thruster RPMs
-  const double speed_kn = static_cast<double>(rpms_msg->rpms) / rpm_per_kn_;
-  constexpr double kn_per_ms = 1852. / 3600.;  // exact conversion
-  const tf::Quaternion nominal_velocity(speed_kn * kn_per_ms, 0., 0., 0.);
-  const tf::Quaternion velocity =
+  if (last_rpms_msg_)
+  {
+    // Estimate velocity from AHRS and thruster RPMs
+    const double speed_kn = static_cast<double>(last_rpms_msg_->rpms) / rpm_per_kn_;
+    constexpr double kn_per_ms = 1852. / 3600.;  // exact conversion
+    const tf::Quaternion nominal_velocity(speed_kn * kn_per_ms, 0., 0., 0.);
+    const tf::Quaternion velocity =
       orientation * nominal_velocity * orientation.inverse();
-  msg.state.manoeuvring.velocity.mean.linear.x = velocity.x();
-  msg.state.manoeuvring.velocity.mean.linear.y = velocity.y();
-  msg.state.manoeuvring.velocity.mean.linear.z = velocity.z();
+    msg.state.manoeuvring.velocity.mean.linear.x = velocity.x();
+    msg.state.manoeuvring.velocity.mean.linear.y = velocity.y();
+    msg.state.manoeuvring.velocity.mean.linear.z = velocity.z();
+  }
 
   state_pub_.publish(msg);
 }
@@ -306,6 +319,16 @@ void PoseEstimator::fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg)
     last_fix_msg_.reset();
   }
   last_fix_msg_ = msg;
+}
+
+void PoseEstimator::pressureCallback(const sensor_msgs::FluidPressure::ConstPtr& msg)
+{
+  last_pressure_msg_ = msg;
+}
+
+void PoseEstimator::rpmsCallback(const thruster_control::ReportRPM::ConstPtr& msg)
+{
+  last_rpms_msg_ = msg;
 }
 
 }  // namespace robot
