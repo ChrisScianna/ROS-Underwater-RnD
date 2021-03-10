@@ -52,23 +52,6 @@ GTEST_TEST(BehaviorTest, TestIfBehaviorStopsAfterHalt)
   ASSERT_TRUE(dummyBehavior.isHalted());
 }
 
-GTEST_TEST(BehaviorTest, TestIfBehaviorDoesntChangeStatusToIdleAfterSuccess)
-{
-  BT::NodeConfiguration nodeConfig;
-  DummyBehavior dummyBehavior("dummy", nodeConfig);
-  dummyBehavior.changeStatus(BT::NodeStatus::SUCCESS);
-  dummyBehavior.tick();
-  ASSERT_EQ(dummyBehavior.tick(), BT::NodeStatus::SUCCESS);
-}
-
-GTEST_TEST(BehaviorTest, TestIfBehaviorDontChangeStatusOnTickIfFailure)
-{
-  BT::NodeConfiguration nodeConfig;
-  DummyBehavior dummyBehavior("dummy", nodeConfig);
-  dummyBehavior.changeStatus(BT::NodeStatus::FAILURE);
-  ASSERT_EQ(dummyBehavior.tick(), BT::NodeStatus::FAILURE);
-}
-
 GTEST_TEST(BehaviorTest, TestIfBehaviorTickMultipleTimes)
 {
   BT::NodeConfiguration nodeConfig;

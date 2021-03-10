@@ -8,7 +8,7 @@
         -   Attitude Servo
   -->
   
-  <test test-name="test_mission_control_fixed_rudder_action" pkg="mission_control" type="test_fixed_rudder_behavioral.py" time-limit="10.0" />
+  <test test-name="test_mission_control_fixed_rudder_action" pkg="mission_control" type="test_fixed_rudder_behavior.py" time-limit="10.0" />
   <test test-name="test_mission_control_attitude_servo_action" pkg="mission_control" type="test_attitude_servo_behavior.py" time-limit="10.0" />
   <test test-name="test_mission_control_depth_heading_action" pkg="mission_control" type="test_depth_heading_behavior.py" time-limit="10.0" />
 
