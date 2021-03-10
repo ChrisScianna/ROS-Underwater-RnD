@@ -1,5 +1,6 @@
 <launch>
   <include file="$(find mission_control)/launch/mission_control.launch" />
+  <include file="$(find fin_control)/launch/fin_control.launch" />
 
   <!--
       Simulate error message sent by health monitor and checks 
