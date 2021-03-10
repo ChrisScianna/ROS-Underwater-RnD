@@ -87,7 +87,7 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
 
   state_pub_ =
       qna::diagnostic_tools::create_publisher<
-        auv_interfaces::StateStamped>(nh_, "state", 1);
+        auv_interfaces::StateStamped>(nh_, "ins/state", 1);
 
   qna::diagnostic_tools::PeriodicMessageStatusParams state_rate_check_params;
   double min_rate, max_rate;
