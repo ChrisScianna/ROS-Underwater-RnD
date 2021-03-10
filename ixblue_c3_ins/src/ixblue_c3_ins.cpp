@@ -99,10 +99,8 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
   {
     state_rate_check_params.max_acceptable_period(1.0 / min_rate);
   }
-  state_rate_check_params.abnormal_diagnostic({  // NOLINT(whitespace/braces)
-      qna::diagnostic_tools::Diagnostic::ERROR,
-      health_monitor::ReportFault::POSE_DATA_STALE
-  });  // NOLINT(whitespace/braces)
+  state_rate_check_params.abnormal_diagnostic(
+      qna::diagnostic_tools::Diagnostic::ERROR);
   diagnostics_updater_.add(
       state_pub_.add_check<qna::diagnostic_tools::PeriodicMessageStatus>(
           "rate check", state_rate_check_params));
@@ -112,10 +110,8 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
   pnh_.param("absolute_steady_band", absolute_steady_band, 0.);
   pnh_.param("relative_steady_band", relative_steady_band, 0.);
   qna::diagnostic_tools::MessageStagnationCheckParams state_stagnation_check_params;
-  state_stagnation_check_params.stagnation_diagnostic({  // NOLINT(whitespace/braces)
-      qna::diagnostic_tools::Diagnostic::ERROR,
-      health_monitor::ReportFault::POSE_DATA_STAGNATED
-  });  // NOLINT(whitespace/braces)
+  state_stagnation_check_params.stagnation_diagnostic(
+      qna::diagnostic_tools::Diagnostic::ERROR);
   diagnostics_updater_.add(
       state_pub_.add_check<qna::diagnostic_tools::MessageStagnationCheck>(
           "stagnation check",
@@ -126,81 +122,6 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
             return auv_interfaces::almost_equal(
                 a.state, b.state, absolute_steady_band, relative_steady_band);
           }, state_stagnation_check_params));  // NOLINT
-
-  constexpr double inf = std::numeric_limits<double>::infinity();
-  double max_roll_angle, max_pitch_angle, max_yaw_angle;
-  pnh_.param("max_roll_angle", max_roll_angle, inf);
-  pnh_.param("max_pitch_angle", max_pitch_angle, inf);
-  pnh_.param("max_yaw_angle", max_yaw_angle, inf);
-
-  orientation_roll_check_ =
-      qna::diagnostic_tools::create_health_check<double>(
-          "Vehicle orientation - Roll angle check",
-          [max_roll_angle](double roll) -> qna::diagnostic_tools::Diagnostic
-          {
-            using qna::diagnostic_tools::Diagnostic;
-            using health_monitor::ReportFault;
-            Diagnostic diagnostic{Diagnostic::OK};
-            if (std::abs(roll) > max_roll_angle)
-            {
-              diagnostic.status(Diagnostic::ERROR)
-                  .description("Roll angle - NOT OK -> |%f rad| > %f rad",
-                               roll, max_roll_angle)
-                  .code(ReportFault::POSE_ROLL_THRESHOLD_REACHED);
-            }
-            else
-            {
-              diagnostic.description("Roll angle - OK (%f)", roll);
-            }
-            return diagnostic;
-          });  // NOLINT(whitespace/braces)
-  diagnostics_updater_.add(orientation_roll_check_);
-
-  orientation_pitch_check_ =
-      qna::diagnostic_tools::create_health_check<double>(
-          "Vehicle orientation - Pitch angle check",
-          [max_pitch_angle](double pitch) -> qna::diagnostic_tools::Diagnostic
-          {
-            using qna::diagnostic_tools::Diagnostic;
-            using health_monitor::ReportFault;
-            Diagnostic diagnostic{Diagnostic::OK};
-            if (std::abs(pitch) > max_pitch_angle)
-            {
-              diagnostic.status(Diagnostic::ERROR)
-                  .description("Pitch angle - NOT OK -> |%f rad| > %f rad",
-                               pitch, max_pitch_angle)
-                  .code(ReportFault::POSE_PITCH_THRESHOLD_REACHED);
-            }
-            else
-            {
-              diagnostic.description("Pitch angle - OK (%f)", pitch);
-            }
-            return diagnostic;
-          });  // NOLINT(whitespace/braces)
-  diagnostics_updater_.add(orientation_pitch_check_);
-
-  orientation_yaw_check_ =
-      qna::diagnostic_tools::create_health_check<double>(
-          "Vehicle orientation - Yaw angle check",
-          [max_yaw_angle](double yaw) -> qna::diagnostic_tools::Diagnostic
-          {
-            using qna::diagnostic_tools::Diagnostic;
-            using health_monitor::ReportFault;
-            Diagnostic diagnostic{Diagnostic::OK};
-            if (std::abs(yaw) > max_yaw_angle)
-            {
-              diagnostic.status(Diagnostic::ERROR)
-                  .description("Yaw angle - NOT OK -> |%f rad| > %f rad",
-                               yaw, max_yaw_angle)
-                  .code(ReportFault::POSE_HEADING_THRESHOLD_REACHED);
-            }
-            else
-            {
-              diagnostic.description("Yaw angle - OK (%f)", yaw);
-            }
-            return diagnostic;
-          });  // NOLINT(whitespace/braces)
-  diagnostics_updater_.add(orientation_yaw_check_);
 }
 
 ixBlueC3InsDriver::~ixBlueC3InsDriver()
@@ -216,11 +137,6 @@ void ixBlueC3InsDriver::publish(const c3_protocol::nav_long::nav_long_data_t& da
   // TODO(hidmic): set body frame
   msg.header.stamp = ros::Time::now();
   msg.state = to_ros_message<auv_interfaces::State>(data);
-
-  orientation_roll_check_.test(msg.state.manoeuvring.pose.mean.orientation.x);
-  orientation_pitch_check_.test(msg.state.manoeuvring.pose.mean.orientation.y);
-  orientation_yaw_check_.test(msg.state.manoeuvring.pose.mean.orientation.z);
-
   state_pub_.publish(msg);
 
   nav_long_pub_.publish(to_ros_message<ixblue_c3_ins::NavigationLong>(data));
