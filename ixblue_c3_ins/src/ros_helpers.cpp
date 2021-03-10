@@ -95,6 +95,10 @@ to_ros_message(const c3_protocol::nav_long::nav_long_data_t& data)
   msg.geolocation.covariance[8] = std::pow(data.altitude_err_sd, 2);
 
   // TODO(hidmic): add terrestrial reference frame
+  if (data.algo_status[0] & 0x20)  // depth sensor in use
+  {
+    msg.manoeuvring.pose.mean.position.z = -data.altitude;  // flip z-axis
+  }
   msg.manoeuvring.pose.mean.orientation.x = data.roll;
   msg.manoeuvring.pose.mean.orientation.y = -data.pitch;  // flip y-axis
   msg.manoeuvring.pose.mean.orientation.z = wrap_to_pi(data.heading);
