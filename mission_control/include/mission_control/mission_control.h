@@ -105,6 +105,7 @@ class MissionControlNode
   ros::Publisher pub_report_missions;
   ros::Publisher pub_report_heartbeat;
   ros::Publisher pub_activate_manual_control;
+  ros::Publisher pub_attitude_servo;
 
   ros::Timer reportExecuteMissionStateTimer;
   Mission::State last_state;
@@ -139,12 +140,11 @@ private:
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
   double executeMissionAsynchronousRate;
+  double maxCtrlFinAngle;
 
   int currentMissionId;
   int MissionIdCounter;
-
-  int m_current_mission_id;
-  int m_mission_id_counter;
+  int missionState;
 
   std::unordered_map<int, std::unique_ptr<Mission>> m_mission_map;
   uint64_t heartbeat_sequence_id;

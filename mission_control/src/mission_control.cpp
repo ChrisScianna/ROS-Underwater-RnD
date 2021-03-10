@@ -55,6 +55,8 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   pnh.getParam("report_heart_beat_rate", reportHeartbeatRate);
   pnh.getParam("execute_mission_asynchronous_rate", executeMissionAsynchronousRate);
 
+  pnh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 10.0);
+
   ROS_DEBUG_STREAM("report executemissionstate rate: " << reportExecuteMissionStateRate);
   ROS_DEBUG_STREAM("report heartbeat rate: " << reportHeartbeatRate);
 
@@ -82,6 +84,8 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   pub_activate_manual_control = pnh.advertise<jaus_ros_bridge::ActivateManualControl>(
       "/jaus_ros_bridge/activate_manual_control", 1);
 
+  pub_attitude_servo = pnh.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+
   reportExecuteMissionStateTimer =
       pnh.createTimer(ros::Duration(reportExecuteMissionStateRate),
                       &MissionControlNode::reportExecuteMissionState, this);
@@ -91,7 +95,7 @@ MissionControlNode::MissionControlNode(ros::NodeHandle& h) : pnh(h)
   executeMissionTimer = pnh.createTimer(ros::Duration(executeMissionAsynchronousRate),
                                         &MissionControlNode::executeMissionT, this);
   executeMissionTimer.stop();
-
+  missionState = mission_control::ReportExecuteMissionState::PAUSED;
   registerBehaviorActions();
 }
 
@@ -114,17 +118,18 @@ int MissionControlNode::loadMissionFile(std::string mission_full_path)
 
 int MissionControlNode::abortMission(int missionId)
 {
-  if (currentMissionId == missionId)
-  {
-    processAbort();
-    ROS_DEBUG_STREAM("Aborting Mission " << currentMissionId);
-  }
-  else
-  {
-    ROS_ERROR_STREAM("The mission currently running is different from request");
-    ROS_ERROR_STREAM("Current mission: " << currentMissionId
-                                         << " - Request mission to abort: " << missionId);
-  }
+  executeMissionTimer.stop();
+  ROS_ERROR_STREAM("Aborting Mission " << currentMissionId);
+
+  // fins to surface and thruster RPM = 0
+  mission_control::AttitudeServo msg;
+  msg.roll = 0;
+  msg.pitch = -maxCtrlFinAngle;
+  msg.yaw = 0;
+  msg.speed_knots = 0;
+  msg.ena_mask = 15;
+
+  pub_attitude_servo.publish(msg);
 }
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
@@ -137,17 +142,39 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 
 void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
 {
-  NodeStatus missionStatus = m_mission_map[currentMissionId]->getStatus();
-
-  if (missionStatus == BT::NodeStatus::IDLE || missionStatus == BT::NodeStatus::RUNNING)
+  BT::NodeStatus behaviorStatus;
+  switch (missionState)
   {
-    missionStatus = m_mission_map[currentMissionId]->Continue();
+    case mission_control::ReportExecuteMissionState::PAUSED:
+      behaviorStatus = m_mission_map[currentMissionId]->Continue();
+      break;
+    case mission_control::ReportExecuteMissionState::EXECUTING:
+      behaviorStatus = m_mission_map[currentMissionId]->Continue();
+      break;
+    case mission_control::ReportExecuteMissionState::COMPLETE:
+      executeMissionTimer.stop();
+      behaviorStatus = BT::NodeStatus::SUCCESS;
+      break;
+    case mission_control::ReportExecuteMissionState::ABORTING:
+      abortMission(currentMissionId);
+      behaviorStatus = BT::NodeStatus::FAILURE;
+      break;
   }
 
-  if (missionStatus == BT::NodeStatus::FAILURE)
+  switch (behaviorStatus)
   {
-    executeMissionTimer.stop();
-    abortMission(currentMissionId);
+    case BT::NodeStatus::IDLE:
+      missionState = mission_control::ReportExecuteMissionState::PAUSED;
+      break;
+    case BT::NodeStatus::RUNNING:
+      missionState = mission_control::ReportExecuteMissionState::EXECUTING;
+      break;
+    case BT::NodeStatus::SUCCESS:
+      missionState = mission_control::ReportExecuteMissionState::COMPLETE;
+      break;
+    case BT::NodeStatus::FAILURE:
+      missionState = mission_control::ReportExecuteMissionState::ABORTING;
+      break;
   }
 }
 
@@ -156,30 +183,8 @@ void MissionControlNode::reportExecuteMissionState(const ros::TimerEvent& timer)
   if ((currentMissionId != 0) && (m_mission_map.size() > 0) &&
       (m_mission_map.count(currentMissionId) > 0))
   {
-    BT::NodeStatus state = m_mission_map[currentMissionId]->getStatus();
     ReportExecuteMissionState outmsg;
-
-    // we implement a transformation between BehavioralTree NodeStatus
-    // and Jaus Ros Bridge Report msg
-    switch (state)
-    {
-      case BT::NodeStatus::IDLE:
-        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::PAUSED;
-        break;
-      case BT::NodeStatus::RUNNING:
-        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::EXECUTING;
-        break;
-      case BT::NodeStatus::SUCCESS:
-        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::COMPLETE;
-        executeMissionTimer.stop();
-        m_mission_map[currentMissionId]->stop();
-        break;
-      case BT::NodeStatus::FAILURE:
-        m_mission_map[currentMissionId]->stop();
-        outmsg.execute_mission_state = mission_control::ReportExecuteMissionState::ABORTING;
-        break;
-    }
-
+    outmsg.execute_mission_state = missionState;
     outmsg.current_behavior_name = m_mission_map[currentMissionId]->getCurrentMissionDescription();
     outmsg.mission_id = currentMissionId;
     outmsg.header.stamp = ros::Time::now();
@@ -219,8 +224,8 @@ void MissionControlNode::executeMissionCallback(
 {
   if (currentMissionId > 0)
   {
-    BT::NodeStatus missionStatus = m_mission_map[currentMissionId]->getStatus();
-    if ((missionStatus != BT::NodeStatus::IDLE) && (missionStatus != BT::NodeStatus::SUCCESS))
+    BT::NodeStatus behaviorStatus = m_mission_map[currentMissionId]->getStatus();
+    if ((behaviorStatus != BT::NodeStatus::IDLE) && (behaviorStatus != BT::NodeStatus::SUCCESS))
     {
       ROS_WARN_STREAM("There is a mission being executed - mission id["
                       << currentMissionId
@@ -232,7 +237,6 @@ void MissionControlNode::executeMissionCallback(
       (m_mission_map.count(msg->mission_id) > 0))
   {
     currentMissionId = msg->mission_id;
-    if (currentMissionId > 0) BT::NodeStatus m = m_mission_map[currentMissionId]->Continue();
     executeMissionTimer.start();
     ROS_DEBUG_STREAM("executeMissionCallback - Executing mission id[" << currentMissionId << "]");
   }
@@ -245,8 +249,24 @@ void MissionControlNode::executeMissionCallback(
 
 void MissionControlNode::abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg)
 {
-  abortMission(msg->mission_id);
-  ROS_DEBUG_STREAM("abortMissionCallback - Aborting mission id " << msg->mission_id);
+  executeMissionTimer.stop();
+  if (msg->mission_id != currentMissionId)
+  {
+    ROS_WARN_STREAM(
+        "The mission being executed is different from the requested to abort"
+        "Mission Id: "
+        << currentMissionId);
+  }
+  else
+  {
+    if (currentMissionId > 0)
+    {
+      ROS_DEBUG_STREAM("abortMissionCallback from Jaus Ros Bridge - Stopping mission id "
+                       << msg->mission_id);
+      executeMissionTimer.stop();
+      missionState = mission_control::ReportExecuteMissionState::PAUSED;
+    }
+  }
 }
 
 void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg)
@@ -289,15 +309,8 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
   if (msg->fault_id != 0)
   {
     ROS_ERROR_STREAM("Fault Detected by health monitor[" << msg->fault_id << "] aborting mission");
-    abortMission(currentMissionId);
+    missionState = mission_control::ReportExecuteMissionState::ABORTING;
   }
-}
-
-void MissionControlNode::processAbort()
-{
-  jaus_ros_bridge::ActivateManualControl msg;
-  msg.activate_manual_control = true;
-  pub_activate_manual_control.publish(msg);
 }
 
 void MissionControlNode::registerBehaviorActions()
