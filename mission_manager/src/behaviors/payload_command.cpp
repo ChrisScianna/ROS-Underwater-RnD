@@ -93,7 +93,7 @@ void PayloadCommandBehavior::publishMsg()
   payload_command_behavior_pub.publish(msg);
 }
 
-bool PayloadCommandBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+bool PayloadCommandBehavior::checkState(const auv_interfaces::StateStamped& data)
 {
   return true;
 }

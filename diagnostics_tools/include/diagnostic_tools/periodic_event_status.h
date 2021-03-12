@@ -192,6 +192,7 @@ private:
   PeriodicEventStatusParams params_;
   SampledStatistics<double> short_term_period_;
   SampledStatistics<double> long_term_period_;
+  ros::Time start_stamp_;
   ros::Time last_stamp_;
   std::mutex mutex_;
 };

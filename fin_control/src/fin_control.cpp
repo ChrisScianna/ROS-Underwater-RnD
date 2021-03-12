@@ -52,8 +52,6 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
 {
   diagnosticsUpdater.setHardwareID("fin_control");
 
-  reportAnglesEnabled = true;
-
   fincontrolEnabled = false;
   std::string serial_dev = "/dev/ttyUSB0";
   int serial_baud = 57600;
@@ -101,8 +99,6 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
       nodeHandle.subscribe("/fin_control/set_angle", 10, &FinControl::handleSetAngle, this);
   subscriber_setAngles =
       nodeHandle.subscribe("/fin_control/set_angles", 10, &FinControl::handleSetAngles, this);
-  subscriber_enableReportAngles = nodeHandle.subscribe(
-      "/fin_control/enable_report_angles", 10, &FinControl::handleEnableReportAngles, this);
 
   publisher_reportAngle =
       nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
@@ -198,8 +194,6 @@ void FinControl::reportAngles()
   float radianAngleFromMyWorkBench = 0.;
 
   message.header.stamp = ros::Time::now();
-
-  if (!reportAnglesEnabled) return;  // do not interfere with fins updating
 
   for (int id = 1; id <= numOfIDs; ++id)
   {
@@ -356,18 +350,6 @@ void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
   const char *log;
   if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
     ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
-}
-
-void FinControl::handleEnableReportAngles(const fin_control::EnableReportAngles::ConstPtr &msg)
-{
-  if (msg->enable_report_angles)
-  {
-    reportAnglesEnabled = true;
-  }
-  else
-  {
-    reportAnglesEnabled = false;
-  }
 }
 
 void FinControl::reportAngleSendTimeout(const ros::TimerEvent& ev)

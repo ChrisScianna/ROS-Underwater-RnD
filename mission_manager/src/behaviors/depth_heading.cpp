@@ -150,11 +150,12 @@ void DepthHeadingBehavior::publishMsg()
   depth_heading_behavior_pub.publish(msg);
 }
 
-bool DepthHeadingBehavior::checkCorrectedData(const pose_estimator::CorrectedData& data)
+bool DepthHeadingBehavior::checkState(const auv_interfaces::StateStamped& data)
 {
   // A quick check to see if our RPY angles match
   // tjw debug  if (m_depth_ena && (abs(m_depth - data.depth) > m_depth_tol)) return false;
-  if (m_heading_ena && (abs(m_heading - data.rpy_ang.z) > m_heading_tol))
+  double heading = data.state.manoeuvring.pose.mean.orientation.z;
+  if (m_heading_ena && (abs(m_heading - heading) > m_heading_tol))
   {
     ROS_INFO("heading corrected data returning false");
     return false;

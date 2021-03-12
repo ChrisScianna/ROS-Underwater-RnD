@@ -48,7 +48,7 @@
 #include <map>
 #include <string>
 
-#include "pose_estimator/CorrectedData.h"
+#include "auv_interfaces/StateStamped.h"
 #include "std_msgs/Header.h"
 #include "tinyxml/tinyxml.h"
 
@@ -138,7 +138,7 @@ class Behavior
 
   // Message-type behavior implementation overrides
   virtual void publishMsg() { }
-  virtual bool checkCorrectedData(const pose_estimator::CorrectedData& data) { return true; }
+  virtual bool checkState(const auv_interfaces::StateStamped& data) { return true; }
 
   // Service-type behavior implementation overrides
   virtual void callService() { }

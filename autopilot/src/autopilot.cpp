@@ -36,6 +36,7 @@
 
 #include "autopilot/autopilot.h"
 
+
 AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 {
   autoPilotInControl = false;
@@ -49,8 +50,6 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 
   thrusterPub = nh.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
   finsControlPub = nh.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
-  finsEnableReportingPub =
-      nh.advertise<fin_control::EnableReportAngles>("/fin_control/enable_report_angles", 1);
   autoPilotInControlPub =
       nh.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
 
@@ -108,12 +107,10 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
                  allowReverseThrusterAutopilot, false);
   nh.param<bool>("/autopilot_node/thruster_enabled", thrusterEnabled, false);
 
-  nh.param<double>("/thruster_control_node/max_allowed_motor_rpm", maxAllowedThrusterRpm, 0);
-
   jausRosSub = nh.subscribe("/jaus_ros_bridge/activate_manual_control", 1,
                               &AutoPilotNode::HandleActivateManualControl, this);
-  correctedDataSub =
-      nh.subscribe("pose/corrected_data", 1, &AutoPilotNode::correctedDataCallback, this);
+  stateSub =
+      nh.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
   missionMgrHeartBeatSub =
       nh.subscribe("/mngr/report_heartbeat", 10, &AutoPilotNode::missionMgrHbCallback, this);
   missionStatusSub = nh.subscribe("/mngr/report_mission_execute_state", 1,
@@ -142,9 +139,6 @@ void AutoPilotNode::Stop()
   assert(m_thread);
   autopilotEnabled = false;
   m_thread->join();
-  fin_control::EnableReportAngles enableReportAnglesMsg;
-  enableReportAnglesMsg.enable_report_angles = true;
-  finsEnableReportingPub.publish(enableReportAnglesMsg);
 }
 
 void AutoPilotNode::missionMgrHeartbeatTimeout(const ros::TimerEvent& timer)
@@ -169,15 +163,14 @@ double AutoPilotNode::radiansToDegrees(double radians) { return (radians * (180.
 
 double AutoPilotNode::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-void AutoPilotNode::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
 {
   boost::mutex::scoped_lock lock(m_mutex);
 
-  currentDepth = data.depth;
-  currentRoll = radiansToDegrees(data.rpy_ang.x);
-  currentPitch = radiansToDegrees(data.rpy_ang.y);
-  currentYaw = radiansToDegrees(data.rpy_ang.z);
-  currentYaw = fmod((currentYaw + 180.0), 360.0) - 180.0;  // translate from INS 0-360 to +/-180
+  currentDepth = msg.state.manoeuvring.pose.mean.position.z;
+  currentRoll = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.x);
+  currentPitch = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.y);
+  currentYaw = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.z);
 }
 
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
@@ -346,7 +339,6 @@ void AutoPilotNode::workerFunc()
   thruster_control::SetRPM setRPM;
   ros::Rate r(controlLoopRate);
   autopilot::AutoPilotInControl incontrol;
-  fin_control::EnableReportAngles enableReportAnglesMsg;
   bool lastControl;
 
   lastControl = autoPilotInControl;
@@ -360,8 +352,6 @@ void AutoPilotNode::workerFunc()
     else
     {
       i = 0;
-      enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-      finsEnableReportingPub.publish(enableReportAnglesMsg);
       incontrol.auto_pilot_in_control = autoPilotInControl;
       autoPilotInControlPub.publish(incontrol);
     }
@@ -369,8 +359,6 @@ void AutoPilotNode::workerFunc()
                                                // pilot. used only by OCU
     {
       lastControl = autoPilotInControl;
-      enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-      finsEnableReportingPub.publish(enableReportAnglesMsg);
     }
     if (autoPilotInControl &&
         mmIsAlive)  // check to see if teleoperation not in control and mission mgr is running
@@ -416,12 +404,6 @@ void AutoPilotNode::workerFunc()
           fabs(desiredSpeed) >= minimalSpeed)
         setRPM.commanded_rpms =
             (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * rpmPerKnot * minimalSpeed;
-      if (fabs(setRPM.commanded_rpms) > thruster_control::SetRPM::MAX_RPM)
-        setRPM.commanded_rpms = (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) *
-                                thruster_control::SetRPM::MAX_RPM;
-      if (fabs(setRPM.commanded_rpms) > maxAllowedThrusterRpm)
-        setRPM.commanded_rpms =
-            (fabs(setRPM.commanded_rpms) / setRPM.commanded_rpms) * maxAllowedThrusterRpm;
       if (setRPM.commanded_rpms < 0.0 &&
           !allowReverseThrusterAutopilot)  // don't have thruster move in reverse.
         setRPM.commanded_rpms = 0.0;
@@ -431,6 +413,4 @@ void AutoPilotNode::workerFunc()
     r.sleep();
   }
   autoPilotInControl = false;
-  enableReportAnglesMsg.enable_report_angles = !autoPilotInControl;
-  finsEnableReportingPub.publish(enableReportAnglesMsg);
 }

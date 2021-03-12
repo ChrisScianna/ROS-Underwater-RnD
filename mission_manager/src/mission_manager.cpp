@@ -42,6 +42,7 @@
 #include <map>
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
 #include "mission_manager/behavior.h"
 #include "health_monitor/ReportFault.h"
 #include "mission_manager/mission.h"
@@ -55,7 +56,6 @@
 #include "mission_manager/ReportLoadMissionState.h"
 #include "mission_manager/ReportMissions.h"
 #include "mission_manager/mission_parser.h"
-#include "pose_estimator/CorrectedData.h"
 
 #define LOGGING (1)
 
@@ -73,13 +73,12 @@ using mission_manager::ReportLoadMissionState;
 using mission_manager::ReportMissions;
 using mission_manager::Mission;
 using mission_manager::MissionParser;
-using pose_estimator::CorrectedData;
 
 class MissionManagerNode
 {
  public:
   ros::NodeHandle node_handle;
-  ros::Subscriber sub_corrected_data;
+  ros::Subscriber sub_state;
 
   ros::Subscriber report_fault_sub;
 
@@ -107,7 +106,6 @@ class MissionManagerNode
   double reportExecuteMissionStateRate;
   double reportHeartbeatRate;
 
-  pose_estimator::CorrectedData m_correctedData;
 
   int m_current_mission_id;
   int m_mission_id_counter;
@@ -147,8 +145,8 @@ class MissionManagerNode
     ROS_INFO("report heartbeat rate:[%lf]", reportHeartbeatRate);
 
     // Subscribe to all topics
-    sub_corrected_data = node_handle.subscribe("/pose/corrected_data", 1,
-                                               &MissionManagerNode::correctedDataCallback, this);
+    sub_state = node_handle.subscribe("/state", 1,
+                                      &MissionManagerNode::stateCallback, this);
     report_fault_sub = node_handle.subscribe("/health_monitor/report_fault", 1,
                                              &MissionManagerNode::reportFaultCallback, this);
 
@@ -426,13 +424,13 @@ class MissionManagerNode
     }
   }
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data)
+  void stateCallback(const auv_interfaces::StateStamped& data)
   {
     // mission_map.count checks to see if a key is in the map
     if ((m_current_mission_id > 0) && (m_mission_map.size() > 0) &&
         (m_mission_map.count(m_current_mission_id) > 0))
     {
-      m_mission_map[m_current_mission_id]->ProcessCorrectedPoseData(data);
+      m_mission_map[m_current_mission_id]->ProcessState(data);
     }
   }
 

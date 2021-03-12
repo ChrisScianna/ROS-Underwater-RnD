@@ -67,7 +67,7 @@ class AttitudeServoBehavior : public Behavior
   virtual bool parseMissionFileParams();
   bool getParams(ros::NodeHandle nh);
   virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  bool checkState(const auv_interfaces::StateStamped& data);
 
  private:
   ros::Publisher attitude_servo_behavior_pub;

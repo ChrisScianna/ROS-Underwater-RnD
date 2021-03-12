@@ -75,12 +75,12 @@ public:
     void setFault(uint64_t fault_id);
 
 private:
-    std::mutex faultArrayMutex;
     uint64_t faults;
     std::unordered_map<std::string, uint64_t> uErrorMap
         {
         {"payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
         {"vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
+        {"ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
         {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
         {"mission_manager_node", health_monitor::ReportFault::MISSION_NODE_DIED},
         {"pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},

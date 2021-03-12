@@ -37,23 +37,19 @@
 #ifndef POSE_ESTIMATOR_POSE_ESTIMATOR_H
 #define POSE_ESTIMATOR_POSE_ESTIMATOR_H
 
-#include <boost/thread/mutex.hpp>
-#include <cmath>
-
-#include "ros/ros.h"
-#include "pose_estimator/CorrectedData.h"
-#include "sensor_msgs/FluidPressure.h"
-#include "sensor_msgs/Imu.h"
-#include "sensor_msgs/NavSatFix.h"
-#include "tf/transform_datatypes.h"
-#include "thruster_control/ReportRPM.h"
-#include <health_monitor/ReportFault.h>
+#include <auv_interfaces/StateStamped.h>
+#include <ros/ros.h>
+#include <sensor_msgs/FluidPressure.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <tf/transform_datatypes.h>
+#include <thruster_control/ReportRPM.h>
 
 #include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
-#include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_tools/message_stagnation_check.h>
 #include <diagnostic_tools/periodic_message_status.h>
+#include <diagnostic_updater/diagnostic_updater.h>
 
 
 namespace qna
@@ -61,85 +57,53 @@ namespace qna
 namespace robot
 {
 
-#define SALTWATER_DENSITY                 1023.6    // kg/m^3
-#define FRESHWATER_DENSITY                997.0474  // kg/m^3
-#define GRAVITY                           9.80665   // m/s^2
-#define ABSOLUTE_PASCAL_TO_GAUGE_PASCAL   101325
-
-#define NODE_VERSION "2.01x"
+#define NODE_VERSION "3.1x"
 // Version log
 // 2.0 Initial MK-IV version
 // 2.01 Updating the roll positive direction
+// 3.0 Refactor to publish auv state
+// 3.1 Adapt to consume INS
 
-using pose_estimator::CorrectedData;
-
-class PoseEstimatorNode  //: public LogBase
+class PoseEstimator
 {
- public:
-  ros::NodeHandle node_handle;
-  ros::NodeHandle private_node_handle;
-  ros::Subscriber sub_ahrs_data;
-  ros::Subscriber sub_pressure_data;
-  ros::Subscriber sub_rpm_data;
-  ros::Subscriber sub_gps_data;
+public:
+  PoseEstimator();
 
- private:
-  bool running, data_valid;
-  // Vars holding runtime params
-  double pubRate;
-  double minRate;
-  double maxRate;
+  bool spin();
 
-  double maxDepth;
-  double maxRollAng;
-  double maxPitchAng;
-  double maxYawAng;
-  double rpmPerKnot;
+private:
+  void insCallback(const auv_interfaces::StateStamped::ConstPtr& msg);
+  void ahrsCallback(const sensor_msgs::Imu::ConstPtr& msg);
+  void pressureCallback(const sensor_msgs::FluidPressure::ConstPtr& msg);
+  void rpmsCallback(const thruster_control::ReportRPM::ConstPtr& msg);
+  void fixCallback(const sensor_msgs::NavSatFix::ConstPtr& msg);
 
-  // Vars for holding current sensor/calculated values
-  double cur_latitude, cur_longitude, cur_gps_time;
-  double cur_rpy_ang[3];
-  double cur_pressure;
-  double cur_depth;
-  double cur_speed = 0;
-
-  // Flags for signaling if we have received essential data
-  bool pressure_ok;
-  bool ahrs_ok;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
 
   // Enviornmental Flags
-  bool saltwater_flag;
+  bool in_saltwater_;
+  double rpm_per_kn_;
 
-  CorrectedData m_correctedData{};
+  ros::Subscriber ins_sub_;
+  ros::Subscriber ahrs_sub_;
+  ros::Subscriber pressure_sub_;
+  ros::Subscriber rpms_sub_;
+  ros::Subscriber fix_sub_;
 
-  ros::Timer m_timerPub;
-  boost::mutex m_mutDataLock;
+  thruster_control::ReportRPM::ConstPtr last_rpms_msg_;
+  sensor_msgs::FluidPressure::ConstPtr last_pressure_msg_;
+  sensor_msgs::NavSatFix::ConstPtr last_fix_msg_;
 
-  diagnostic_tools::DiagnosedPublisher<pose_estimator::CorrectedData> pub_corrected_data;
-  diagnostic_tools::HealthCheck<double> depthCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationRollCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationPitchCheck;
-  diagnostic_tools::HealthCheck<geometry_msgs::Vector3> orientationYawCheck;
-  diagnostic_updater::Updater diagnosticsUpdater;
+  diagnostic_tools::DiagnosedPublisher<
+    auv_interfaces::StateStamped> state_pub_;
 
- public:
-  // assumes that the pressure is in absolute pascal and a true flag indicates saltwater
-  double calculateDepth(double pressure, bool flag);
-  explicit PoseEstimatorNode(ros::NodeHandle h);
-  ~PoseEstimatorNode();
-
-  int start();
-  int stop();
-  bool spin();
-  void ahrsDataCallback(const sensor_msgs::Imu &data);
-  void rpmDataCallback(const thruster_control::ReportRPM &data);
-  void gpsDataCallback(const sensor_msgs::NavSatFix &data);
-  void pressureDataCallback(const sensor_msgs::FluidPressure &data);
-  void processDynPos();
-  void processLatLong();
-  void processDepth();
-  void processSpeed();
-  void publishData();
+  diagnostic_tools::HealthCheck<double> depth_check_;
+  diagnostic_tools::HealthCheck<double> orientation_roll_check_;
+  diagnostic_tools::HealthCheck<double> orientation_pitch_check_;
+  diagnostic_tools::HealthCheck<double> orientation_yaw_check_;
+  diagnostic_updater::Updater diagnostics_updater_;
+  ros::Timer diagnostics_timer_;
 };
 
 }  // namespace robot

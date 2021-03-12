@@ -1,8 +1,7 @@
-
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,17 +32,23 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna <Christopher.Scianna@us.QinetiQ.com>
+#ifndef IXBLUE_C3_INS_IO_HELPERS_H
+#define IXBLUE_C3_INS_IO_HELPERS_H
 
-#include "pose_estimator/pose_estimator.h"
+#include <stddef.h>
+#include <sys/time.h>
 
-int main(int argc, char **argv)
+
+namespace ixblue_c3_ins
 {
-  ros::init(argc, argv, "pose_estimator_node");
-  ros::NodeHandle n;
-  ROS_INFO("Starting Pose Estimator node Version: [%s]", NODE_VERSION);
-  n.setParam("/version_numbers/pose_estimator", NODE_VERSION);
-  qna::robot::PoseEstimatorNode poseObject(n);
-  poseObject.spin();
-  return 0;
-}
+namespace io_helpers
+{
+
+int openUDPSocket(const char *iface, unsigned short port);
+
+size_t readFor(int fd, void * buffer, size_t size, struct timeval timeout);
+
+}  // namespace io_helpers
+}  // namespace ixblue_c3_ins
+
+#endif  // IXBLUE_C3_INS_IO_HELPERS_H

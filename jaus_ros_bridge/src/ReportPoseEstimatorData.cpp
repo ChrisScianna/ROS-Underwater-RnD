@@ -40,22 +40,10 @@
 void ReportPoseEstimatorData::init(ros::NodeHandle* nodeHandle, udpserver* udp) {
   _nodeHandle = nodeHandle;
   _udpserver = udp;
-  _subscriber_reportPoseData = nodeHandle->subscribe(
-      "/pose/corrected_data", 1, &ReportPoseEstimatorData::handleReportPoseEstimatorData, this);
+  _subscriber_state = nodeHandle->subscribe(
+      "/state", 1, &ReportPoseEstimatorData::handleState, this);
   _myID = "ReportPoseEstimatorData";
   Reset();
-}
-
-bool ReportPoseEstimatorData::HasNewData(const pose_estimator::CorrectedData::ConstPtr& msg) {
-  // if(m_poseData.altitude != (float)msg->altitude)
-  //    return true;
-  if (m_poseData.depth != (float)msg->depth) return true;
-  if (m_poseData.speed != (float)msg->speed) return true;
-  if (m_poseData.roll != (float)msg->rpy_ang.x) return true;
-  if (m_poseData.pitch != (float)msg->rpy_ang.y) return true;
-  if (m_poseData.course != (float)msg->rpy_ang.z) return true;
-
-  return false;
 }
 
 void ReportPoseEstimatorData::Reset() {
@@ -67,20 +55,39 @@ void ReportPoseEstimatorData::Reset() {
   m_poseData.course = 0;
 }
 
-void ReportPoseEstimatorData::handleReportPoseEstimatorData(
-    const pose_estimator::CorrectedData::ConstPtr& msg) {
+void ReportPoseEstimatorData::handleState(
+    const auv_interfaces::StateStamped::ConstPtr& msg) {
   if (!_udpserver->IsConnected()) return;
 
   if (!TimeToSend(_beginTime, clock())) return;
 
-  if (!HasNewData(msg)) return;
-
   // m_poseData.altitude = (float)msg->altitude;
-  m_poseData.depth = (float)msg->depth;
-  m_poseData.speed = (float)msg->speed;
-  m_poseData.roll = (float)msg->rpy_ang.x;
-  m_poseData.pitch = (float)msg->rpy_ang.y;
-  m_poseData.course = (float)msg->rpy_ang.z;
+  bool has_new_data = false;
+
+  float depth = (float)msg->state.manoeuvring.pose.mean.position.z;
+  has_new_data |= (m_poseData.depth != depth);
+  m_poseData.depth = depth;
+
+  float speed = (float)std::sqrt(
+      std::pow(msg->state.manoeuvring.velocity.mean.linear.x, 2) +
+      std::pow(msg->state.manoeuvring.velocity.mean.linear.y, 2) +
+      std::pow(msg->state.manoeuvring.velocity.mean.linear.z, 2));
+  has_new_data |= (m_poseData.speed != speed);
+  m_poseData.speed = speed;
+
+  float roll = (float)msg->state.manoeuvring.pose.mean.orientation.x;
+  has_new_data |= (m_poseData.roll != roll);
+  m_poseData.roll = roll;
+
+  float pitch = (float)msg->state.manoeuvring.pose.mean.orientation.y;
+  has_new_data |= (m_poseData.pitch != pitch);
+  m_poseData.pitch = pitch;
+
+  float course = (float)msg->state.manoeuvring.pose.mean.orientation.z;
+  has_new_data |= (m_poseData.course != course);
+  m_poseData.course = course;
+
+  if (!has_new_data) return;
 
   if (debug_mode) ROS_INFO("handleReportPoseEstimatorData() is called with new update!");
 

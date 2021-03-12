@@ -88,15 +88,11 @@ void HealthMonitor::handle_ClearFault(const health_monitor::ClearFault::ConstPtr
 {
     if (msg->fault_id == health_monitor::ClearFault::ALL_FAULTS)
     {
-        faultArrayMutex.lock();
         faults = 0;
-        faultArrayMutex.unlock();
     }
     else
     {
-        faultArrayMutex.lock();
         faults &= ~msg->fault_id;
-        faultArrayMutex.unlock();
     }
 }
 
@@ -145,22 +141,16 @@ void HealthMonitor::handle_rosmonFaults(const rosmon_msgs::State &msg)
 
 void HealthMonitor::setFault(uint64_t fault_id)
 {
-    faultArrayMutex.lock();
     faults |= fault_id;
-    faultArrayMutex.unlock();
 }
 
 void HealthMonitor::sendFaults()
 {
     health_monitor::ReportFault message;
 
-    faultArrayMutex.lock();
-    uint64_t tempFaultID = faults;
-    faultArrayMutex.unlock();
-
     ROS_DEBUG_STREAM("Error Code: " << faults);
     message.header.stamp = ros::Time::now();
-    message.fault_id = tempFaultID;
+    message.fault_id = faults;
 
     publisher_reportFault.publish(message);
     diagnosticsUpdater.update();

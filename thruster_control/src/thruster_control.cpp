@@ -98,7 +98,17 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   nodeHandle.getParam("/thruster_control_node/current_logging_enabled", currentLoggingEnabled);
   nodeHandle.getParam("/thruster_control_node/can_node_id_1", canNodeId1);
   nodeHandle.getParam("/thruster_control_node/can_node_id_2", canNodeId2);
+
   nodeHandle.getParam("/thruster_control_node/max_allowed_motor_rpm", maxAllowedMotorRPM);
+  if (maxAllowedMotorRPM > thruster_control::SetRPM::MAX_RPM)
+  {
+    ROS_WARN_STREAM(
+      "Maximum allowed motor RPMs cannot be larger than "
+      << thruster_control::SetRPM::MAX_RPM);
+    maxAllowedMotorRPM = thruster_control::SetRPM::MAX_RPM;
+  }
+  ROS_INFO_STREAM("Maximum allowed motor RPMs = " << maxAllowedMotorRPM);
+
   nodeHandle.getParam("/thruster_control_node/motor_temperature_threshold",
                       motorTemperatureThreshold);
   nodeHandle.getParam("/thruster_control_node/motor_temperature_steady_band",
@@ -298,8 +308,15 @@ void ThrusterControl::reportBatteryHealthSendTimeout(const ros::TimerEvent& time
 
 void ThrusterControl::handle_SetRPM(const thruster_control::SetRPM::ConstPtr& msg)
 {
-  double motor_radsec = convertRPMToRadSec(msg->commanded_rpms);
-  canIntf.velocity_radsec.Set(motor_radsec);
+  double motor_rpms = msg->commanded_rpms;
+  if (std::abs(motor_rpms) > maxAllowedMotorRPM)
+  {
+    ROS_DEBUG_STREAM(
+      "Motor RPMs exceed maximum allowed: " <<
+      "|" << motor_rpms << "|" << " > " << maxAllowedMotorRPM);
+    motor_rpms = std::copysign(maxAllowedMotorRPM, motor_rpms);
+  }
+  canIntf.velocity_radsec.Set(convertRPMToRadSec(motor_rpms));
   canIntf.last_set_rpm_time.Set(ros::Time::now().toSec());
 }
 

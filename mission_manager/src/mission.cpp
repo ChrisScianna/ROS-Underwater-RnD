@@ -149,14 +149,14 @@ Behavior* Mission::getNextAbortBehavior(bool reset)
   return *m_abort_behavior_iterator++;
 }
 
-void Mission::ProcessCorrectedPoseData(const pose_estimator::CorrectedData& data)
+void Mission::ProcessState(const auv_interfaces::StateStamped& data)
 {
   if (m_current_behavior == NULL) return;
 
   if ((GetState() != MissionState::ABORTING) && (GetState() != MissionState::EXECUTING)) return;
 
   boost::mutex::scoped_lock callback_lock(m_mutCallbacks);
-  if (m_current_behavior->checkCorrectedData(data)) callBackTmr.stop();
+  if (m_current_behavior->checkState(data)) callBackTmr.stop();
   callback_lock.unlock();
 }
 
