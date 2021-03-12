@@ -57,11 +57,11 @@
 
 #include <ros/ros.h>
 
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
-
 #include <auv_interfaces/StateStamped.h>
 #include <auv_interfaces/helpers.h>
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
+#include <health_monitor/ReportFault.h>
 
 #include "ixblue_c3_ins/c3_protocol.h"
 #include "ixblue_c3_ins/io_helpers.h"
@@ -122,8 +122,10 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
   {
     state_rate_check_params.max_acceptable_period(1.0 / min_rate);
   }
-  state_rate_check_params.abnormal_diagnostic(
-      qna::diagnostic_tools::Diagnostic::ERROR);
+  state_rate_check_params.abnormal_diagnostic({  // NOLINT
+      qna::diagnostic_tools::Diagnostic::ERROR,
+      health_monitor::ReportFault::AHRS_DATA_STALE
+  });  // NOLINT
   diagnostics_updater_.add(
       state_pub_.add_check<qna::diagnostic_tools::PeriodicMessageStatus>(
           "rate check", state_rate_check_params));
@@ -133,8 +135,10 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
   pnh_.param("absolute_steady_band", absolute_steady_band, 0.);
   pnh_.param("relative_steady_band", relative_steady_band, 0.);
   qna::diagnostic_tools::MessageStagnationCheckParams state_stagnation_check_params;
-  state_stagnation_check_params.stagnation_diagnostic(
-      qna::diagnostic_tools::Diagnostic::ERROR);
+  state_stagnation_check_params.stagnation_diagnostic({  // NOLINT
+      qna::diagnostic_tools::Diagnostic::ERROR,
+      health_monitor::ReportFault::AHRS_DATA_STAGNATED
+  });  // NOLINT
   diagnostics_updater_.add(
       state_pub_.add_check<qna::diagnostic_tools::MessageStagnationCheck>(
           "stagnation check",
