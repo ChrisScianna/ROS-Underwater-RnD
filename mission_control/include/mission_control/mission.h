@@ -38,6 +38,7 @@
 #define MISSION_CONTROL_MISSION_H
 
 #include <behaviortree_cpp_v3/bt_factory.h>
+
 #include <memory>
 #include <string>
 
@@ -64,14 +65,14 @@ class Mission
     COMPLETE
   };
 
-  BT::NodeStatus Continue();
+  void Continue();
   void stop();
 
   BT::NodeStatus getStatus();
   std::string getCurrentMissionDescription();
 
  private:
-  explicit Mission(BT::Tree && missionTree);
+  explicit Mission(BT::Tree&& missionTree);
 
   BT::Tree tree_;
   std::string description_;   //  Description of the mission

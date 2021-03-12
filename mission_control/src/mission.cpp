@@ -42,7 +42,7 @@ using BT::NodeStatus;
 using BT::Tree;
 using mission_control::Mission;
 
-Mission::Mission(BT::Tree && missionTree) : tree_(std::move(missionTree))
+Mission::Mission(BT::Tree&& missionTree) : tree_(std::move(missionTree))
 {
   description_ = tree_.rootNode()->name();
   behaviorStatus_ = BT::NodeStatus::IDLE;
@@ -72,12 +72,10 @@ BT::NodeStatus Mission::getStatus() { return behaviorStatus_; }
 
 std::string Mission::getCurrentMissionDescription() { return description_; }
 
-BT::NodeStatus Mission::Continue()
+void Mission::Continue()
 {
   if (behaviorStatus_ == BT::NodeStatus::IDLE || behaviorStatus_ == BT::NodeStatus::RUNNING)
   {
     behaviorStatus_ = tree_.tickRoot();
   }
-
-  return behaviorStatus_;
 }

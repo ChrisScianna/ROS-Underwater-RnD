@@ -142,26 +142,23 @@ void MissionControlNode::reportHeartbeat(const ros::TimerEvent& timer)
 
 void MissionControlNode::executeMissionT(const ros::TimerEvent& timer)
 {
-  BT::NodeStatus behaviorStatus;
   switch (missionState)
   {
     case mission_control::ReportExecuteMissionState::PAUSED:
-      behaviorStatus = m_mission_map[currentMissionId]->Continue();
+      m_mission_map[currentMissionId]->Continue();
       break;
     case mission_control::ReportExecuteMissionState::EXECUTING:
-      behaviorStatus = m_mission_map[currentMissionId]->Continue();
+      m_mission_map[currentMissionId]->Continue();
       break;
     case mission_control::ReportExecuteMissionState::COMPLETE:
       executeMissionTimer.stop();
-      behaviorStatus = BT::NodeStatus::SUCCESS;
       break;
     case mission_control::ReportExecuteMissionState::ABORTING:
       abortMission(currentMissionId);
-      behaviorStatus = BT::NodeStatus::FAILURE;
       break;
   }
 
-  switch (behaviorStatus)
+  switch (m_mission_map[currentMissionId]->getStatus())
   {
     case BT::NodeStatus::IDLE:
       missionState = mission_control::ReportExecuteMissionState::PAUSED;
@@ -309,6 +306,8 @@ void MissionControlNode::reportFaultCallback(const health_monitor::ReportFault::
   if (msg->fault_id != 0)
   {
     ROS_ERROR_STREAM("Fault Detected by health monitor[" << msg->fault_id << "] aborting mission");
+    executeMissionTimer.stop();
+    abortMission(currentMissionId);
     missionState = mission_control::ReportExecuteMissionState::ABORTING;
   }
 }
