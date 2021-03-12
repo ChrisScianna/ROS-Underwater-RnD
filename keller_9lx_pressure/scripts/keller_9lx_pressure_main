@@ -206,7 +206,10 @@ class Keller9lxPressureSensorDriverNode(object):
             min_acceptable_period=(1.0 / max_rate),  # in seconds
             max_acceptable_period=(1.0 / min_rate),  # in seconds
             abnormal_diagnostic=diagnostic_tools.Diagnostic(
-                diagnostic_tools.Diagnostic.ERROR,
+                diagnostic_tools.Diagnostic.WARN
+            ),
+            stale_diagnostic=diagnostic_tools.Diagnostic(
+                diagnostic_tools.Diagnostic.STALE,
                 code=ReportFault.PRESSURE_DATA_STALE
             )
         )

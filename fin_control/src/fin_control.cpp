@@ -40,7 +40,12 @@
  */
 
 #include "fin_control/fin_control.h"
+
 #include <string>
+
+#include <diagnostic_tools/message_stagnation_check.h>
+#include <diagnostic_tools/periodic_message_status.h>
+
 
 namespace qna
 {
@@ -101,25 +106,36 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
       nodeHandle.subscribe("/fin_control/set_angles", 10, &FinControl::handleSetAngles, this);
 
   publisher_reportAngle =
-      nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
+      diagnostic_tools::create_publisher<fin_control::ReportAngle>(
+          nodeHandle, "/fin_control/report_angle", 1);
+
+  diagnostic_tools::PeriodicMessageStatusParams report_angle_rate_check_params;
+  report_angle_rate_check_params.min_acceptable_period(minReportAngleRate);
+  report_angle_rate_check_params.max_acceptable_period(maxReportAngleRate);
+  report_angle_rate_check_params.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  report_angle_rate_check_params.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, health_monitor::ReportFault::FIN_DATA_STALE
+  });  // NOLINT(whitespace/braces)
+  diagnosticsUpdater.add(
+      publisher_reportAngle.add_check<diagnostic_tools::PeriodicMessageStatus>(
+          "rate check", report_angle_rate_check_params));
 
   timer_reportAngle = nodeHandle.createTimer(
       ros::Duration(1 ./ reportAngleRate), &FinControl::reportAngleSendTimeout, this);
 
   finAngleCheck = diagnostic_tools::create_health_check<double>(
-      "Fin angle within range", [this](double angle) -> diagnostic_tools::Diagnostic
+      "Fin angle within range",
+      [this](double angle) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (std::abs(angle) > maxCtrlFinAngle)
         {
           using health_monitor::ReportFault;
-          Diagnostic diagnostic{Diagnostic::WARN, ReportFault::FIN_DATA_THRESHOLD_REACHED};
-          return diagnostic.description("Fin angle beyond limits: |%f| rad > %f rad",
-                                        angle, maxCtrlFinAngle);
+          return Diagnostic(Diagnostic::WARN, ReportFault::FIN_DATA_THRESHOLD_REACHED)
+              .description("Fin angle beyond limits: |%f| rad > %f rad", angle, maxCtrlFinAngle);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT
 
   diagnosticsUpdater.add(finAngleCheck);
 

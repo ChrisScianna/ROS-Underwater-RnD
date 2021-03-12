@@ -99,8 +99,9 @@ PoseEstimator::PoseEstimator()
   diagnostic_tools::PeriodicMessageStatusParams state_rate_check_params;
   state_rate_check_params.min_acceptable_period(1.0 / max_rate);
   state_rate_check_params.max_acceptable_period(1.0 / min_rate);
+  state_rate_check_params.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
   state_rate_check_params.abnormal_diagnostic({  // NOLINT(whitespace/braces)
-      diagnostic_tools::Diagnostic::ERROR,
+      diagnostic_tools::Diagnostic::STALE,
       health_monitor::ReportFault::POSE_DATA_STALE
   });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(
@@ -119,7 +120,7 @@ PoseEstimator::PoseEstimator()
       {
         return auv_interfaces::almost_equal(
             a.state, b.state, absolute_steady_band, relative_steady_band);
-      }, state_stagnation_check_params));  // NOLINT
+      }, state_stagnation_check_params));  // NOLINT(whitespace/braces)
 
   // Report if message data is out of range
   depth_check_ = diagnostic_tools::create_health_check<double>(

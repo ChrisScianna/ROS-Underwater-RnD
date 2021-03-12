@@ -122,8 +122,10 @@ ixBlueC3InsDriver::ixBlueC3InsDriver()
   {
     state_rate_check_params.max_acceptable_period(1.0 / min_rate);
   }
-  state_rate_check_params.abnormal_diagnostic({  // NOLINT
-      qna::diagnostic_tools::Diagnostic::ERROR,
+  state_rate_check_params.abnormal_diagnostic(
+      qna::diagnostic_tools::Diagnostic::WARN);
+  state_rate_check_params.stale_diagnostic({  // NOLINT
+      qna::diagnostic_tools::Diagnostic::STALE,
       health_monitor::ReportFault::AHRS_DATA_STALE
   });  // NOLINT
   diagnostics_updater_.add(

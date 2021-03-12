@@ -140,15 +140,18 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsBatteryHealthCheckPeriod{};
   paramsReportsBatteryHealthCheckPeriod.min_acceptable_period(minReportBatteryHealthRate);
   paramsReportsBatteryHealthCheckPeriod.max_acceptable_period(maxReportBatteryHealthRate);
-  diagnostic_tools::Diagnostic diagnosticBatteryHealthInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                                ReportFault::BATTERY_INFO_STALE);
-  paramsReportsBatteryHealthCheckPeriod.abnormal_diagnostic(diagnosticBatteryHealthInfoStale);
+  paramsReportsBatteryHealthCheckPeriod.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  paramsReportsBatteryHealthCheckPeriod.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::BATTERY_INFO_STALE
+  });  // NOLINT(whitespace/braces)
+
   diagnosticsUpdater.add(
       publisher_reportBatteryHealth.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check", paramsReportsBatteryHealthCheckPeriod));
 
   batteryCurrentCheck = diagnostic_tools::create_health_check<double>(
-      "Battery current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
+      "Battery current check",
+      [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (maxBatteryTotalCurrent < batteryCurrent)
@@ -159,8 +162,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                            maxBatteryTotalCurrent, batteryCurrent);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(batteryCurrentCheck);
 
   batteryVoltageCheck = diagnostic_tools::create_health_check<double>(
@@ -170,13 +172,13 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (batteryVoltage < minBatteryCellVoltage)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED)
-              .description("Battery Votlage - NOT OK (%f V < %f V)", batteryVoltage,
-                           minBatteryCellVoltage);
+          return Diagnostic(Diagnostic::WARN)
+              .code(ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED)
+              .description("Battery Votlage - NOT OK (%f V < %f V)",
+                           batteryVoltage, minBatteryCellVoltage);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(batteryVoltageCheck);
 
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
@@ -184,9 +186,10 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
   paramsReportsRPMCheckPeriod.min_acceptable_period(1.0 / maxReportRPMRate);
   paramsReportsRPMCheckPeriod.max_acceptable_period(1.0 / minReportRPMRate);
-  diagnostic_tools::Diagnostic diagnosticRPMInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                      ReportFault::THRUSTER_RPM_STALE);
-  paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnosticRPMInfoStale);
+  paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  paramsReportsRPMCheckPeriod.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::THRUSTER_RPM_STALE
+  });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(publisher_reportRPM.add_check<diagnostic_tools::PeriodicMessageStatus>(
       "rate check", paramsReportsRPMCheckPeriod));
 
@@ -196,17 +199,19 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsTemperatureCheckPeriod{};
   paramsReportsTemperatureCheckPeriod.min_acceptable_period(1. / maxReportMotorTemperatureRate);
   paramsReportsTemperatureCheckPeriod.max_acceptable_period(1. / minReportMotorTemperatureRate);
-  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                              ReportFault::THRUSTER_TEMP_STALE);
-  paramsReportsTemperatureCheckPeriod.abnormal_diagnostic(diagnosticTemperatureInfoStale);
+  paramsReportsTemperatureCheckPeriod.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  paramsReportsTemperatureCheckPeriod.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::THRUSTER_TEMP_STALE
+  });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::PeriodicMessageStatus>(
           "rate check", paramsReportsTemperatureCheckPeriod));
 
   diagnostic_tools::MessageStagnationCheckParams paramsTemperatureMessageStagnationcheck;
-  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStagnate(
-      diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_TEMP_STAGNATED);
-  paramsTemperatureMessageStagnationcheck.stagnation_diagnostic(diagnosticTemperatureInfoStagnate);
+  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStagnate();
+  paramsTemperatureMessageStagnationcheck.stagnation_diagnostic({  // NOLINT(whitespace/braces)
+    diagnostic_tools::Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_STAGNATED
+  });  // NOLINT(whitespace/braces)
 
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::MessageStagnationCheck>(
@@ -215,39 +220,41 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                                        const thruster_control::ReportMotorTemperature& b)
           {
             return std::fabs(a.motor_temp - b.motor_temp) < motorTemperatureSteadyBand;
-          }
-          , paramsTemperatureMessageStagnationcheck));
+          }, paramsTemperatureMessageStagnationcheck));  // NOLINT(whitespace/braces)
 
   canIntf.SetMotorTimeoutSeconds(setRPMTimeout);
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
 
   motorRPMCheck = diagnostic_tools::create_health_check<double>(
-      "Motor RPM check", [this](double rpms) -> diagnostic_tools::Diagnostic
+      "Motor RPM check",
+      [this](double rpms) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (std::abs(rpms) > maxAllowedMotorRPM)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::THRUSTER_RPM_THRESHOLD_REACHED)
-              .description("Absolute RPMs above threshold: |%f| > %f", rpms, maxAllowedMotorRPM);
+          return Diagnostic(Diagnostic::WARN)
+              .code(ReportFault::THRUSTER_RPM_THRESHOLD_REACHED)
+              .description("Absolute RPMs above threshold: |%f| > %f",
+                           rpms, maxAllowedMotorRPM);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(motorRPMCheck);
 
   motorTemperatureCheck = diagnostic_tools::create_health_check<double>(
-      "Motor temperature check", [this](double temperature) -> diagnostic_tools::Diagnostic
+      "Motor temperature check",
+      [this](double temperature) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (temperature > motorTemperatureThreshold)
         {
-          return Diagnostic(Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED)
-              .description("Temperature above threshold: %f degC > %f degC", temperature,
-                           motorTemperatureThreshold);
+          return Diagnostic(Diagnostic::ERROR)
+              .code(ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED)
+              .description("Temperature above threshold: %f degC > %f degC",
+                           temperature, motorTemperatureThreshold);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(motorTemperatureCheck);
 
   reportRPMTimer = nodeHandle.createTimer(ros::Duration(1. / reportRPMRate),
