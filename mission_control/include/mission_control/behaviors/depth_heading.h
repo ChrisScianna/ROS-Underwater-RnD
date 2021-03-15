@@ -45,54 +45,53 @@
 
 #include "mission_control/DepthHeading.h"
 #include "mission_control/behavior.h"
-#include "pose_estimator/CorrectedData.h"
+#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
-class DepthHeadingBehavior : public Behavior
-{
- public:
-  DepthHeadingBehavior(const std::string& name, const BT::NodeConfiguration& config);
-
-  BT::NodeStatus behaviorRunningProcess();
-
-  static BT::PortsList providedPorts()
+  class DepthHeadingBehavior : public Behavior
   {
-    BT::PortsList ports =
+  public:
+    DepthHeadingBehavior(const std::string &name, const BT::NodeConfiguration &config);
+
+    BT::NodeStatus behaviorRunningProcess();
+
+    static BT::PortsList providedPorts()
     {
-      BT::InputPort<double>("depth", 0.0, "depth"),
-      BT::InputPort<double>("heading", 0.0, "heading"),
-      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-      BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
-      BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
-      BT::InputPort<double>("time_out", 0.0, "time_out")
-    };
-    return ports;
-  }
+      BT::PortsList ports =
+          {
+              BT::InputPort<double>("depth", 0.0, "depth"),
+              BT::InputPort<double>("heading", 0.0, "heading"),
+              BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+              BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+              BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
+              BT::InputPort<double>("time_out", 0.0, "time_out")};
+      return ports;
+    }
 
- private:
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher depthHeadingBehaviorPub;
-  ros::Subscriber subCorrectedData_;
+  private:
+    ros::NodeHandle nodeHandle_;
+    ros::Publisher depthHeadingBehaviorPub;
+    ros::Subscriber subCorrectedData_;
 
-  double depth_;
-  double heading_;
-  double speedKnots_;
-  double timeOut_;
+    double depth_;
+    double heading_;
+    double speedKnots_;
+    double timeOut_;
 
-  bool depthEnable_;
-  bool headingEnable_;
-  bool speedKnotsEnable_;
+    bool depthEnable_;
+    bool headingEnable_;
+    bool speedKnotsEnable_;
 
-  double depthTolerance_;
-  double headingTolerance_;
+    double depthTolerance_;
+    double headingTolerance_;
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
-  bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
-  bool behaviorComplete_;
-};
+    void stateDataCallback(const auv_interfaces::StateStamped &data);
+    bool goalHasBeenPublished_;
+    void publishGoalMsg();
+    ros::Time behaviorStartTime_;
+    bool behaviorComplete_;
+  };
 
 }  //  namespace mission_control
 

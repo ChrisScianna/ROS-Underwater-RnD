@@ -41,8 +41,7 @@ import rospy
 import rostest
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import AttitudeServo
-from pose_estimator.msg import CorrectedData
-from geometry_msgs.msg import Vector3
+from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
@@ -53,7 +52,7 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         -   Load the mission attitude_servo_mission_test.xml
         -   Execute the mission
         -   Check if the behavior publishes the goal
-        -   Simulate PoseEstimator data to finish the behavior
+        -   Simulate auv_interfaces/StateStamped data to finish the behavior
         -   Test if the mission is SUCCESS
     """
 
@@ -71,9 +70,9 @@ class TestAttitudeServoBehavior(unittest.TestCase):
             AttitudeServo,
             self.attitude_servo_goal_callback)
 
-        self.simulated_pose_estimator_pub = rospy.Publisher(
-            '/pose/corrected_data',
-            CorrectedData,
+        self.simulated_auv_interface_data_pub = rospy.Publisher(
+            '/state',
+            StateStamped,
             queue_size=1)
 
     def attitude_servo_goal_callback(self, msg):
@@ -89,8 +88,8 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         yaw = self.mission.get_behavior_parameter('yaw')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
         enable_mask = 0
-        
-        #Calculate the mask
+
+        # Calculate the mask
         def get_mask(value, mask):
             return mask if value > 0 else 0
         enable_mask |= get_mask(roll, AttitudeServo.ROLL_ENA)
@@ -109,14 +108,11 @@ class TestAttitudeServoBehavior(unittest.TestCase):
                         msg='Mission control must publish goals')
 
         # send data to finish the mission
-        rpy_data = Vector3()
-        pose_estimator_corrected_data = CorrectedData()
-        rpy_data.x = 1.0
-        rpy_data.y = 1.0
-        rpy_data.z = 1.0
-        pose_estimator_corrected_data.rpy_ang = rpy_data
-        self.simulated_pose_estimator_pub.publish(
-            pose_estimator_corrected_data)
+        msg = StateStamped()
+        msg.state.manoeuvring.pose.mean.orientation.x = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.y = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.z = 1.0
+        self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():
             return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE

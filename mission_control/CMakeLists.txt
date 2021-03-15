@@ -9,12 +9,11 @@ add_compile_options(-DTIXML_USE_STL)
 find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
+  auv_interfaces
   behaviortree_cpp_v3
   health_monitor
   jaus_ros_bridge
   message_generation
-  pose_estimator
-  payload_manager
   roscpp
   roslint
   rospy
@@ -26,9 +25,7 @@ add_message_files(
   AttitudeServo.msg
   DepthHeading.msg
   FixedRudder.msg
-  Ping.msg
   Waypoint.msg
-  AltitudeHeading.msg
   LoadMission.msg
   ExecuteMission.msg
   ReportLoadMissionState.msg
@@ -43,14 +40,13 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
-  pose_estimator
   payload_manager
   std_msgs
 )
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS pose_estimator payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
+ CATKIN_DEPENDS auv_interfaces payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
 )
 
 ###########
