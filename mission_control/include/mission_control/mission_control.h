@@ -72,6 +72,7 @@
 #include "mission_control/behaviors/fixed_rudder.h"
 #include "mission_control/behaviors/depth_heading.h"
 #include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/payload_command.h"
 
 #define LOGGING (1)
 

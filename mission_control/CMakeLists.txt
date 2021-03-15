@@ -66,6 +66,7 @@ add_executable(${NODE_APP_NAME}
    src/behaviors/fixed_rudder.cpp
    src/behaviors/depth_heading.cpp
    src/behaviors/attitude_servo.cpp
+   src/behaviors/payload_command.cpp
 )
 
 add_library(MISSION_CONTROL_LIB SHARED

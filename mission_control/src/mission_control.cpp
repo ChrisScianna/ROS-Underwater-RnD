@@ -306,4 +306,5 @@ void MissionControlNode::registerBehaviorActions()
   missionFactory_.registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
   missionFactory_.registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
   missionFactory_.registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
+  missionFactory_.registerNodeType<mission_control::PayloadCommandBehavior>("PayloadCommandBehavior");
 }
