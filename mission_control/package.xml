@@ -10,30 +10,30 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
+  <build_depend>auv_interfaces</build_depend>
   <build_depend>behaviortree_cpp_v3</build_depend>
   <build_depend>health_monitor</build_depend>
   <build_depend>jaus_ros_bridge</build_depend>
   <build_depend>message_generation</build_depend>
   <build_depend>payload_manager</build_depend>
-  <build_depend>pose_estimator</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslint</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_export_depend>auv_interfaces</build_export_depend>
   <build_export_depend>health_monitor</build_export_depend>
   <build_export_depend>payload_manager</build_export_depend>
-  <build_export_depend>pose_estimator</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <exec_depend>actionlib</exec_depend>
   <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>auv_interfaces</exec_depend>
   <exec_depend>behaviortree_cpp_v3</exec_depend>
   <exec_depend>health_monitor</exec_depend>
   <exec_depend>jaus_ros_bridge</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>payload_manager</exec_depend>
-  <exec_depend>pose_estimator</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
