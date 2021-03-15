@@ -52,7 +52,7 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         -   Load the mission attitude_servo_mission_test.xml
         -   Execute the mission
         -   Check if the behavior publishes the goal
-        -   Simulate auv_inteface data to finish the behavior
+        -   Simulate auv_interfaces/StateStamped data to finish the behavior
         -   Test if the mission is SUCCESS
     """
 
@@ -108,11 +108,11 @@ class TestAttitudeServoBehavior(unittest.TestCase):
                         msg='Mission control must publish goals')
 
         # send data to finish the mission
-        auv_interface_data = StateStamped()
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 1.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 1.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 1.0
-        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
+        msg = StateStamped()
+        msg.state.manoeuvring.pose.mean.orientation.x = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.y = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.z = 1.0
+        self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():
             return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE

@@ -60,8 +60,8 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
   if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
 
   getInput<double>("time_out", timeOut_);
-  subCorrectedData_ =
-      nodeHandle_.subscribe("/pose/corrected_data", 1, &GoToWaypoint::correctedDataCallback, this);
+  subStateData_ =
+      nodeHandle_.subscribe("/pose/corrected_data", 1, &GoToWaypoint::stateDataCallback, this);
 
   goalHasBeenPublished_ = false;
   waypointBehaviorPub_ = nodeHandle_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
@@ -104,7 +104,7 @@ void GoToWaypoint::publishGoalMsg()
   waypointBehaviorPub_.publish(msg);
 }
 
-void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void GoToWaypoint::stateDataCallback(const auv_interfaces::StateStamped& data)
 {
   if (status() == BT::NodeStatus::RUNNING)
   {
@@ -114,9 +114,9 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
 
     double desiredNorthing;
     double desiredEasting;
-
-    latLongtoUTM(data.position.latitude, data.position.longitude, &currentNorthing,
-                 &currentEasting);
+    double latitude = data.state.geolocation.position.latitude;
+    double longitude = data.state.geolocation.position.longitude;
+    latLongtoUTM(latitude, longitude, &currentNorthing, &currentEasting);
     latLongtoUTM(lat_, long_, &desiredNorthing, &desiredEasting);
 
     // formula for distance between two 3D points is d=sqrt((x2-x1)^2 + (y2-y1)^2 + (z2-z1)^2)
@@ -127,9 +127,10 @@ void GoToWaypoint::correctedDataCallback(const pose_estimator::CorrectedData& da
     // distToWaypoint = hypot(abs(currentNorthing-desiredNorthing),
     // abs(currentEasting-desiredEasting));
 
+    double depth = data.state.manoeuvring.pose.mean.position.z;
     distToWaypoint =
         sqrt(pow((currentNorthing - desiredNorthing), 2) +
-             pow((currentEasting - desiredEasting), 2) + pow((data.depth - depth_), 2));
+             pow((currentEasting - desiredEasting), 2) + pow((depth - depth_), 2));
 
     if (distToWaypoint < wpRadius_)
     {
