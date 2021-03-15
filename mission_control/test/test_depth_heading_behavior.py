@@ -41,8 +41,7 @@ import rospy
 import rostest
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import DepthHeading
-from pose_estimator.msg import CorrectedData
-from geometry_msgs.msg import Vector3
+from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
@@ -52,7 +51,7 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         -   Load the mission depth_heading_mission_test.xml
         -   Execute the mission
         -   Check if the behavior publishes the goal
-        -   Simulate PoseEstimator data to finish the behavior
+        -   Simulate auv_inteface data to finish the behavior
         -   Test if the mission is SUCCESS
     """
 
@@ -69,9 +68,9 @@ class TestDepthHeadingBehavior(unittest.TestCase):
             DepthHeading,
             self.depth_heading_goal_callback)
 
-        self.simulated_pose_estimator_pub = rospy.Publisher(
-            '/pose/corrected_data',
-            CorrectedData,
+        self.simulated_auv_interface_data_pub = rospy.Publisher(
+            '/state',
+            StateStamped,
             queue_size=1)
 
     def depth_heading_goal_callback(self, msg):
@@ -102,15 +101,12 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         self.assertTrue(wait_for(depth_heading_goals_are_set),
                         msg='Mission control must publish goals')
 
-        #send data to finish the mission
-        rpy_data = Vector3()
-        pose_estimator_corrected_data = CorrectedData()
-        rpy_data.x = 0.0
-        rpy_data.y = 0.0
-        rpy_data.z = 2.0
-        pose_estimator_corrected_data.rpy_ang = rpy_data
-        self.simulated_pose_estimator_pub.publish(
-            pose_estimator_corrected_data)
+        # send data to finish the mission
+        auv_interface_data = StateStamped()
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 0.0
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 0.0
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 2.0
+        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
 
         def success_mission_status_is_reported():
             return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE

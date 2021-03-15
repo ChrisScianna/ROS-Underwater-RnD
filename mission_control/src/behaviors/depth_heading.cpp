@@ -39,8 +39,8 @@
 
 using mission_control::DepthHeadingBehavior;
 
-DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
-                                           const BT::NodeConfiguration& config)
+DepthHeadingBehavior::DepthHeadingBehavior(const std::string &name,
+                                           const BT::NodeConfiguration &config)
     : Behavior(name, config)
 {
   depthEnable_ = false;
@@ -53,13 +53,16 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string& name,
   speedKnots_ = 0.0;
 
   getInput<double>("depth", depth_);
-  if (depth_ != 0.0) depthEnable_ = true;
+  if (depth_ != 0.0)
+    depthEnable_ = true;
 
   getInput<double>("heading", heading_);
-  if (heading_ != 0.0) headingEnable_ = true;
+  if (heading_ != 0.0)
+    headingEnable_ = true;
 
   getInput<double>("speed_knots", speedKnots_);
-  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
+  if (speedKnots_ != 0.0)
+    speedKnotsEnable_ = true;
 
   getInput<double>("depth_tol", depthTolerance_);
   getInput<double>("heading_tol", headingTolerance_);
@@ -123,9 +126,10 @@ void DepthHeadingBehavior::publishGoalMsg()
   depthHeadingBehaviorPub.publish(msg);
 }
 
-void DepthHeadingBehavior::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void DepthHeadingBehavior::void stateDataCallback(const auv_interfaces::StateStamped& data)
 {
+  double heading = data.state.manoeuvring.pose.mean.orientation.z;
   // A quick check to see if our RPY angles match
-  if (headingEnable_ && (fabs(heading_ - data.rpy_ang.z) < headingTolerance_))
+  if (headingEnable_ && (fabs(heading_ - heading) < headingTolerance_))
     behaviorComplete_ = true;
 }
