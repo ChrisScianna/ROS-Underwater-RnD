@@ -45,7 +45,7 @@
 
 #include "mission_control/AttitudeServo.h"
 #include "mission_control/behavior.h"
-#include "pose_estimator/CorrectedData.h"
+#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
@@ -92,7 +92,7 @@ class AttitudeServoBehavior : public Behavior
   double pitchTolerance_;
   double yawTolerance_;
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  void stateDataCallback(const auv_interfaces::StateStamped& data);
   bool goalHasBeenPublished_;
   void publishGoalMsg();
   ros::Time behaviorStartTime_;
