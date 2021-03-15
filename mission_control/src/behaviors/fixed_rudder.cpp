@@ -33,8 +33,9 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include <string>
 #include "mission_control/behaviors/fixed_rudder.h"
+
+#include <string>
 
 using mission_control::MoveWithFixedRudder;
 
@@ -65,8 +66,7 @@ MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
   getInput<double>("depth_tol", depthTolerance_);
   getInput<double>("altitude_tol", altitudeTolerance_);
 
-  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                            &MoveWithFixedRudder::correctedDataCallback, this);
+  subStateData_ = nodeHandle_.subscribe("/state", 1, &MoveWithFixedRudder::stateDataCallback, this);
 
   goalHasBeenPublished_ = false;
   fixedRudderBehaviorPub_ =
@@ -107,7 +107,7 @@ void MoveWithFixedRudder::publishGoalMsg()
   fixedRudderBehaviorPub_.publish(msg);
 }
 
-void MoveWithFixedRudder::correctedDataCallback(const pose_estimator::CorrectedData& data)
+void MoveWithFixedRudder::stateDataCallback(const auv_interfaces::StateStamped& data)
 {
   // A quick check to see if our depth matches, note: rudder is not part of corrected data.
   // TODO(QNA): put back in when depth working  if (depthEnable_ && (abs(depth_ - data.depth) >

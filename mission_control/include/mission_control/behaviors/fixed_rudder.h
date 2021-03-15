@@ -45,7 +45,7 @@
 
 #include "mission_control/FixedRudder.h"
 #include "mission_control/behavior.h"
-#include "pose_estimator/CorrectedData.h"
+#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
@@ -74,7 +74,7 @@ class MoveWithFixedRudder : public Behavior
  private:
   ros::NodeHandle nodeHandle_;
   ros::Publisher fixedRudderBehaviorPub_;
-  ros::Subscriber subCorrectedData_;
+  ros::Subscriber subStateData_;
 
   double depth_;
   double altitude_;
@@ -91,7 +91,7 @@ class MoveWithFixedRudder : public Behavior
   double rudderTolerance_;
   double altitudeTolerance_;
 
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
+  void stateDataCallback(const auv_interfaces::StateStamped &data);
   bool goalHasBeenPublished_;
   void publishGoalMsg();
   ros::Time behaviorStartTime_;
