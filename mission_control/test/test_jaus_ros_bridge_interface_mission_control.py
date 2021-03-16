@@ -32,6 +32,8 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
+from __future__ import print_function
+
 import sys
 import os
 import unittest
@@ -101,13 +103,12 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
         self.simulated_remove_mission_msg_pub = rospy.Publisher(
             '/mission_control_node/remove_missions', RemoveMissions, latch=True, queue_size=1)
-        
+
         self.simulated_abort_mission_msg_pub = rospy.Publisher(
             '/mission_control_node/abort_mission', AbortMission, latch=True, queue_size=1)
 
     def callback_mission_execute_state(self, msg):
         self.report_execute_mission = msg
-        rospy.loginfo(self.report_execute_mission.execute_mission_state)
 
     def callback_report_mission(self, msg):
         self.report_mission = msg
@@ -116,16 +117,16 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.mission_load_state = msg.load_state
 
     def test_jaus_ros_bridge_interface(self):
-        
         # A wrong mission is sent to the mission control
         self.mission_to_load.mission_file_full_path = "NO_MISSION"
         self.simulated_mission_control_load_mission_pub.publish(
             self.mission_to_load)
         def load_wrong_mission():
             return self.mission_load_state == ReportLoadMissionState.FAILED
-        self.assertTrue(wait_for(load_wrong_mission), 
+        self.assertTrue(
+            wait_for(load_wrong_mission),
             msg='Mission control must report FAILED')
-        
+
         # A valid mission is sent to the mission control
         self.mission_to_load.mission_file_full_path = self.dir_path + \
             "test_missions/mission.xml"
@@ -133,7 +134,8 @@ class TestJausRosBridgeInterface(unittest.TestCase):
             self.mission_to_load)
         def load_valid_mission():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(load_valid_mission), 
+        self.assertTrue(
+            wait_for(load_valid_mission),
             msg='Mission control must report SUCCESS')
 
         # Execute Mission and check if the mission control reports status
@@ -142,18 +144,21 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
         def success_mission_status_is_reported():
             return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
-        self.assertTrue(wait_for(success_mission_status_is_reported), 
+        self.assertTrue(
+            wait_for(success_mission_status_is_reported),
             msg='Mission control must report SUCCESS')
 
-        # Abort the Mission and wait for the mission to abort the mission
+        # Abort mission and wait for it to wrap up
         abortMission = AbortMission()
         abortMission.mission_id = 1
         self.simulated_abort_mission_msg_pub.publish(abortMission)
-        def abort_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.PAUSED
-        self.assertTrue(wait_for(abort_mission_status_is_reported), 
-            msg='Mission control must report ABORTING')
-        
+        # TODO(hidmic): check ABORTING state when missions are no longer short-lived
+        def complete_mission_status_is_reported():
+            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(
+            wait_for(complete_mission_status_is_reported),
+            msg='Mission control must report COMPLETE')
+
         # Query mission and test response
         self.simulated_query_mission_msg_pub.publish(QueryMissions())
         def query_mission():

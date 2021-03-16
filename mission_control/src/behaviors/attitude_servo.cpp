@@ -57,6 +57,7 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   pitchTolerance_ = 0;
   yawTolerance_ = 0;
 
+  // TODO(hidmic): revisit
   getInput<double>("roll", roll_);
   if (roll_ != 0.0) rollEnable_ = true;
 
