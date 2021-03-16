@@ -57,14 +57,15 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   pitchTolerance_ = 0;
   yawTolerance_ = 0;
 
+  // TODO(hidmic): revisit
   getInput<double>("roll", roll_);
   if (roll_ != 0.0) rollEnable_ = true;
 
   getInput<double>("pitch", pitch_);
-  if (pitch_ != 0.0) pitchEnable_ = true;
+  //if (pitch_ != 0.0) pitchEnable_ = true;
 
   getInput<double>("yaw", yaw_);
-  if (yaw_ != 0.0) yawEnable_ = true;
+  //if (yaw_ != 0.0) yawEnable_ = true;
 
   getInput<double>("speed_knots", speedKnots_);
   if (speedKnots_ != 0.0) speedKnotsEnable_ = true;

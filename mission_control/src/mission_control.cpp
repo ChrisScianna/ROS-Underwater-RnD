@@ -41,7 +41,7 @@
 namespace mission_control
 {
 
-MissionControlNode::MissionControlNode() : pnh_("~")
+MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
 {
   // Get runtime parameters
   double heartbeat_rate;
@@ -56,7 +56,7 @@ MissionControlNode::MissionControlNode() : pnh_("~")
   // pnh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 10.0);
 
   // Subscribe to all topics
-  fault_sub_ = pnh_.subscribe("faults", 1, &MissionControlNode::faultCallback, this);
+  fault_sub_ = nh_.subscribe("faults", 1, &MissionControlNode::faultCallback, this);
 
   load_mission_sub_ =
       pnh_.subscribe("load_mission", 1, &MissionControlNode::loadMissionCallback, this);
@@ -84,6 +84,8 @@ MissionControlNode::MissionControlNode() : pnh_("~")
   update_timer_ = pnh_.createTimer(
       ros::Duration(1.0 / update_rate),
       &MissionControlNode::update, this);
+
+  last_mission_state_report_.mission_id = 0;
 }
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent&)
@@ -149,7 +151,7 @@ void MissionControlNode::reportOn(const Mission& mission)
   if (last_mission_state_report_.mission_id != msg.mission_id ||
       last_mission_state_report_.execute_mission_state != msg.execute_mission_state)
   {
-    ROS_INFO_STREAM("Mission [" << msg.mission_id << "] " <<
+    ROS_INFO_STREAM("Mission [" << mission.id() << "] " <<
                     to_string(msg.execute_mission_state));
     report_mission_execute_state_pub_.publish(msg);
     last_mission_state_report_ = msg;
@@ -198,7 +200,7 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission&
   }
   else
   {
-    ROS_ERROR_STREAM(
+    ROS_DEBUG_STREAM(
         "loadMissionCallback - FAILED to parse mission file " <<
         msg.mission_file_full_path);
     outmsg.load_state = ReportLoadMissionState::FAILED;
@@ -210,7 +212,7 @@ void MissionControlNode::executeMissionCallback(const mission_control::ExecuteMi
 {
   if (system_fault_ids_)
   {
-    ROS_WARN("No mission can be executed in a faulty system, ignoring execute request");
+    ROS_ERROR("No mission can be executed in a faulty system, ignoring execute request");
     return;
   }
 

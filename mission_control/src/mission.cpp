@@ -35,6 +35,9 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/mission.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "mission_control/behaviors/waypoint.h"
 #include "mission_control/behaviors/fixed_rudder.h"
 #include "mission_control/behaviors/depth_heading.h"
@@ -82,7 +85,7 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
 <root main_tree_to_execute="Go to the surface" >
     <BehaviorTree ID="Go to the surface">
        <AttitudeServoBehavior name="Command thruster and fins"
-           roll="0.0" pitch="-20.0" yaw="0.0" speed_knots="0.0"/>
+           roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"/>
     </BehaviorTree>
 </root>
 )";
@@ -92,9 +95,20 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
   abort_behavior_tree_ = factory.createTreeFromText(text);
 }
 
+namespace filesystem
+{
+
+bool exists(const std::string& path)
+{
+  struct stat tmp;
+  return stat(path.c_str(), &tmp) == 0;
+}
+
+}  // namespace filesystem
+
 std::unique_ptr<Mission> Mission::fromFile(const std::string& path)
 {
-  if (access(path.c_str(), F_OK) < -1)
+  if (!filesystem::exists(path))
   {
     ROS_ERROR_STREAM("Cannot read mission definition from " << path);
     return nullptr;
@@ -119,15 +133,9 @@ bool Mission::active() const
 
 Mission& Mission::start()
 {
-  switch (status_)
+  if (!active())
   {
-    case Mission::Status::COMPLETED:
-    case Mission::Status::ABORTED:
-    case Mission::Status::READY:
-      status_ = Mission::Status::PENDING;
-      break;
-    default:
-      break;
+    status_ = Mission::Status::PENDING;
   }
   return *this;
 }

@@ -95,6 +95,7 @@ private:
 
   void faultCallback(const health_monitor::ReportFault& msg);
 
+  ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
   ros::Subscriber fault_sub_;
