@@ -1,4 +1,3 @@
-
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
@@ -36,48 +35,183 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/mission.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include "mission_control/behaviors/waypoint.h"
+#include "mission_control/behaviors/fixed_rudder.h"
+#include "mission_control/behaviors/depth_heading.h"
+#include "mission_control/behaviors/attitude_servo.h"
+
 #include <string>
 
-using BT::NodeStatus;
-using BT::Tree;
-using mission_control::Mission;
 
-Mission::Mission(BT::Tree && missionTree) : tree_(std::move(missionTree))
+namespace mission_control
 {
-  description_ = tree_.rootNode()->name();
-  behaviorStatus_ = BT::NodeStatus::IDLE;
+
+namespace
+{
+
+class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
+{
+ public:
+  static MissionBehaviorTreeFactory& instance()
+  {
+    static MissionBehaviorTreeFactory factory;
+    return factory;
+  }
+ private:
+  MissionBehaviorTreeFactory()
+  {
+    // TODO(hidmic): load behavior classes from ROS plugins
+    this->registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
+    this->registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
+    this->registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
+    this->registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
+  }
+};
+
+}  // namespace
+
+int Mission::id_sequence_ = 0;
+
+Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
+    : main_behavior_tree_(std::move(behavior_tree)),
+      status_(Mission::Status::READY),
+      id_(++id_sequence_)
+{
+  // TODO(hidmic): fetch pitch angle from blackboard
+  static constexpr char text[] = R"(
+<root main_tree_to_execute="Go to the surface" >
+    <BehaviorTree ID="Go to the surface">
+       <AttitudeServoBehavior name="Command thruster and fins"
+           roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"/>
+    </BehaviorTree>
+</root>
+)";
+
+  MissionBehaviorTreeFactory& factory =
+      MissionBehaviorTreeFactory::instance();
+  abort_behavior_tree_ = factory.createTreeFromText(text);
 }
 
-Mission::~Mission() {}
-
-std::unique_ptr<Mission> Mission::FromMissionDefinition(const std::string& missionFullPath,
-                                                        BT::BehaviorTreeFactory& missionFactory)
+namespace filesystem
 {
-  if (access(missionFullPath.c_str(), F_OK) != -1)
+
+bool exists(const std::string& path)
+{
+  struct stat tmp;
+  return stat(path.c_str(), &tmp) == 0;
+}
+
+}  // namespace filesystem
+
+std::unique_ptr<Mission> Mission::fromFile(const std::string& path)
+{
+  if (!filesystem::exists(path))
   {
-    return std::unique_ptr<Mission>(
-        new Mission(missionFactory.createTreeFromFile(missionFullPath)));
-  }
-  else
+    ROS_ERROR_STREAM("Cannot read mission definition from " << path);
     return nullptr;
-}
-
-void Mission::stop()
-{
-  tree_.haltTree();
-  behaviorStatus_ = BT::NodeStatus::IDLE;
-}
-
-BT::NodeStatus Mission::getStatus() { return behaviorStatus_; }
-
-std::string Mission::getCurrentMissionDescription() { return description_; }
-
-BT::NodeStatus Mission::Continue()
-{
-  if (behaviorStatus_ == BT::NodeStatus::IDLE || behaviorStatus_ == BT::NodeStatus::RUNNING)
-  {
-    behaviorStatus_ = tree_.tickRoot();
   }
 
-  return behaviorStatus_;
+  MissionBehaviorTreeFactory& factory = MissionBehaviorTreeFactory::instance();
+  return std::unique_ptr<Mission>(new Mission(factory.createTreeFromFile(path)));
 }
+
+const std::string& Mission::description() const
+{
+  return main_behavior_tree_.rootNode()->name();
+}
+
+bool Mission::active() const
+{
+  return (status_ != Mission::Status::READY &&
+          status_ != Mission::Status::PREEMPTED &&
+          status_ != Mission::Status::COMPLETED &&
+          status_ != Mission::Status::ABORTED);
+}
+
+Mission& Mission::start()
+{
+  if (!active())
+  {
+    status_ = Mission::Status::PENDING;
+  }
+  return *this;
+}
+
+Mission& Mission::resume()
+{
+  switch (status_)
+  {
+    case Mission::Status::PENDING:
+    case Mission::Status::EXECUTING:
+      switch (main_behavior_tree_.tickRoot())
+      {
+        case BT::NodeStatus::RUNNING:
+          status_ = Mission::Status::EXECUTING;
+          break;
+        case BT::NodeStatus::SUCCESS:
+          status_ = Mission::Status::COMPLETED;
+          break;
+        case BT::NodeStatus::FAILURE:
+          status_ = Mission::Status::ABORTING;
+          break;
+      }
+      break;
+    case Mission::Status::ABORTING:
+      switch (abort_behavior_tree_.tickRoot())
+      {
+        case BT::NodeStatus::RUNNING:
+          status_ = Mission::Status::ABORTING;
+          break;
+        case BT::NodeStatus::SUCCESS:
+        case BT::NodeStatus::FAILURE:
+          status_ = Mission::Status::ABORTED;
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+  return *this;
+}
+
+Mission& Mission::preempt()
+{
+  switch (status_)
+  {
+    case Mission::Status::PENDING:
+      status_ = Mission::Status::PREEMPTED;
+      break;
+    case Mission::Status::EXECUTING:
+      status_ = Mission::Status::PREEMPTED;
+      main_behavior_tree_.haltTree();
+      break;
+    case Mission::Status::ABORTING:
+      status_ = Mission::Status::PREEMPTED;
+      abort_behavior_tree_.haltTree();
+    default:
+      break;
+  }
+  return *this;
+}
+
+Mission& Mission::abort()
+{
+  switch (status_)
+  {
+    case Mission::Status::PENDING:
+      status_ = Mission::Status::ABORTED;
+      break;
+    case Mission::Status::EXECUTING:
+      status_ = Mission::Status::ABORTING;
+      main_behavior_tree_.haltTree();
+      break;
+    default:
+      break;
+  }
+  return *this;
+}
+
+}  // namespace mission_control

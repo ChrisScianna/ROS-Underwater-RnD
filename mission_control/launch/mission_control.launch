@@ -1,12 +1,11 @@
 <launch>
     <!-- mission control -->
-    <arg name="report_execute_mission_state_rate" default="1.0"/>
-    <arg name="report_heart_beat_rate" default="1.0"/>
-    <arg name="execute_mission_asynchronous_rate" default="0.1"/>
-    
+    <arg name="heartbeat_rate" default="1.0"/>
+    <arg name="update_rate" default="10.0"/>
+
     <node pkg="mission_control" type="mission_control_node" name="mission_control_node" output="screen">
-        <param name="report_execute_mission_state_rate" type="double" value="$(arg report_execute_mission_state_rate)"/>
-        <param name="report_heart_beat_rate" type="double" value="$(arg report_heart_beat_rate)"/>
-        <param name="execute_mission_asynchronous_rate" type="double" value="$(arg execute_mission_asynchronous_rate)"/>
+        <remap from="faults" to="/health_monitor/report_fault"/>
+        <param name="update_rate" type="double" value="$(arg update_rate)"/>
+        <param name="heartbeat_rate" type="double" value="$(arg heartbeat_rate)"/>
     </node>
 </launch>

@@ -38,34 +38,28 @@ import unittest
 import rosnode
 import rospy
 import rostest
-from mission_control.msg import LoadMission
-from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import ReportLoadMissionState
 from health_monitor.msg import ReportFault
-from jaus_ros_bridge.msg import ActivateManualControl
+from mission_control.msg import AttitudeServo
+from mission_interface import MissionInterface
+from mission_interface import wait_for
 
 
-def wait_for(predicate, period=1):
-    while not rospy.is_shutdown():
-        result = predicate()
-        if result:
-            return result
-        rospy.sleep(period)
-    return predicate()
+def isclose(a, b, tol):
+    return abs(a - b) < tol
 
 
 class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
-    """ 
-        Simulate error message sent by health monitor and checks 
+    """
+        Simulate error message sent by health monitor and checks
         if the mission control publishes the abort status.
         The steps int the involved are:
             1)  Load a mission
             2)  Execute the Mission
             3)  Simulate an error sent by health monitor
             4)  check if the mission control abort the mission
-                a) Stop the current behavior
-                b) Send manual control command to autopilot
+                a) Receive Aborting State
+                b) Set the fins to surface and Thruster velocity to 0 RPM
     """
 
     @classmethod
@@ -73,81 +67,57 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         rospy.init_node('test_mission_control_aborts_procedure')
 
     def setUp(self):
-        self.dir_path = os.path.dirname(
-            os.path.abspath(__file__)) + '/test_files/'
-        self.mission_to_load = LoadMission()
-        self.mission_to_load.mission_file_full_path = self.dir_path + \
-            "test_missions/mission.xml"
-        self.mission_to_execute = ExecuteMission()
-        self.mission_to_execute.mission_id = 1
+        self.attitude_servo_goal = AttitudeServo()
+        self.mission = MissionInterface()
         self.simulate_error_code = ReportFault()
-        self.simulate_error_code.fault_id = ReportFault.PAYLOAD_ERROR
-        self.mission_load_state = ReportLoadMissionState()
-        self.report_execute_mission = ReportExecuteMissionState()
-        self.activate_manual_control = False
+        self.simulate_error_code.fault_id = ReportFault.AUTOPILOT_NODE_DIED
+        self.attitude_servo_aborting_goal = AttitudeServo()
 
-        # Subscribers
-        self.exec_state_sub = rospy.Subscriber('/mission_control_node/report_mission_execute_state',
-                                               ReportExecuteMissionState, self.callback_mission_execute_state)
+        self.attitude_servo_msg = rospy.Subscriber(
+            '/mngr/attitude_servo',
+            AttitudeServo,
+            self.attitude_servo_callback)
 
-        self.load_state_sub = rospy.Subscriber('/mission_control_node/report_mission_load_state',
-                                               ReportLoadMissionState, self.callback_mission_load_state)
+        self.simulated_health_monitor_pub = rospy.Publisher(
+            '/health_monitor/report_fault',
+            ReportFault, queue_size=1)
 
-        self.activate_manual_control_sub = rospy.Subscriber('/jaus_ros_bridge/activate_manual_control',
-                                                            ActivateManualControl, self.callback_activate_manual_control)
-
-        #   Publisher
-
-        self.simulated_mission_control_load_mission_pub = rospy.Publisher('/mission_control_node/load_mission',
-                                                                          LoadMission, latch=True, queue_size=1)
-
-        self.simulated_mission_control_execute_mission_pub = rospy.Publisher(
-            '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
-
-        self.simulated_health_monitor_pub = rospy.Publisher('/health_monitor/report_fault',
-                                                            ReportFault, queue_size=1)
-
-    def callback_mission_execute_state(self, msg):
-        self.report_execute_mission = msg
-
-    def callback_mission_load_state(self, msg):
-        self.mission_load_state = msg.load_state
-
-    def callback_activate_manual_control(self, msg):
-        self.activate_manual_control = msg.activate_manual_control
+    def attitude_servo_callback(self, msg):
+        self.attitude_servo_aborting_goal = msg
 
     def test_mission_control_aborts_if_health_monitor_reports_fault(self):
+        self.mission.load_mission('mission.xml')
+        self.mission.execute_mission()
 
-        # Load Mission
-        self.simulated_mission_control_load_mission_pub.publish(
-            self.mission_to_load)
-
-        def load_valid_mission():
-            return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        self.assertTrue(wait_for(load_valid_mission),
-                        msg='Error Loading mission')
-
-        # Execute Mission and check if the mission control reports status
-        self.simulated_mission_control_execute_mission_pub.publish(
-            self.mission_to_execute)
-
-        def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
-        self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report SUCCESS')
+        def executing_mission_status_is_reported():
+            return self.mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
+        self.assertTrue(wait_for(executing_mission_status_is_reported),
+                        msg='Mission control must report EXECUTING')
 
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
 
-        def abort_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.PAUSED
-        self.assertTrue(wait_for(abort_mission_status_is_reported),
-                        msg='Mission control must report STOP/ABORTING')
+        # TODO(hidmic): check ABORTING state when missions are no longer short-lived
+        def complete_mission_status_is_reported():
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(complete_mission_status_is_reported),
+                        msg='Mission control must report COMPLETE')
 
-        def abort_mission_change_autopilot_to_manual_control():
-            return self.activate_manual_control
-        self.assertTrue(wait_for(abort_mission_change_autopilot_to_manual_control),
-                        msg='Mission control must send command to autopilot control for being manual')
+        # Check if the behavior publishes the attitude servo msg to
+        # set the fins to surface and velocity to 0 RPM
+        # maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
+
+        def attitude_servo_aborting_goals_are_set():
+            tol = 1e-3
+            raise RuntimeError(isclose(self.attitude_servo_aborting_goal.pitch, -0.3490658503988659, tol))
+            return (isclose(self.attitude_servo_aborting_goal.roll, 0.0, tol) and
+                    isclose(self.attitude_servo_aborting_goal.pitch, -0.3490658503988659, tol) and
+                    isclose(self.attitude_servo_aborting_goal.yaw, 0.0, tol) and
+                    isclose(self.attitude_servo_aborting_goal.speed_knots, 0.0, tol) and
+                    self.attitude_servo_aborting_goal.ena_mask == 0xF)
+        self.assertTrue(wait_for(attitude_servo_aborting_goals_are_set),
+                        msg='Mission control must publish goals')
+
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_aborts_when_health_monitor_reports_fault',
