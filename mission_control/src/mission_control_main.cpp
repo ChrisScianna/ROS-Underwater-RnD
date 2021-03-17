@@ -46,18 +46,15 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "mission_control_node");
 
-  ros::NodeHandle nh("~");
-  ROS_INFO("Starting Mission control node Version: [%s]", NODE_VERSION);
+  ros::NodeHandle nh;
+  ROS_INFO("Starting mission control version: [%s]", NODE_VERSION);
   nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
 
-  MissionControlNode mcn(nh);
-  ros::Rate loop_rate(10);
-  while (ros::ok())
-  {
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
-  ROS_INFO("Mission control shutting down");
+  mission_control::MissionControlNode node;
+
+  node.spin();
+
+  ROS_INFO("Shutting down mission control");
 
   return 0;
 }

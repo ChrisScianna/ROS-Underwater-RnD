@@ -38,45 +38,50 @@
 #define MISSION_CONTROL_MISSION_H
 
 #include <behaviortree_cpp_v3/bt_factory.h>
+
 #include <memory>
 #include <string>
 
-// Behaviors
-#include "mission_control/behaviors/waypoint.h"
 
 namespace mission_control
 {
+
 class Mission
 {
- public:
-  static std::unique_ptr<Mission> FromMissionDefinition(const std::string& missionFullPath,
-                                                        BT::BehaviorTreeFactory& missionFactory);
-
-  ~Mission();
-
-  enum class State
+public:
+  enum class Status
   {
     READY,
+    PENDING,
     EXECUTING,
     ABORTING,
-    STOPPED,
-    PAUSED,
-    COMPLETE
+    COMPLETED,
+    ABORTED,
+    PREEMPTED
   };
 
-  BT::NodeStatus Continue();
-  void stop();
+  static std::unique_ptr<Mission> fromFile(const std::string& path);
 
-  BT::NodeStatus getStatus();
-  std::string getCurrentMissionDescription();
+  inline int id() const { return id_; }
+  inline Status status() const { return status_; }
+  const std::string& description() const;
+  bool active() const;
 
- private:
-  explicit Mission(BT::Tree && missionTree);
+  Mission& start();
+  Mission& resume();
+  Mission& preempt();
+  Mission& abort();
 
-  BT::Tree tree_;
-  std::string description_;   //  Description of the mission
-  std::string behaviorName_;  //  Name of the action (behavior) being executed.
-  BT::NodeStatus behaviorStatus_;
+private:
+  explicit Mission(BT::Tree&& tree);  // NOLINT
+
+  BT::Tree main_behavior_tree_;
+  BT::Tree abort_behavior_tree_;
+
+  Status status_;
+  int id_;
+
+  static int id_sequence_;
 };
 
 }  //  namespace mission_control

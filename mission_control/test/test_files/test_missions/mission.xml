@@ -4,7 +4,7 @@
 
      <BehaviorTree ID="MainTree">
         <Sequence name="mission test">
-            <GoToWaypoint     depth="1.0" altitude="2.0" latitude="3.0" longitude="4.0" wp_radius="5.0" speed_knots="6.0" time_out="5"/>
+            <MoveWithFixedRudder     depth="1.0" rudder="2.0" speed_knots="3.0" behavior_time="15.0" rudder_tol="5.0" depth_tol="6.0" altitude_tol="7.0"/>
         </Sequence>
      </BehaviorTree>
 
