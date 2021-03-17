@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  AltitudeHeading.msg
   AttitudeServo.msg
   DepthHeading.msg
   FixedRudder.msg

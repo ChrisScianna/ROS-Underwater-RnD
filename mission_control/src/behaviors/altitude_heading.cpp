@@ -48,25 +48,21 @@ AltitudeHeadingBehavior::AltitudeHeadingBehavior(const std::string &name,
   speedKnotsEnable_ = false;
   timeOutEnable_ = false;
 
-  getInput<double>("altitude", altitude_);
-  if (altitude_)
+  if (getInput<double>("altitude", altitude_))
   {
     altitudeEnable_ = true;
     getInput<double>("altitude_tol", altitudeTolerance_);
   }
 
-  getInput<double>("heading", heading_);
-  if (heading_)
+  if (getInput<double>("heading", heading_))
   {
     headingEnable_ = true;
     getInput<double>("heading_tol", headingTolerance_);
   }
 
-  getInput<double>("speed_knots", speedKnots_);
-  if (speedKnots_) speedKnotsEnable_ = true;
+  if (getInput<double>("speed_knots", speedKnots_)) speedKnotsEnable_ = true;
 
-  getInput<double>("time_out", timeOut_);
-  if (timeOut_) timeOutEnable_ = true;
+  if (getInput<double>("time_out", timeOut_)) timeOutEnable_ = true;
 
   subCorrectedData_ =
       nodeHandle_.subscribe("/state", 1, &AltitudeHeadingBehavior::stateDataCallback, this);

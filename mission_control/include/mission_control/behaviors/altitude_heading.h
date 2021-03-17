@@ -60,12 +60,12 @@ class AltitudeHeadingBehavior : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("altitude", 0.0, "altitude"),  //  NOLINT
-                           BT::InputPort<double>("heading", 0.0, "heading"),
-                           BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
+    BT::PortsList ports = {BT::InputPort<double>("altitude", "altitude"),  //  NOLINT
+                           BT::InputPort<double>("heading", "heading"),
+                           BT::InputPort<double>("speed_knots", "speed_knots"),
                            BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol"),
                            BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
-                           BT::InputPort<double>("time_out", 0.0, "time_out")};
+                           BT::InputPort<double>("time_out", "time_out")};
     return ports;
   }
 
