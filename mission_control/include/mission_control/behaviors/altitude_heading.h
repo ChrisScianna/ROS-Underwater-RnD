@@ -70,9 +70,13 @@ class AltitudeHeadingBehavior : public Behavior
   }
 
  private:
+  void stateDataCallback(const auv_interfaces::StateStamped &data);
+  void publishGoalMsg();
+
   ros::NodeHandle nodeHandle_;
   ros::Publisher altitudeHeadingBehaviorPub_;
   ros::Subscriber subCorrectedData_;
+  ros::Time behaviorStartTime_;
 
   double altitude_;
   double heading_;
@@ -87,10 +91,7 @@ class AltitudeHeadingBehavior : public Behavior
   double altitudeTolerance_;
   double headingTolerance_;
 
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
   bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
   bool behaviorComplete_;
 };
 

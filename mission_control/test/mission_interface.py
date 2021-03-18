@@ -128,4 +128,5 @@ class MissionInterface:
 
     def get_behavior_parameter(self, behavior_parameter):
         # return the parameter of the mission (mission/behavior/parameter)
-        return float(self.mission_behavior_parameters.attrib.get(behavior_parameter))
+        parameter = self.mission_behavior_parameters.attrib.get(behavior_parameter)
+        return float(parameter) if parameter else None

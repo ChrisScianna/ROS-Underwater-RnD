@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,7 @@ class TestAltitudeHeadingBehavior(unittest.TestCase):
 
     def altitude_heading_goal_callback(self, msg):
         self.altitude_heading_goal = msg
+        rospy.loginfo(msg)
 
     def test_mission_with_altitude_heading_behavior(self):
         self.mission.load_mission('altitude_heading_mission_test.xml')
@@ -88,15 +89,18 @@ class TestAltitudeHeadingBehavior(unittest.TestCase):
 
         # Calculate the mask
         def get_mask(value, mask):
-            return mask if value > 0 else 0
+            return mask if value else 0
         enable_mask |= get_mask(altitude, AltitudeHeading.ALTITUDE_ENA)
         enable_mask |= get_mask(heading, AltitudeHeading.HEADING_ENA)
         enable_mask |= get_mask(speed_knots, AltitudeHeading.SPEED_KNOTS_ENA)
 
+        def check_parameter(value):
+            return value if value else 0
+
         def altitude_heading_goals_are_set():
-            return (self.altitude_heading_goal.altitude == altitude and
-                    self.altitude_heading_goal.heading == heading and
-                    self.altitude_heading_goal.speed_knots == speed_knots and
+            return (self.altitude_heading_goal.altitude == check_parameter(altitude) and
+                    self.altitude_heading_goal.heading == check_parameter(heading) and
+                    self.altitude_heading_goal.speed_knots == check_parameter(speed_knots) and
                     self.altitude_heading_goal.ena_mask == enable_mask)
         self.assertTrue(wait_for(altitude_heading_goals_are_set),
                         msg='Mission control must publish goals')

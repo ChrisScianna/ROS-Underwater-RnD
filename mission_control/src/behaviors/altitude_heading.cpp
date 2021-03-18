@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -125,5 +125,5 @@ void AltitudeHeadingBehavior::stateDataCallback(const auv_interfaces::StateStamp
 {
   double heading = data.state.manoeuvring.pose.mean.orientation.z;
   // A quick check to see if our RPY angles match
-  if (headingEnable_ && (abs(heading_ - heading) < headingTolerance_)) behaviorComplete_ = true;
+  behaviorComplete_ = headingEnable_ && (abs(heading_ - heading) < headingTolerance_);
 }
