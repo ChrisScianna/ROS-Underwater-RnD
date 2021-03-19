@@ -41,11 +41,12 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
 #include "mission_control/AttitudeServo.h"
 #include "mission_control/behavior.h"
-#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
@@ -58,24 +59,24 @@ class AttitudeServoBehavior : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports =
-    {
-      BT::InputPort<double>("roll", 0.0, "roll"),
-      BT::InputPort<double>("pitch", 0.0, "pitch"),
-      BT::InputPort<double>("yaw", 0.0, "yaw"),
-      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-      BT::InputPort<double>("time_out", 0.0, "time_out"),
-      BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
-      BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
-      BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")
-    };
-    return ports;
+    return {BT::InputPort<double>("roll", "roll"),  //  NOLINT
+            BT::InputPort<double>("pitch", "pitch"),
+            BT::InputPort<double>("yaw", "yaw"),
+            BT::InputPort<double>("speed_knots", "speed_knots"),
+            BT::InputPort<double>("time_out", "time_out"),
+            BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
+            BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
+            BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")};
   }
 
  private:
+  void stateDataCallback(const auv_interfaces::StateStamped& data);
+  void publishGoalMsg();
+
   ros::NodeHandle nodeHandle_;
   ros::Publisher attitudeServoBehaviorPub_;
   ros::Subscriber subStateData_;
+  ros::Time behaviorStartTime_;
 
   double roll_;
   double pitch_;
@@ -87,15 +88,13 @@ class AttitudeServoBehavior : public Behavior
   bool pitchEnable_;
   bool yawEnable_;
   bool speedKnotsEnable_;
+  bool timeOutEnable_;
 
   double rollTolerance_;
   double pitchTolerance_;
   double yawTolerance_;
 
-  void stateDataCallback(const auv_interfaces::StateStamped& data);
   bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
   bool behaviorComplete_;
 };
 

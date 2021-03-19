@@ -43,44 +43,40 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
                                              const BT::NodeConfiguration& config)
     : Behavior(name, config)
 {
-  roll_ = 0.0;
-  pitch_ = 0.0;
-  yaw_ = 0.0;
-  speedKnots_ = 0.0;
-
   rollEnable_ = false;
   pitchEnable_ = false;
   yawEnable_ = false;
   speedKnotsEnable_ = false;
+  timeOutEnable_ = false;
 
-  rollTolerance_ = 0;
-  pitchTolerance_ = 0;
-  yawTolerance_ = 0;
+  if (getInput<double>("roll", roll_))
+  {
+    rollEnable_ = true;
+    getInput<double>("roll_tol", rollTolerance_);
+  }
 
-  getInput<double>("roll", roll_);
-  if (roll_ != 0.0) rollEnable_ = true;
+  if (getInput<double>("pitch", pitch_))
+  {
+    pitchEnable_ = true;
+    getInput<double>("pitch_tol", pitchTolerance_);
+  }
 
-  getInput<double>("pitch", pitch_);
-  if (pitch_ != 0.0) pitchEnable_ = true;
+  if (getInput<double>("yaw", yaw_))
+  {
+    yawEnable_ = true;
+    getInput<double>("yaw_tol", yawTolerance_);
+  }
 
-  getInput<double>("yaw", yaw_);
-  if (yaw_ != 0.0) yawEnable_ = true;
+  if (getInput<double>("speed_knots", speedKnots_)) speedKnotsEnable_ = true;
+  if (getInput<double>("time_out", timeOut_)) timeOutEnable_ = true;
 
-  getInput<double>("speed_knots", speedKnots_);
-  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
+  subStateData_ =
+      nodeHandle_.subscribe("/state", 1, &AttitudeServoBehavior::stateDataCallback, this);
 
-  getInput<double>("time_out", timeOut_);
-  getInput<double>("roll_tol", rollTolerance_);
-  getInput<double>("pitch_tol", pitchTolerance_);
-  getInput<double>("yaw_tol", yawTolerance_);
-
-  subStateData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                            &AttitudeServoBehavior::stateDataCallback, this);
-
-  goalHasBeenPublished_ = false;
   attitudeServoBehaviorPub_ =
       nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
 
+  goalHasBeenPublished_ = false;
   behaviorComplete_ = false;
   behaviorStartTime_ = ros::Time::now();
 }
@@ -97,7 +93,7 @@ BT::NodeStatus AttitudeServoBehavior::behaviorRunningProcess()
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > timeOut_)
+    if (delta_t.toSec() > timeOut_ && timeOutEnable_)
     {
       goalHasBeenPublished_ = false;
       setStatus(BT::NodeStatus::FAILURE);
@@ -130,7 +126,6 @@ void AttitudeServoBehavior::publishGoalMsg()
   if (speedKnotsEnable_) msg.ena_mask |= AttitudeServo::SPEED_KNOTS_ENA;
 
   msg.header.stamp = ros::Time::now();
-
   attitudeServoBehaviorPub_.publish(msg);
 }
 
