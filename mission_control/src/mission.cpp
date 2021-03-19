@@ -42,6 +42,7 @@
 #include "mission_control/behaviors/fixed_rudder.h"
 #include "mission_control/behaviors/depth_heading.h"
 #include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/payload_command.h"
 
 #include <string>
 
@@ -68,6 +69,7 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
     this->registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
     this->registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
     this->registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
+    this->registerNodeType<mission_control::PayloadCommandBehavior>("PayloadCommandBehavior");
   }
 };
 
