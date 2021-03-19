@@ -43,28 +43,28 @@ MoveWithFixedRudder::MoveWithFixedRudder(const std::string& name,
                                          const BT::NodeConfiguration& config)
     : Behavior(name, config)
 {
-  depthEnable_ = rudderEnable_ = altitudeEnable_ = false;
+  depthEnable_ = false;
+  rudderEnable_ = altitudeEnable_ = false;
   speedKnotsEnable_ = false;
-  depthTolerance_ = rudderTolerance_ = altitudeTolerance_ = 0.0;
-  depth_ = rudder_ = altitude_ = 0.0;
-  speedKnots_ = 0.0;
 
-  getInput<double>("depth", depth_);
-  if (depth_ != 0.0) depthEnable_ = true;
+  if (getInput<double>("depth", depth_))
+  {
+    depthEnable_ = true;
+    getInput<double>("depth_tol", depthTolerance_);
+  }
 
-  getInput<double>("altitude", altitude_);
-  if (altitude_ != 0.0) altitudeEnable_ = true;
+  if (getInput<double>("altitude", altitude_))
+  {
+    altitudeEnable_ = true;
+    getInput<double>("altitude_tol", altitudeTolerance_);
+  }
 
-  getInput<double>("rudder", rudder_);
-  if (rudder_ != 0.0) rudderEnable_ = true;
-
-  getInput<double>("speed_knots", speedKnots_);
-  if (speedKnots_ != 0.0) speedKnotsEnable_ = true;
-
-  getInput<double>("behavior_time", behaviorTime_);
-  getInput<double>("rudder_tol", rudderTolerance_);
-  getInput<double>("depth_tol", depthTolerance_);
-  getInput<double>("altitude_tol", altitudeTolerance_);
+  if (getInput<double>("rudder", rudder_))
+  {
+    rudderEnable_ = true;
+    getInput<double>("rudder_tol", rudderTolerance_);
+  }
+  if (getInput<double>("speed_knots", speedKnots_)) speedKnotsEnable_ = true;
 
   subStateData_ = nodeHandle_.subscribe("/state", 1, &MoveWithFixedRudder::stateDataCallback, this);
 
@@ -79,8 +79,18 @@ BT::NodeStatus MoveWithFixedRudder::behaviorRunningProcess()
 {
   if (!goalHasBeenPublished_)
   {
-    publishGoalMsg();
-    goalHasBeenPublished_ = true;
+    auto res = getInput<std::string>("behavior_time");
+    if (!res)
+    {
+      ROS_ERROR_STREAM("error reading port [command]:" << res.error());
+      setStatus(BT::NodeStatus::FAILURE);
+    }
+    else
+    {
+      getInput<double>("behavior_time", behaviorTime_);
+      publishGoalMsg();
+      goalHasBeenPublished_ = true;
+    }
   }
   else
   {
@@ -93,14 +103,26 @@ BT::NodeStatus MoveWithFixedRudder::behaviorRunningProcess()
 void MoveWithFixedRudder::publishGoalMsg()
 {
   FixedRudder msg;
-  msg.depth = depth_;
-  msg.rudder = rudder_;
-  msg.speed_knots = speedKnots_;
 
   msg.ena_mask = 0x0;
-  if (depthEnable_) msg.ena_mask |= FixedRudder::DEPTH_ENA;
-  if (rudderEnable_) msg.ena_mask |= FixedRudder::RUDDER_ENA;
-  if (speedKnotsEnable_) msg.ena_mask |= FixedRudder::SPEED_KNOTS_ENA;
+
+  if (depthEnable_)
+  {
+    msg.depth = depth_;
+    msg.ena_mask |= FixedRudder::DEPTH_ENA;
+  }
+
+  if (rudderEnable_)
+  {
+    msg.ena_mask |= FixedRudder::RUDDER_ENA;
+    msg.rudder = rudder_;
+  }
+
+  if (speedKnotsEnable_)
+  {
+    msg.speed_knots = speedKnots_;
+    msg.ena_mask |= FixedRudder::SPEED_KNOTS_ENA;
+  }
 
   msg.header.stamp = ros::Time::now();
 
