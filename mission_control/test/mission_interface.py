@@ -126,7 +126,6 @@ class MissionInterface:
         tree = ElementTree.parse(self.full_path)
         self.mission_behavior_parameters = tree.find('.//' + mission_behavior)
 
-    def get_behavior_parameter(self, behavior_parameter):
+    def get_behavior_parameter(self, name):
         # return the parameter of the mission (mission/behavior/parameter)
-        parameter = self.mission_behavior_parameters.attrib.get(behavior_parameter)
-        return float(parameter) if parameter else None
+        return self.mission_behavior_parameters.attrib.get(name)

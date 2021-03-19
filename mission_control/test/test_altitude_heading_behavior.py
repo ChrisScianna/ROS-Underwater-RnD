@@ -47,7 +47,7 @@ from mission_interface import wait_for
 
 
 class TestAltitudeHeadingBehavior(unittest.TestCase):
-    """ 
+    """
         The test loads and execute an altitude heading behavior.
         -   Load the mission altitude_heading_mission_test.xml
         -   Execute the mission
@@ -76,7 +76,6 @@ class TestAltitudeHeadingBehavior(unittest.TestCase):
 
     def altitude_heading_goal_callback(self, msg):
         self.altitude_heading_goal = msg
-        rospy.loginfo(msg)
 
     def test_mission_with_altitude_heading_behavior(self):
         self.mission.load_mission('altitude_heading_mission_test.xml')
@@ -85,23 +84,24 @@ class TestAltitudeHeadingBehavior(unittest.TestCase):
         altitude = self.mission.get_behavior_parameter('altitude')
         heading = self.mission.get_behavior_parameter('heading')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
-        enable_mask = 0
 
         # Calculate the mask
-        def get_mask(value, mask):
-            return mask if value else 0
-        enable_mask |= get_mask(altitude, AltitudeHeading.ALTITUDE_ENA)
-        enable_mask |= get_mask(heading, AltitudeHeading.HEADING_ENA)
-        enable_mask |= get_mask(speed_knots, AltitudeHeading.SPEED_KNOTS_ENA)
+        enable_mask = 0
+        if altitude is not None:
+            enable_mask |= AltitudeHeading.ALTITUDE_ENA
 
-        def check_parameter(value):
-            return value if value else 0
+        if heading is not None:
+            enable_mask |= AltitudeHeading.HEADING_ENA
+
+        if speed_knots is not None:
+            enable_mask |= AltitudeHeading.SPEED_KNOTS_ENA
 
         def altitude_heading_goals_are_set():
-            return (self.altitude_heading_goal.altitude == check_parameter(altitude) and
-                    self.altitude_heading_goal.heading == check_parameter(heading) and
-                    self.altitude_heading_goal.speed_knots == check_parameter(speed_knots) and
+            return ((altitude is None or self.altitude_heading_goal.altitude == float(altitude)) and
+                    (heading is None or self.altitude_heading_goal.heading == float(heading)) and
+                    (speed_knots is None or self.altitude_heading_goal.speed_knots == float(speed_knots)) and
                     self.altitude_heading_goal.ena_mask == enable_mask)
+
         self.assertTrue(wait_for(altitude_heading_goals_are_set),
                         msg='Mission control must publish goals')
 
