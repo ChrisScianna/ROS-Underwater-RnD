@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,11 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+
 #include <string>
 
-#include "payload_manager/PayloadCommand.h"
 #include "mission_control/behavior.h"
+#include "payload_manager/PayloadCommand.h"
 
 namespace mission_control
 {
@@ -57,17 +58,12 @@ class PayloadCommandBehavior : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<std::string>("command", " ", "command")};
-    return ports;
+    return {BT::InputPort<std::string>("command", "command")};
   }
 
  private:
   ros::NodeHandle nodeHandle_;
   ros::Publisher payloadCommandPub_;
-
-  std::string payloadCommand_;
-  bool payloadCommandHasBeenPublished_;
-  void publishPayloadCommandMsg();
 };
 
 }  //  namespace mission_control

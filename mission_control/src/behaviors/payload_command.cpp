@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,36 +39,29 @@
 
 using mission_control::PayloadCommandBehavior;
 
-PayloadCommandBehavior::PayloadCommandBehavior(const std::string& name,
-                                               const BT::NodeConfiguration& config)
+PayloadCommandBehavior::PayloadCommandBehavior(const std::string &name,
+                                               const BT::NodeConfiguration &config)
     : Behavior(name, config)
 {
-  getInput<std::string>("command", payloadCommand_);
-
-  payloadCommandHasBeenPublished_ = false;
   payloadCommandPub_ =
       nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
 }
 
 BT::NodeStatus PayloadCommandBehavior::behaviorRunningProcess()
 {
-  if (!payloadCommandHasBeenPublished_)
+  auto res = getInput<std::string>("command");
+  if (!res)
   {
-    publishPayloadCommandMsg();
-    payloadCommandHasBeenPublished_ = true;
+    ROS_ERROR_STREAM("error reading port [command]:" << res.error());
+    setStatus(BT::NodeStatus::FAILURE);
   }
   else
   {
+    payload_manager::PayloadCommand msg;
+    msg.header.stamp = ros::Time::now();
+    msg.command = res.value();
+    payloadCommandPub_.publish(msg);
     setStatus(BT::NodeStatus::SUCCESS);
-    payloadCommandHasBeenPublished_ = false;
   }
   return (status());
-}
-
-void PayloadCommandBehavior::publishPayloadCommandMsg()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  msg.command = payloadCommand_;
-  payloadCommandPub_.publish(msg);
 }
