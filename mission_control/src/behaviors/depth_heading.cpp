@@ -46,35 +46,30 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string &name,
   depthEnable_ = false;
   headingEnable_ = false;
   speedKnotsEnable_ = false;
-  depthTolerance_ = 0.0;
-  headingTolerance_ = 0.0;
-  depth_ = 0.0;
-  heading_ = 0.0;
-  speedKnots_ = 0.0;
+  timeOutEnable_ = false;
 
-  getInput<double>("depth", depth_);
-  if (depth_ != 0.0)
+  if (getInput<double>("depth", depth_))
+  {
     depthEnable_ = true;
+    getInput<double>("depth_tol", depthTolerance_);
+  }
 
-  getInput<double>("heading", heading_);
-  if (heading_ != 0.0)
+  if (getInput<double>("heading", heading_))
+  {
     headingEnable_ = true;
+    getInput<double>("heading_tol", headingTolerance_);
+  }
 
-  getInput<double>("speed_knots", speedKnots_);
-  if (speedKnots_ != 0.0)
-    speedKnotsEnable_ = true;
+  if (getInput<double>("speed_knots", speedKnots_)) speedKnotsEnable_ = true;
+  if (getInput<double>("time_out", timeOut_)) timeOutEnable_ = true;
 
-  getInput<double>("depth_tol", depthTolerance_);
-  getInput<double>("heading_tol", headingTolerance_);
-  getInput<double>("time_out", timeOut_);
+  subCorrectedData_ =
+      nodeHandle_.subscribe("/state", 1, &DepthHeadingBehavior::stateDataCallback, this);
 
-  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                            &DepthHeadingBehavior::stateDataCallback, this);
-
-  goalHasBeenPublished_ = false;
   depthHeadingBehaviorPub =
       nodeHandle_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
 
+  goalHasBeenPublished_ = false;
   behaviorComplete_ = false;
   behaviorStartTime_ = ros::Time::now();
 }
@@ -91,7 +86,7 @@ BT::NodeStatus DepthHeadingBehavior::behaviorRunningProcess()
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > timeOut_)
+    if (delta_t.toSec() > timeOut_ && timeOutEnable_)
     {
       goalHasBeenPublished_ = false;
       setStatus(BT::NodeStatus::FAILURE);
@@ -126,10 +121,9 @@ void DepthHeadingBehavior::publishGoalMsg()
   depthHeadingBehaviorPub.publish(msg);
 }
 
-void DepthHeadingBehavior::stateDataCallback(const auv_interfaces::StateStamped& data)
+void DepthHeadingBehavior::stateDataCallback(const auv_interfaces::StateStamped &data)
 {
   double heading = data.state.manoeuvring.pose.mean.orientation.z;
   // A quick check to see if our RPY angles match
-  if (headingEnable_ && (fabs(heading_ - heading) < headingTolerance_))
-    behaviorComplete_ = true;
+  if (headingEnable_ && (fabs(heading_ - heading) < headingTolerance_)) behaviorComplete_ = true;
 }

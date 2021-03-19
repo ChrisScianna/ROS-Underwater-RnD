@@ -41,57 +41,57 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
 #include "mission_control/DepthHeading.h"
 #include "mission_control/behavior.h"
-#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
-  class DepthHeadingBehavior : public Behavior
+class DepthHeadingBehavior : public Behavior
+{
+ public:
+  DepthHeadingBehavior(const std::string &name, const BT::NodeConfiguration &config);
+
+  BT::NodeStatus behaviorRunningProcess();
+
+  static BT::PortsList providedPorts()
   {
-  public:
-    DepthHeadingBehavior(const std::string &name, const BT::NodeConfiguration &config);
+    return {BT::InputPort<double>("depth", "depth"),  //  NOLINT
+            BT::InputPort<double>("heading", "heading"),
+            BT::InputPort<double>("speed_knots", "speed_knots"),
+            BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+            BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
+            BT::InputPort<double>("time_out", "time_out")};
+  }
 
-    BT::NodeStatus behaviorRunningProcess();
+ private:
+  void stateDataCallback(const auv_interfaces::StateStamped &data);
+  void publishGoalMsg();
 
-    static BT::PortsList providedPorts()
-    {
-      BT::PortsList ports =
-          {
-              BT::InputPort<double>("depth", 0.0, "depth"),
-              BT::InputPort<double>("heading", 0.0, "heading"),
-              BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-              BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
-              BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
-              BT::InputPort<double>("time_out", 0.0, "time_out")};
-      return ports;
-    }
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher depthHeadingBehaviorPub;
+  ros::Subscriber subCorrectedData_;
+  ros::Time behaviorStartTime_;
 
-  private:
-    ros::NodeHandle nodeHandle_;
-    ros::Publisher depthHeadingBehaviorPub;
-    ros::Subscriber subCorrectedData_;
+  double depth_;
+  double heading_;
+  double speedKnots_;
+  double timeOut_;
 
-    double depth_;
-    double heading_;
-    double speedKnots_;
-    double timeOut_;
+  bool depthEnable_;
+  bool headingEnable_;
+  bool speedKnotsEnable_;
+  bool timeOutEnable_;
 
-    bool depthEnable_;
-    bool headingEnable_;
-    bool speedKnotsEnable_;
+  double depthTolerance_;
+  double headingTolerance_;
 
-    double depthTolerance_;
-    double headingTolerance_;
-
-    void stateDataCallback(const auv_interfaces::StateStamped &data);
-    bool goalHasBeenPublished_;
-    void publishGoalMsg();
-    ros::Time behaviorStartTime_;
-    bool behaviorComplete_;
-  };
+  bool goalHasBeenPublished_;
+  bool behaviorComplete_;
+};
 
 }  //  namespace mission_control
 
