@@ -57,7 +57,6 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   pitchTolerance_ = 0;
   yawTolerance_ = 0;
 
-  // TODO(hidmic): revisit
   getInput<double>("roll", roll_);
   if (roll_ != 0.0) rollEnable_ = true;
 
@@ -75,8 +74,8 @@ AttitudeServoBehavior::AttitudeServoBehavior(const std::string& name,
   getInput<double>("pitch_tol", pitchTolerance_);
   getInput<double>("yaw_tol", yawTolerance_);
 
-  subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                            &AttitudeServoBehavior::correctedDataCallback, this);
+  subStateData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
+                                            &AttitudeServoBehavior::stateDataCallback, this);
 
   goalHasBeenPublished_ = false;
   attitudeServoBehaviorPub_ =

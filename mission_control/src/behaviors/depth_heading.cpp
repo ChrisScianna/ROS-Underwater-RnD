@@ -69,7 +69,7 @@ DepthHeadingBehavior::DepthHeadingBehavior(const std::string &name,
   getInput<double>("time_out", timeOut_);
 
   subCorrectedData_ = nodeHandle_.subscribe("/pose/corrected_data", 1,
-                                            &DepthHeadingBehavior::correctedDataCallback, this);
+                                            &DepthHeadingBehavior::stateDataCallback, this);
 
   goalHasBeenPublished_ = false;
   depthHeadingBehaviorPub =
@@ -126,7 +126,7 @@ void DepthHeadingBehavior::publishGoalMsg()
   depthHeadingBehaviorPub.publish(msg);
 }
 
-void DepthHeadingBehavior::void stateDataCallback(const auv_interfaces::StateStamped& data)
+void DepthHeadingBehavior::stateDataCallback(const auv_interfaces::StateStamped& data)
 {
   double heading = data.state.manoeuvring.pose.mean.orientation.z;
   // A quick check to see if our RPY angles match
