@@ -60,6 +60,7 @@
 #include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_manager/AttitudeServo.h"
 #include "mission_manager/DepthHeading.h"
+#include "mission_manager/AltitudeHeading.h"
 #include "mission_manager/FixedRudder.h"
 #include "mission_manager/ReportExecuteMissionState.h"
 #include "mission_manager/ReportHeartbeat.h"
@@ -92,12 +93,14 @@ class AutoPilotNode
   ros::Subscriber missionMgrHeartBeatSub;
   ros::Subscriber setAttitudeBehaviorSub;
   ros::Subscriber setDepthHeadingBehaviorSub;
+  ros::Subscriber setAltitudeHeadingBehaviorSub;
   ros::Subscriber setFixedRudderBehaviorSub;
 
   control_toolbox::Pid rollPIDController;
   control_toolbox::Pid pitchPIDController;
   control_toolbox::Pid yawPidController;
   control_toolbox::Pid depthPIDController;
+  control_toolbox::Pid altitudePIDController;
 
   bool autoPilotInControl;
   bool missionMode;
@@ -125,7 +128,13 @@ class AutoPilotNode
   double depthDGain;
   double depthIMax;
   double depthIMin;
-
+  
+  double altitudePGain;
+  double altitudeIGain;
+  double altitudeDGain;
+  double altitudeIMax;
+  double altitudeIMin;
+  
   void stateCallback(const auv_interfaces::StateStamped& msg);
   void missionStatusCallback(const mission_manager::ReportExecuteMissionState& data);
 
@@ -144,6 +153,7 @@ class AutoPilotNode
   double currentPitch;
   double currentYaw;
   double currentDepth;
+  double currentAltitude;
 
   double desiredRoll;
   double desiredPitch;
@@ -151,6 +161,7 @@ class AutoPilotNode
   double desiredDepth;
   double desiredRudder;
   double desiredSpeed;
+  double desiredAltitude;
 
   double minimalSpeed;       // knots
   double rpmPerKnot;
@@ -160,12 +171,14 @@ class AutoPilotNode
   bool speedControlEnabled;  // Autopilot controls acceleration if true
   bool fixedRudder;          // Robot cordinate system for yaw if true
   bool depthControl;         // Depth if true, pitch if false
+  bool altitudeControl;
   bool autopilotEnabled;     // Autopilot if true, OCU if false
 
   bool allowReverseThrusterAutopilot;  // allow negative RPM if true
 
   double maxCtrlFinAngle;  // Max fin angle (degrees)
   double maxDepthCommand;    // Max amount the depth affects the fin angle (degrees)
+  double maxAltitudeCommand;
 
   boost::shared_ptr<boost::thread> m_thread;
 
@@ -174,6 +187,7 @@ class AutoPilotNode
   void attitudeServoCallback(const mission_manager::AttitudeServo& msg);
   void depthHeadingCallback(const mission_manager::DepthHeading& msg);
   void fixedRudderCallback(const mission_manager::FixedRudder& msg);
+  void altitudeHeadingCallback(const mission_manager::AltitudeHeading& msg);
 
   // Mask that keeps tracks of active behaviors
   boost::mutex behaviorMutex;

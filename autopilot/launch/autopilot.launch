@@ -45,6 +45,14 @@
     <param name="depth_imax" type="double" value="20.0" />
     <param name="depth_imin" type="double" value="-20.0" />
     <param name="depth_d" type="double" value="0.0" />
+  
+    <param name="max_altitude_command" type="double" value="25.0" />
+    <param name="altitude_p" type="double" value="1.0" />
+    <param name="altitude_i" type="double" value="0.0" />
+    <param name="altitude_imax" type="double" value="0.0" />
+    <param name="altitude_imin" type="double" value="0.0" />
+    <param name="altitude_d" type="double" value="0.0" />
+
   </node>
 
 </launch>

@@ -47,6 +47,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   currentPitch = 0;
   currentYaw = 0;
   currentDepth = 0;
+  maxAltitudeCommand = 25.0;
 
   thrusterPub = nh.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
   finsControlPub = nh.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
@@ -87,6 +88,14 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<double>("/autopilot_node/depth_imin", depthIMin, 0.0);
   nh.param<double>("/autopilot_node/depth_d", depthDGain, 0.0);
 
+  nh.param<double>("/autopilot_node/altitude_p", altitudePGain, 1.0);
+  nh.param<double>("/autopilot_node/altitude_i", altitudeIGain, 0.0);
+  nh.param<double>("/autopilot_node/altitude_imax", altitudeIMax, 0.0);
+  nh.param<double>("/autopilot_node/altitude_imin", altitudeIMin, 0.0);
+  nh.param<double>("/autopilot_node/altitude_d", altitudeDGain, 0.0);
+  nh.param<double>("/autopilot_node/max_altitude_command",maxAltitudeCommand, 25.0);
+
+
   nh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngle, 10.0);  // degrees
   nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);       // degrees
 
@@ -94,7 +103,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   pitchPIDController.initPid(pitchPGain, rollIGain, pitchDGain, pitchIMax, pitchIMin);
   yawPidController.initPid(yawPGain, yawIGain, yawDGain, yawIMax, yawIMin);
   depthPIDController.initPid(depthPGain, depthIGain, depthDGain, depthIMax, depthIMin);
-
+  altitudePIDController.initPid(altitudePGain,altitudeIGain,altitudeDGain,altitudeIMax,altitudeIMin);
+  
   nh.param<double>("/autopilot_node/desired_roll", desiredRoll, 0.0);
   nh.param<double>("/autopilot_node/desired_pitch", desiredPitch, 0.0);
   nh.param<double>("/autopilot_node/desired_yaw", desiredYaw, 0.0);
@@ -186,6 +196,7 @@ void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMi
     // surface
     desiredPitch = -maxCtrlFinAngle;
     depthControl = false;
+    altitudeControl = false;
 
     desiredRudder = 0;  // straight
     fixedRudder = true;
@@ -211,6 +222,7 @@ void AutoPilotNode::HandleActivateManualControl(const jaus_ros_bridge::ActivateM
     desiredRudder = 0;
     fixedRudder = true;
     depthControl = false;
+    altitudeControl = false;
   }
   else
   {
@@ -280,6 +292,7 @@ void AutoPilotNode::attitudeServoCallback(const mission_manager::AttitudeServo& 
   ROS_INFO("Angle for pitch: [%f]", msg.pitch);
   desiredPitch = msg.pitch;
   depthControl = false;  // disable depth control setting pitch instead
+  altitudeControl = false;
 
   ROS_INFO("Angle for yaw: [%f]", msg.yaw);
   desiredRudder = msg.yaw;  // yaw in attitude servo is really a fixedrudder
@@ -291,7 +304,6 @@ void AutoPilotNode::attitudeServoCallback(const mission_manager::AttitudeServo& 
 
 void AutoPilotNode::depthHeadingCallback(const mission_manager::DepthHeading& msg)
 {
-  boost::mutex::scoped_lock lock(behaviorMutex);
   missionMode = true;
   fixedRudder = false;
 
@@ -301,10 +313,31 @@ void AutoPilotNode::depthHeadingCallback(const mission_manager::DepthHeading& ms
   ROS_INFO("depth: [%f]", msg.depth);
   desiredDepth = msg.depth;
   depthControl = true;  // enabling depth control
+  altitudeControl = false;
 
   ROS_INFO("Angle for yaw: [%f]", msg.heading);
   desiredYaw = msg.heading;
 
+  ROS_INFO("speed_knots: [%f]", msg.speed_knots);
+  desiredSpeed = msg.speed_knots;
+}
+
+void AutoPilotNode::altitudeHeadingCallback(const mission_manager::AltitudeHeading& msg)
+{
+  boost::mutex::scoped_lock lock(behaviorMutex);
+  fixedRudder = false;
+ 
+  ROS_INFO("Depth Heading Message Received setting Angle for roll to 0.");
+  desiredRoll = 0;
+ 
+  ROS_INFO("altitude: [%f]", msg.altitude);
+ 
+  desiredAltitude = msg.altitude;
+  depthControl = false;    // disabling depth control;
+  altitudeControl = true;  // enable altitude control;
+ 
+  ROS_INFO("Angle for yaw: [%f]", msg.heading);
+  desiredYaw = msg.heading;
   ROS_INFO("speed_knots: [%f]", msg.speed_knots);
   desiredSpeed = msg.speed_knots;
 }
@@ -320,6 +353,7 @@ void AutoPilotNode::fixedRudderCallback(const mission_manager::FixedRudder& msg)
   ROS_INFO("depth: [%f]", msg.depth);
   desiredDepth = msg.depth;
   depthControl = true;  // enabling depth control
+  altitudeControl = false;
 
   ROS_INFO("Angle for rudder: [%f]", msg.rudder);
   desiredRudder = msg.rudder;
@@ -375,6 +409,15 @@ void AutoPilotNode::workerFunc()
                                                        ros::Duration(1.0 / controlLoopRate));
         if (fabs(desiredPitch) > maxDepthCommand)
           desiredPitch = desiredPitch / fabs(desiredPitch) * maxDepthCommand;
+      }
+      else if (altitudeControl)  // out put of altitude pid will be input to pitch pid
+      {
+        desiredPitch = altitudePIDController.updatePid(currentAltitude - desiredAltitude,
+                                                          ros::Duration(1.0 / controlLoopRate));
+        if (desiredPitch < (-1.0 * maxAltitudeCommand))
+          desiredPitch = -1.0 * maxAltitudeCommand;
+        else if (pitchCmdPos > maxAltitudeCommand)
+          desiredPitch = maxAltitudeCommand;
       }
       else
         desiredPitch = desiredPitch;

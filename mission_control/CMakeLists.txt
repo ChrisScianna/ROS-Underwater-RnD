@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
+  AltitudeHeading.msg
   AttitudeServo.msg
   DepthHeading.msg
   FixedRudder.msg
@@ -62,6 +63,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/fixed_rudder.cpp
   src/behaviors/depth_heading.cpp
   src/behaviors/attitude_servo.cpp
+  src/behaviors/altitude_heading.cpp
   src/behaviors/payload_command.cpp
 )
 
