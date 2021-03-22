@@ -80,20 +80,34 @@ class TestFixedRudderBehavior(unittest.TestCase):
         rudder = self.mission.get_behavior_parameter('rudder')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
 
+        # Calculate the mask
+        enable_mask = 0
+        if depth is not None:
+            enable_mask |= FixedRudder.DEPTH_ENA
+
+        if rudder is not None:
+            enable_mask |= FixedRudder.RUDDER_ENA
+
+        if speed_knots is not None:
+            enable_mask |= FixedRudder.SPEED_KNOTS_ENA
+
         # Check if the behavior publishes the goal
         def fixed_rudder_goals_are_set():
-            return (self.fixed_rudder_goal.depth == depth and
-                    self.fixed_rudder_goal.rudder == rudder and
-                    self.fixed_rudder_goal.speed_knots == speed_knots and
-                    self.fixed_rudder_goal.ena_mask == 7)
+            return ((depth is None or self.fixed_rudder_goal.depth == float(depth)) and
+                    (rudder is None or self.fixed_rudder_goal.rudder == float(rudder)) and
+                    (speed_knots is None or self.fixed_rudder_goal.speed_knots == float(speed_knots)) and
+                    self.fixed_rudder_goal.ena_mask == enable_mask)
+
         self.assertTrue(wait_for(fixed_rudder_goals_are_set),
                         msg='Mission control must publish goals')
 
         # Wait for the mission to be complete
         def success_mission_status_is_reported():
+            if self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING:
+                self.mission_has_failed = True
             return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
         self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report COMPLETE')
+                        msg='Mission control must report SUCCESS')
 
 
 if __name__ == "__main__":

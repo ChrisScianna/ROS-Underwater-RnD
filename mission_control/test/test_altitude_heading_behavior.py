@@ -113,6 +113,8 @@ class TestAltitudeHeadingBehavior(unittest.TestCase):
         self.simulated_auv_interface_data_pub.publish(auv_interface_data)
 
         def success_mission_status_is_reported():
+            if self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING:
+                self.mission_has_failed = True
             return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
         self.assertTrue(wait_for(success_mission_status_is_reported),
                         msg='Mission control must report COMPLETE')
