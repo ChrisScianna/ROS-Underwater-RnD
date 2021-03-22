@@ -82,12 +82,13 @@ BT::NodeStatus MoveWithFixedRudder::behaviorRunningProcess()
     auto res = getInput<std::string>("behavior_time");
     if (!res)
     {
-      ROS_ERROR_STREAM("error reading port [command]:" << res.error());
+      ROS_ERROR_STREAM("error reading port [behavior_time]:" << res.error());
       setStatus(BT::NodeStatus::FAILURE);
     }
     else
     {
       getInput<double>("behavior_time", behaviorTime_);
+      behaviorStartTime_ = ros::Time::now();
       publishGoalMsg();
       goalHasBeenPublished_ = true;
     }
@@ -95,7 +96,11 @@ BT::NodeStatus MoveWithFixedRudder::behaviorRunningProcess()
   else
   {
     ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > behaviorTime_) setStatus(BT::NodeStatus::SUCCESS);
+    if (delta_t.toSec() > behaviorTime_)
+    {
+      setStatus(BT::NodeStatus::SUCCESS);
+      goalHasBeenPublished_ = false;
+    }
   }
   return (status());
 }
