@@ -85,21 +85,23 @@ BT::NodeStatus DepthHeadingBehavior::behaviorRunningProcess()
   }
   else
   {
-    ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
-    if (delta_t.toSec() > timeOut_ && timeOutEnable_)
+    if (timeOutEnable_)
     {
-      goalHasBeenPublished_ = false;
-      setStatus(BT::NodeStatus::FAILURE);
-    }
-    else
-    {
-      if (behaviorComplete_)
+      ros::Duration delta_t = ros::Time::now() - behaviorStartTime_;
+      if (delta_t.toSec() > timeOut_ && timeOutEnable_)
       {
-        setStatus(BT::NodeStatus::SUCCESS);
         goalHasBeenPublished_ = false;
+        setStatus(BT::NodeStatus::FAILURE);
+        return status();
       }
     }
+    if (behaviorComplete_)
+    {
+      setStatus(BT::NodeStatus::SUCCESS);
+      goalHasBeenPublished_ = false;
+    }
   }
+
   return status();
 }
 
