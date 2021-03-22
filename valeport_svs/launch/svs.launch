@@ -1,0 +1,13 @@
+<launch>
+	<arg name="portName" default="/dev/ttyUSB1"/>
+	<arg name="baudRate" default="19200"/>
+	<arg name="logging" default="True"/>
+	<node name="svs" pkg="valeport_svs" type="valeport_svs_main.py" output="screen">
+		<param name="port" value="$(arg portName)"/>
+		<param name="baudRate" value="$(arg baudRate)"/>
+		<param name="logging" value="$(arg logging)"/>
+		<param name="topic" value="/valeport_svs/SVS"/>
+		<param name="rate" value="0.10"/>
+	</node>
+</launch>
+
