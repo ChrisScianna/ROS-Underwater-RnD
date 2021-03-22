@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,71 +34,38 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
-#define MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
+#ifndef MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
+#define MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
 
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+
 #include <string>
 
-#include "mission_control/AttitudeServo.h"
 #include "mission_control/behavior.h"
-#include "auv_interfaces/StateStamped.h"
+#include "payload_manager/PayloadCommand.h"
 
 namespace mission_control
 {
-class AttitudeServoBehavior : public Behavior
+class PayloadCommandBehavior : public Behavior
 {
  public:
-  AttitudeServoBehavior(const std::string& name, const BT::NodeConfiguration& config);
+  PayloadCommandBehavior(const std::string& name, const BT::NodeConfiguration& config);
 
   BT::NodeStatus behaviorRunningProcess();
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports =
-    {
-      BT::InputPort<double>("roll", 0.0, "roll"),
-      BT::InputPort<double>("pitch", 0.0, "pitch"),
-      BT::InputPort<double>("yaw", 0.0, "yaw"),
-      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-      BT::InputPort<double>("time_out", 0.0, "time_out"),
-      BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
-      BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
-      BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")
-    };
-    return ports;
+    return {BT::InputPort<std::string>("command", "command")};
   }
 
  private:
   ros::NodeHandle nodeHandle_;
-  ros::Publisher attitudeServoBehaviorPub_;
-  ros::Subscriber subStateData_;
-
-  double roll_;
-  double pitch_;
-  double yaw_;
-  double speedKnots_;
-  double timeOut_;
-
-  bool rollEnable_;
-  bool pitchEnable_;
-  bool yawEnable_;
-  bool speedKnotsEnable_;
-
-  double rollTolerance_;
-  double pitchTolerance_;
-  double yawTolerance_;
-
-  void stateDataCallback(const auv_interfaces::StateStamped& data);
-  bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
-  bool behaviorComplete_;
+  ros::Publisher payloadCommandPub_;
 };
 
 }  //  namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
+#endif  //  MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
