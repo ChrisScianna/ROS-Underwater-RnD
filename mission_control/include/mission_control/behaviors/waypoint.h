@@ -40,6 +40,7 @@
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
+#include <geodesy/utm.h>
 #include <ros/ros.h>
 #include <string>
 
@@ -49,57 +50,47 @@
 
 namespace mission_control
 {
-double inline degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
-void latLongtoUTM(double latitude, double longitude, double* ptrNorthing, double* ptrEasting);
-
-class GoToWaypoint : public Behavior
+class GoToWaypoint : public BT::ActionNodeBase
 {
 public:
   GoToWaypoint(const std::string &name, const BT::NodeConfiguration &config);
 
-  BT::NodeStatus behaviorRunningProcess();
+  BT::NodeStatus tick() override;
+
+  inline void halt() override { setStatus(BT::NodeStatus::IDLE); }
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports =
-        {
-            BT::InputPort<double>("depth", 0.0, "depth"),
-            BT::InputPort<double>("altitude", 0.0, "altitude"),
-            BT::InputPort<double>("latitude", 0.0, "latitude"),
-            BT::InputPort<double>("longitude", 0.0, "longitude"),
-            BT::InputPort<double>("wp_radius", 0.0, "wp_radius"),
-            BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-            BT::InputPort<double>("time_out", 0.0, "time_out")};
-    return ports;
+    return {  // NOLINT
+      BT::InputPort<double>("depth", "depth"),
+      BT::InputPort<double>("altitude", "altitude"),
+      BT::InputPort<double>("latitude", "latitude"),
+      BT::InputPort<double>("longitude", "longitude"),
+      BT::InputPort<double>("speed_knots", "speed_knots"),
+      BT::InputPort<double>("radius", 0.0, "wp_radius")};  // NOLINT
   }
 
 private:
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher waypointBehaviorPub_;
-  ros::Subscriber subStateData_;
+  void stateCallback(const auv_interfaces::StateStamped &data);
+  mission_control::Waypoint makeWaypointMsg();
 
-  double altitude_;
-  double depth_;
-  double lat_;
-  double long_;
-  double speedKnots_;
-  double wpRadius_;
-  double timeOut_;
+  ros::NodeHandle nh_;
+  ros::Publisher waypoint_pub_;
+  ros::Subscriber state_sub_;
 
-  bool altitudeEnable_;
-  bool depthEnable_;
-  bool latEnable_;
-  bool longEnable_;
-  bool speedKnotsEnable_;
-  bool wpRadiusEnable_;
+  double latitude_;
+  double longitude_;
+  double altitude_{0.0};
+  double depth_{0.0};
+  double speed_knots_{0.0};
+  double radius_;
+  uint8_t enable_mask_{0};
 
-  double depthTolerance_;
+  geodesy::UTMPoint current_position_;
+  geodesy::UTMPoint target_position_;
 
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
-  bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
+  ros::Time start_time_;
 };
 
 }  //  namespace mission_control
