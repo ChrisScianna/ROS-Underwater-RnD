@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -93,7 +93,7 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
     <BehaviorTree ID="Go to the surface">
        <AbortBehavior name="Command thruster and fins"
            roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"
-           roll_tol="1.0" pitch_tol="1.0" yaw_tol="1.0" />
+           roll_tol="0.2" pitch_tol="0.2" yaw_tol="0.2" />
     </BehaviorTree>
 </root>
 )";
