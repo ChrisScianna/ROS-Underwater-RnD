@@ -44,6 +44,7 @@
 #include "mission_control/behaviors/attitude_servo.h"
 #include "mission_control/behaviors/altitude_heading.h"
 #include "mission_control/behaviors/payload_command.h"
+#include "mission_control/behaviors/abort_behavior.h"
 
 
 #include <string>
@@ -73,6 +74,7 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
     this->registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
     this->registerNodeType<mission_control::AltitudeHeadingBehavior>("AltitudeHeadingBehavior");
     this->registerNodeType<mission_control::PayloadCommandBehavior>("PayloadCommandBehavior");
+    this->registerNodeType<mission_control::AbortBehavior>("AbortBehavior");
   }
 };
 
@@ -89,8 +91,9 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
   static constexpr char text[] = R"(
 <root main_tree_to_execute="Go to the surface" >
     <BehaviorTree ID="Go to the surface">
-       <AttitudeServoBehavior name="Command thruster and fins"
-           roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"/>
+       <AbortBehavior name="Command thruster and fins"
+           roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"
+           roll_tol="1.0" pitch_tol="1.0" yaw_tol="1.0" />
     </BehaviorTree>
 </root>
 )";

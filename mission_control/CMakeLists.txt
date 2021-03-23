@@ -65,6 +65,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/attitude_servo.cpp
   src/behaviors/altitude_heading.cpp
   src/behaviors/payload_command.cpp
+  src/behaviors/abort_behavior.cpp
 )
 
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
