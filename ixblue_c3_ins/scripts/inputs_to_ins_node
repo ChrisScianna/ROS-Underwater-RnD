@@ -34,7 +34,7 @@
 '''
 
 import rospy
-from keller_9lx_pressure.msg import Pressure
+from sensor_msgs.msg import FluidPressure
 from valeport_svs.msg import SVS
 import socket
 import time
@@ -74,7 +74,9 @@ def sendMessage():
 
 def callbackPressure(data):
 	global svsData, pressureData
-	pressureData= '%05.1f'%((data.pressure-1.01325)*10)
+    fluid_pressure = data.fluid_pressure / 10e3  # Pa to dBar
+    fluid_pressure = fluid_pressure - 10.1325  # dBar (i.e. 1 atm)
+	pressureData= '%05.1f' % (fluid_pressure)
 	if svsData is not None:
 		sendMessage()
 
@@ -86,7 +88,7 @@ def callbackSVS(data):
 		
 def listener():
 	rospy.init_node('inputsINS', anonymous=True)
-	rospy.Subscriber(pressureTopicName, Pressure, callbackPressure)
+	rospy.Subscriber(pressureTopicName, FluidPressure, callbackPressure)
 	rospy.Subscriber(svsTopicName, SVS, callbackSVS)
 	rospy.spin()
 
