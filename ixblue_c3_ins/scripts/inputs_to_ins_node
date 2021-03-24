@@ -39,7 +39,8 @@ from valeport_svs.msg import SVS
 import socket
 import time
 import sys
-NODE_VERSION = 1.03
+NODE_VERSION = 1.04
+rospy.init_node('inputsINS', anonymous=True)
 rospy.set_param('/version_numbers/inputs_to_ins', NODE_VERSION)
 versionInfo="Starting inputs to INS node Version: %s" % NODE_VERSION
 rospy.loginfo(versionInfo)
@@ -61,7 +62,7 @@ while not rospy.is_shutdown():
     except:
         if logFlag:
             print("Input to INS failed to connect to INS. Will try again.")
-        time.sleep(1)
+        rospy.sleep(1)
 
 svsData=None
 pressureData=None
@@ -87,7 +88,6 @@ def callbackSVS(data):
         sendMessage()
 
 def listener():
-    rospy.init_node('inputsINS', anonymous=True)
     rospy.Subscriber(pressureTopicName, FluidPressure, callbackPressure)
     rospy.Subscriber(svsTopicName, SVS, callbackSVS)
     rospy.spin()
