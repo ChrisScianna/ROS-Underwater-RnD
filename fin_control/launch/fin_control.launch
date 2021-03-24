@@ -2,9 +2,9 @@
   <arg name="portName" default="/dev/ttyUSB0"/>
   <arg name="baudRate" default="3000000"/>
   <arg name="maxCtrlFinAngle" default="20.0"/>
-  <arg name="reportAngleRate" default="0.04"/>
-  <arg name="minReportAngleRate" default="0.02"/>
-  <arg name="maxReportAngleRate" default="0.08"/>
+  <arg name="reportAngleRate" default="25.0"/>
+  <arg name="minReportAngleRate" default="12.5"/>
+  <arg name="maxReportAngleRate" default="50.0"/>
   <arg name="currentLoggingEnabled" default="false"/>
 
   <node pkg="fin_control" type="fin_control_node" name="fin_control" output="screen">

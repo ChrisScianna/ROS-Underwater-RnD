@@ -182,8 +182,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
-  paramsReportsRPMCheckPeriod.min_acceptable_period(minReportRPMRate);
-  paramsReportsRPMCheckPeriod.max_acceptable_period(maxReportRPMRate);
+  paramsReportsRPMCheckPeriod.min_acceptable_period(1.0 / maxReportRPMRate);
+  paramsReportsRPMCheckPeriod.max_acceptable_period(1.0 / minReportRPMRate);
   diagnostic_tools::Diagnostic diagnosticRPMInfoStale(diagnostic_tools::Diagnostic::WARN,
                                                       ReportFault::THRUSTER_RPM_STALE);
   paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnosticRPMInfoStale);
@@ -194,8 +194,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
       diagnostic_tools::create_publisher<thruster_control::ReportMotorTemperature>(
           nodeHandle, "/thruster_control/report_motor_temperature", 1);
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsTemperatureCheckPeriod{};
-  paramsReportsTemperatureCheckPeriod.min_acceptable_period(minReportMotorTemperatureRate);
-  paramsReportsTemperatureCheckPeriod.max_acceptable_period(maxReportMotorTemperatureRate);
+  paramsReportsTemperatureCheckPeriod.min_acceptable_period(1. / maxReportMotorTemperatureRate);
+  paramsReportsTemperatureCheckPeriod.max_acceptable_period(1. / minReportMotorTemperatureRate);
   diagnostic_tools::Diagnostic diagnosticTemperatureInfoStale(diagnostic_tools::Diagnostic::WARN,
                                                               ReportFault::THRUSTER_TEMP_STALE);
   paramsReportsTemperatureCheckPeriod.abnormal_diagnostic(diagnosticTemperatureInfoStale);
@@ -250,12 +250,12 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 );
   diagnosticsUpdater.add(motorTemperatureCheck);
 
-  reportRPMTimer = nodeHandle.createTimer(ros::Duration(reportRPMRate),
+  reportRPMTimer = nodeHandle.createTimer(ros::Duration(1. / reportRPMRate),
                                           &ThrusterControl::reportRPMSendTimeout, this);
   reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(reportMotorTemperatureRate),
                                                 &ThrusterControl::reportMotorTempSendTimeout, this);
   reportBatteryHealthTimer =
-      nodeHandle.createTimer(ros::Duration(reportBatteryHealthRate),
+      nodeHandle.createTimer(ros::Duration(1. / reportBatteryHealthRate),
                              &ThrusterControl::reportBatteryHealthSendTimeout, this);
   canIntf.Init();
 }

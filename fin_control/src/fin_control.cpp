@@ -61,7 +61,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
   servosON = false;
   const char *log;
   currentLoggingEnabled = false;
-  reportAngleRate = 0.04;
+  reportAngleRate = 25.0;
   minReportAngleRate = reportAngleRate / 2.0;
   maxReportAngleRate = reportAngleRate * 2.0;
 
@@ -104,7 +104,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
       nodeHandle.advertise<fin_control::ReportAngle>("/fin_control/report_angle", 1);
 
   timer_reportAngle = nodeHandle.createTimer(
-      ros::Duration(reportAngleRate), &FinControl::reportAngleSendTimeout, this);
+      ros::Duration(1 ./ reportAngleRate), &FinControl::reportAngleSendTimeout, this);
 
   finAngleCheck = diagnostic_tools::create_health_check<double>(
       "Fin angle within range", [this](double angle) -> diagnostic_tools::Diagnostic

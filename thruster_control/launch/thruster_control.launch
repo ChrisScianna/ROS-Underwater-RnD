@@ -1,11 +1,11 @@
 <launch>
 
-  <arg name="rpmRate" default="0.1"/>
-  <arg name="minRpmRate" default="0.05"/>
-  <arg name="maxRpmRate" default="0.2"/>
-  <arg name="tempRate" default="0.5"/>
-  <arg name="minTempRate" default="0.25"/>
-  <arg name="maxTempRate" default="1.0"/>
+  <arg name="rpmRate" default="10.0"/>
+  <arg name="minRpmRate" default="5.0"/>
+  <arg name="maxRpmRate" default="20.0"/>
+  <arg name="tempRate" default="2.0"/>
+  <arg name="minTempRate" default="1.0"/>
+  <arg name="maxTempRate" default="4.0"/>
   <arg name="motorTemperatureSteadyBand" default="0.0"/>
   <arg name="setRPMTimeout" default="0.5"/>
   <arg name="canNodeId1" default="0x07"/>
