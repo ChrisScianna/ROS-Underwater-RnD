@@ -58,7 +58,7 @@ public:
 
   BT::NodeStatus tick() override;
 
-  inline void halt() override { setStatus(BT::NodeStatus::IDLE); }
+  void halt() override;
 
   static BT::PortsList providedPorts()
   {
@@ -68,7 +68,7 @@ public:
       BT::InputPort<double>("latitude", "latitude"),
       BT::InputPort<double>("longitude", "longitude"),
       BT::InputPort<double>("speed_knots", "speed_knots"),
-      BT::InputPort<double>("radius", 0.0, "wp_radius")};  // NOLINT
+      BT::InputPort<double>("tolerance_radius", 0.0, "tolerance_radius")};  // NOLINT
   }
 
 private:
@@ -84,12 +84,12 @@ private:
   double altitude_{0.0};
   double depth_{0.0};
   double speed_knots_{0.0};
-  double radius_;
+  double tolerance_radius_;
   uint8_t enable_mask_{0};
 
   geodesy::UTMPoint current_position_;
   geodesy::UTMPoint target_position_;
-
+  bool state_up_to_date_;
   ros::Time start_time_;
 };
 

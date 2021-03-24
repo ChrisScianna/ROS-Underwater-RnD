@@ -50,6 +50,7 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
     throw std::runtime_error("Either latitude or longitude were left unspecified");
   }
   geodesy::fromMsg(geodesy::toMsg(latitude_, longitude_), target_position_);
+  enable_mask_ = Waypoint::LAT_ENA | Waypoint::LONG_ENA;
 
   if (getInput<double>("altitude", altitude_))
   {
@@ -71,32 +72,40 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
     enable_mask_ |= Waypoint::SPEED_KNOTS_ENA;
   }
 
-  getInput<double>("radius", radius_);
+  getInput<double>("tolerance_radius", tolerance_radius_);
 
-  state_sub_ = nh_.subscribe("/state", 1, &GoToWaypoint::stateCallback, this);
   waypoint_pub_ = nh_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
 }
 
 BT::NodeStatus GoToWaypoint::tick()
 {
   BT::NodeStatus current_status = status();
+
   switch (current_status)
   {
     case BT::NodeStatus::IDLE:
+      state_up_to_date_ = false;
+      state_sub_ = nh_.subscribe(
+        "/state", 1, &GoToWaypoint::stateCallback, this);
       waypoint_pub_.publish(makeWaypointMsg());
       current_status = BT::NodeStatus::RUNNING;
       break;
     case BT::NodeStatus::RUNNING:
+      if (state_up_to_date_)
       {
         double distance_to_waypoint =
           std::sqrt(std::pow(target_position_.northing - current_position_.northing, 2) +
                     std::pow(target_position_.easting - current_position_.easting, 2) +
                     std::pow(target_position_.altitude - current_position_.altitude, 2));
-        if (distance_to_waypoint < radius_)
+        ROS_INFO("distance to wp [%f], tolerance radius [%f]",
+                 distance_to_waypoint, tolerance_radius_);
+        if (distance_to_waypoint < tolerance_radius_)
         {
-          ROS_INFO("We have arrived at waypoint: distance to wp [%f] , wp radius [%f]",
-                   distance_to_waypoint, radius_);
+          ROS_INFO("We have arrived at waypoint: "
+                   "distance to wp [%f], tolerance radius [%f]",
+                   distance_to_waypoint, tolerance_radius_);
           current_status = BT::NodeStatus::SUCCESS;
+          state_sub_.shutdown();
         }
       }
       break;
@@ -104,6 +113,15 @@ BT::NodeStatus GoToWaypoint::tick()
       break;
   }
   return current_status;
+}
+
+void GoToWaypoint::halt()
+{
+  if (status() == BT::NodeStatus::RUNNING)
+  {
+    state_sub_.shutdown();
+  }
+  setStatus(BT::NodeStatus::IDLE);
 }
 
 mission_control::Waypoint GoToWaypoint::makeWaypointMsg()
@@ -126,6 +144,7 @@ void GoToWaypoint::stateCallback(const auv_interfaces::StateStamped& msg)
   {
     current_position_.altitude = msg.state.manoeuvring.pose.mean.position.z;
   }
+  state_up_to_date_ = true;
   // TODO(QNA): check shaft speed?
 }
 

@@ -32,23 +32,20 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
 import unittest
-import math
-import rosnode
 import rospy
 import rostest
-import auv_interfaces
+
+from auv_interfaces.msg import StateStamped
+
+from mission_control.msg import ReportExecuteMissionState
+from mission_control.msg import Waypoint
 
 from mission_interface import MissionInterface
+from mission_interface import wait_for
 
 
-class TestGoToWaypoint(unittest.TestCase):
-    """
-        The test simulates messages sent by the jaus ros bridge
-        and execute a waypoint behavior
-    """
+class TestGoToWaypointAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -57,41 +54,50 @@ class TestGoToWaypoint(unittest.TestCase):
     def setUp(self):
         self.waypoint = None
         self._waypoint_sub = rospy.Subscriber(
-            '/mngr/waypoint', mission_control.msg.Waypoint,
+            '/mngr/waypoint', Waypoint,
             self._waypoint_callback)
+        self._state_pub = rospy.Publisher('/state', StateStamped)
+        self.mission = MissionInterface()
 
-    def _waypoint_goal(self, msg):
+    def _waypoint_callback(self, msg):
         self.waypoint = msg
 
     def test_mission_that_goes_to_waypoint(self):
-        self.assertTrue(self.mission.load_mission(
-            "go_to_waypoint_mission_test.xml"))
+        self.assertTrue(self.mission.load_mission('waypoint_mission_test.xml'))
 
         self.mission.execute_mission()
 
-        self.mission.read_behavior_parameters('MoveWithFixedRudder')
-        depth = self.mission.get_behavior_parameter('depth')
-        rudder = self.mission.get_behavior_parameter('rudder')
-        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        def waypoint_is_set():
+            return self.waypoint is not None
+        self.assertTrue(wait_for(waypoint_is_set), msg='No waypoint was set')
 
-        def waypoint_goal_is_set():
-            
-        self.assertTrue(wait_for(waypoint_goal_is_set))
+        ena_mask = Waypoint.LAT_ENA | Waypoint.LONG_ENA
+        ena_mask |= Waypoint.ALTITUDE_ENA
+        ena_mask |= Waypoint.SPEED_KNOTS_ENA
+        self.assertEqual(self.waypoint.ena_mask, ena_mask)
 
-        # TEST - Waypoint has published the goal
-        while (not rospy.is_shutdown() and self.waypoint_goal_flag == False):
-            rospy.sleep(0.1)
-        self.assertEqual(self.waypoint_goal, [3.0, 4.0, 1.0, 0.0, 6.0, 23])
-        rospy.sleep(4)
+        self.mission.read_behavior_parameters('GoToWaypoint')
+        latitude = float(self.mission.get_behavior_parameter('latitude'))
+        longitude = float(self.mission.get_behavior_parameter('longitude'))
+        altitude = float(self.mission.get_behavior_parameter('altitude'))
+        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
 
-        # TEST - Pusblish Pose Estimator Data
-        pose_estimator_corrected_data = CorrectedData()
-        rospy.loginfo(pose_estimator_corrected_data)
-        simulated_pose_estimator_pub.publish(pose_estimator_corrected_data)
+        self.assertEqual(self.waypoint.latitude, latitude)
+        self.assertEqual(self.waypoint.longitude, longitude)
+        self.assertEqual(self.waypoint.altitude, altitude)
+        self.assertEqual(self.waypoint.speed_knots, speed_knots)
 
-        # TODO
-        # test if the behavior has ended.
+        msg = StateStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.state.geolocation.position.latitude = latitude
+        msg.state.geolocation.position.longitude = longitude
+        msg.state.geolocation.position.altitude = altitude
+        self._state_pub.publish(msg)
+
+        def mission_complete():
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(mission_complete), msg='Mission did not complete')
 
 
-if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'test_go_to_waypoint', TestGoToWaypoint)
+if __name__ == '__main__':
+    rostest.rosrun('mission_control', 'test_go_to_waypoint_action', TestGoToWaypointAction)
