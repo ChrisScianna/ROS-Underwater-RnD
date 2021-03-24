@@ -36,7 +36,6 @@
 
 #include "autopilot/autopilot.h"
 
-
 AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
 {
   autoPilotInControl = false;
@@ -131,6 +130,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
       nh.subscribe("/mngr/depth_heading", 1, &AutoPilotNode::depthHeadingCallback, this);
   setFixedRudderBehaviorSub =
       nh.subscribe("/mngr/fixed_rudder", 1, &AutoPilotNode::fixedRudderCallback, this);
+  setWaypointBehaviorSub =
+      nh.subscribe("/mngr/waypoint", 10, &AutoPilotNode::waypointCallback, this);
 
   missionMgrHeartbeatTimer =
       nh.createTimer(ros::Duration(mmTimeout), &AutoPilotNode::missionMgrHeartbeatTimeout, this);
@@ -169,9 +170,14 @@ void AutoPilotNode::missionMgrHeartbeatTimeout(const ros::TimerEvent& timer)
   }
 }
 
-double AutoPilotNode::radiansToDegrees(double radians) { return (radians * (180.0 / M_PI)); }
+namespace
+{
 
-double AutoPilotNode::degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+double radiansToDegrees(double radians) { return (radians * (180.0 / M_PI)); }
+
+double degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
+
+}  // namespace
 
 void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
 {
@@ -181,6 +187,7 @@ void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
   currentRoll = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.x);
   currentPitch = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.y);
   currentYaw = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.z);
+  geodesy::fromMsg(msg.state.geolocation.position, currentPosition);
 }
 
 void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
@@ -332,7 +339,7 @@ void AutoPilotNode::altitudeHeadingCallback(const mission_manager::AltitudeHeadi
  
   ROS_INFO("altitude: [%f]", msg.altitude);
  
-  desiredAltitude = msg.altitude;
+  desiredPosition.altitude = msg.altitude;
   depthControl = false;    // disabling depth control;
   altitudeControl = true;  // enable altitude control;
  
@@ -361,6 +368,116 @@ void AutoPilotNode::fixedRudderCallback(const mission_manager::FixedRudder& msg)
   ROS_INFO("speed_knots: [%f]", msg.speed_knots);
   desiredSpeed = msg.speed_knots;
 }
+
+void AutoPilotNode::waypointCallback(const mission_manager::Waypoint& msg)
+{
+  boost::mutex::scoped_lock lock(behaviorMutex);
+  waypointfollowing = true;
+  fixedRudder = false;
+  speedControlEnabled = true;
+  desiredRoll = 0;
+
+  ROS_INFO("Waypoint received lat: [%f] long: [%f]", msg.latitude, msg.longitude);
+
+  geodesy::fromMsg(geodesy::toMsg(msg.latitude, msg.longitude), desiredPosition);
+  ROS_INFO("UTM desired Easting: [%f]", desiredPosition.easting);
+  ROS_INFO("UTM desired Nothing: [%f]", desiredPosition.northing);
+
+  if(msg.ena_mask | mission_manager::Waypoint::ALTITUDE_ENA)
+  {
+    desiredPosition.altitude = msg.altitude;
+    altitudeControl = true;  //enabling depth control
+    depthControl = false;  //enabling depth control
+  }
+  else //default is depth control
+  {
+    desiredDepth = msg.depth;
+    altitudeControl = false;  //enabling depth control
+    depthControl = true;  //enabling depth control
+  }
+
+  ROS_INFO("speed_knots: [%f]", msg.speed_knots);
+  desiredSpeed = msg.speed_knots;
+}
+
+namespace
+{
+
+// Returns relative angle of B w.r.t A
+double relativeAngle(double xb, double yb, double xa, double ya)
+{
+  if ((xa == xb) && (ya == yb))
+  {
+    return 0.0;
+  }
+
+  double w   = 0.0;
+  double sop = 0.0;
+
+  if (xa < xb)
+  {
+    if (ya == yb)
+    {
+      return 90.0;
+    }
+    else
+    {
+      w = 90.0;
+    }
+  }
+  else if (xa > xb)
+  {
+    if (ya == yb)
+    {
+      return -90.0;
+    }
+    else
+    {
+      w = 270.0;
+    }
+  }
+
+  if (ya < yb)
+  {
+    if (xa == xb)
+    {
+      return 0.0;
+    }
+    if(xb > xa)
+    {
+      sop = -1.0;
+    }
+    else
+    {
+      sop =  1.0;
+    }
+  }
+  else if(yb < ya)
+  {
+    if (xa == xb)
+    {
+      return 180.0;
+    }
+    if (xb > xa)
+    {
+      sop =  1.0;
+    }
+    else
+    {
+      sop = -1.0;
+    }
+  }
+
+  double ydiff = std::abs(yb - ya);
+  double xdiff = std::abs(xb - xa);
+  double avalPI = atan(ydiff / xdiff);
+  double avalDG = radiansToDegrees(avalPI);
+  double relAngle = (avalDG * sop) + w;
+
+  return fmod((relAngle + 180.0), 360.0) - 180.0;
+}
+
+}  // namespace
 
 void AutoPilotNode::workerFunc()
 {
@@ -412,8 +529,9 @@ void AutoPilotNode::workerFunc()
       }
       else if (altitudeControl)  // out put of altitude pid will be input to pitch pid
       {
-        desiredPitch = altitudePIDController.updatePid(currentAltitude - desiredAltitude,
-                                                          ros::Duration(1.0 / controlLoopRate));
+        desiredPitch = altitudePIDController.updatePid(
+          currentPosition.altitude - desiredPosition.altitude,
+          ros::Duration(1.0 / controlLoopRate));
         if (desiredPitch < (-1.0 * maxAltitudeCommand))
           desiredPitch = -1.0 * maxAltitudeCommand;
         else if (pitchCmdPos > maxAltitudeCommand)
@@ -427,6 +545,12 @@ void AutoPilotNode::workerFunc()
       // YAW ELEMENT
       if (!fixedRudder)
       {
+        if (waypointfollowing)
+        {
+          desiredYaw = relativeAngle(
+            desiredPosition.easting, desiredPosition.northing,
+            currentPosition.easting, currentPosition.northing);
+        }
         yawDiff = currentYaw - desiredYaw;
         yawError = fmod((yawDiff + 180.0), 360.0) - 180.0;
         yawCmdPos = yawPidController.updatePid(yawError, ros::Duration(1.0 / controlLoopRate));
