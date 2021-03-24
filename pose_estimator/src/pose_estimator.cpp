@@ -147,7 +147,6 @@ PoseEstimator::PoseEstimator()
       {
         using diagnostic_tools::Diagnostic;
         using health_monitor::ReportFault;
-        Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(roll) > max_roll_angle)
         {
           return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_ROLL_THRESHOLD_REACHED)
@@ -164,7 +163,6 @@ PoseEstimator::PoseEstimator()
       {
         using diagnostic_tools::Diagnostic;
         using health_monitor::ReportFault;
-        Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(pitch) > max_pitch_angle)
         {
           return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_PITCH_THRESHOLD_REACHED)
@@ -181,7 +179,6 @@ PoseEstimator::PoseEstimator()
       {
         using diagnostic_tools::Diagnostic;
         using health_monitor::ReportFault;
-        Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(yaw) > max_yaw_angle)
         {
           return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_HEADING_THRESHOLD_REACHED)
@@ -207,6 +204,11 @@ bool PoseEstimator::spin()
 
 void PoseEstimator::insCallback(const auv_interfaces::StateStamped::ConstPtr& ins_msg)
 {
+  orientation_roll_check_.test(ins_msg->state.manoeuvring.pose.mean.orientation.x);
+  orientation_pitch_check_.test(ins_msg->state.manoeuvring.pose.mean.orientation.y);
+  orientation_yaw_check_.test(ins_msg->state.manoeuvring.pose.mean.orientation.z);
+  depth_check_.test(ins_msg->state.manoeuvring.pose.mean.position.z);
+
   state_pub_.publish(ins_msg);  // forward as-is for now
 }
 
