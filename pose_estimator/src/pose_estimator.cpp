@@ -100,7 +100,7 @@ PoseEstimator::PoseEstimator()
   state_rate_check_params.min_acceptable_period(1.0 / max_rate);
   state_rate_check_params.max_acceptable_period(1.0 / min_rate);
   state_rate_check_params.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
-  state_rate_check_params.abnormal_diagnostic({  // NOLINT(whitespace/braces)
+  state_rate_check_params.stale_diagnostic({  // NOLINT(whitespace/braces)
       diagnostic_tools::Diagnostic::STALE,
       health_monitor::ReportFault::POSE_DATA_STALE
   });  // NOLINT(whitespace/braces)
@@ -150,16 +150,10 @@ PoseEstimator::PoseEstimator()
         Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(roll) > max_roll_angle)
         {
-          diagnostic.status(Diagnostic::ERROR)
-              .description("Roll angle - NOT OK -> |%f rad| > %f rad",
-                           roll, max_roll_angle)
-              .code(ReportFault::POSE_ROLL_THRESHOLD_REACHED);
+          return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_ROLL_THRESHOLD_REACHED)
+              .description("Roll angle - NOT OK -> |%f rad| > %f rad", roll, max_roll_angle);
         }
-        else
-        {
-          diagnostic.description("Roll angle - OK (%f)", roll);
-        }
-        return diagnostic;
+        return Diagnostic(Diagnostic::OK).description("Roll angle - OK (%f)", roll);
       });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(orientation_roll_check_);
 
@@ -173,16 +167,10 @@ PoseEstimator::PoseEstimator()
         Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(pitch) > max_pitch_angle)
         {
-          diagnostic.status(Diagnostic::ERROR)
-              .description("Pitch angle - NOT OK -> |%f rad| > %f rad",
-                           pitch, max_pitch_angle)
-              .code(ReportFault::POSE_PITCH_THRESHOLD_REACHED);
+          return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_PITCH_THRESHOLD_REACHED)
+              .description("Pitch angle - NOT OK -> |%f rad| > %f rad", pitch, max_pitch_angle);
         }
-        else
-        {
-          diagnostic.description("Pitch angle - OK (%f)", pitch);
-        }
-        return diagnostic;
+        return Diagnostic(Diagnostic::OK).description("Pitch angle - OK (%f)", pitch);
       });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(orientation_pitch_check_);
 
@@ -196,16 +184,10 @@ PoseEstimator::PoseEstimator()
         Diagnostic diagnostic{Diagnostic::OK};
         if (std::abs(yaw) > max_yaw_angle)
         {
-          diagnostic.status(Diagnostic::ERROR)
-              .description("Yaw angle - NOT OK -> |%f rad| > %f rad",
-                           yaw, max_yaw_angle)
-              .code(ReportFault::POSE_HEADING_THRESHOLD_REACHED);
+          return Diagnostic(Diagnostic::ERROR, ReportFault::POSE_HEADING_THRESHOLD_REACHED)
+              .description("Yaw angle - NOT OK -> |%f rad| > %f rad", yaw, max_yaw_angle);
         }
-        else
-        {
-          diagnostic.description("Yaw angle - OK (%f)", yaw);
-        }
-        return diagnostic;
+        return Diagnostic(Diagnostic::OK).description("Yaw angle - OK (%f)", yaw);
       });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(orientation_yaw_check_);
 
