@@ -383,17 +383,17 @@ void AutoPilotNode::waypointCallback(const mission_manager::Waypoint& msg)
   ROS_INFO("UTM desired Easting: [%f]", desiredPosition.easting);
   ROS_INFO("UTM desired Nothing: [%f]", desiredPosition.northing);
 
-  if(msg.ena_mask | mission_manager::Waypoint::ALTITUDE_ENA)
+  if (msg.ena_mask | mission_manager::Waypoint::ALTITUDE_ENA)
   {
     desiredPosition.altitude = msg.altitude;
-    altitudeControl = true;  //enabling depth control
-    depthControl = false;  //enabling depth control
+    altitudeControl = true;  // enabling altitude control
+    depthControl = false;
   }
-  else //default is depth control
+  else // default is depth control
   {
     desiredDepth = msg.depth;
-    altitudeControl = false;  //enabling depth control
-    depthControl = true;  //enabling depth control
+    altitudeControl = false;
+    depthControl = true;  // enabling depth control
   }
 
   ROS_INFO("speed_knots: [%f]", msg.speed_knots);

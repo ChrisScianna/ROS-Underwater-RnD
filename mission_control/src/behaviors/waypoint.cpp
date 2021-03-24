@@ -97,13 +97,11 @@ BT::NodeStatus GoToWaypoint::tick()
           std::sqrt(std::pow(target_position_.northing - current_position_.northing, 2) +
                     std::pow(target_position_.easting - current_position_.easting, 2) +
                     std::pow(target_position_.altitude - current_position_.altitude, 2));
-        ROS_INFO("distance to wp [%f], tolerance radius [%f]",
-                 distance_to_waypoint, tolerance_radius_);
+        ROS_DEBUG("Distance to (%f, %f) waypoint is %f m",
+                  latitude_, longitude_, distance_to_waypoint);
         if (distance_to_waypoint < tolerance_radius_)
         {
-          ROS_INFO("We have arrived at waypoint: "
-                   "distance to wp [%f], tolerance radius [%f]",
-                   distance_to_waypoint, tolerance_radius_);
+          ROS_INFO("Arrived to the (%f, %f) waypoint!", latitude_, longitude_);
           current_status = BT::NodeStatus::SUCCESS;
           state_sub_.shutdown();
         }
