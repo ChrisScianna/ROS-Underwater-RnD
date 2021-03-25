@@ -39,24 +39,10 @@
 
 using mission_control::AbortBehavior;
 
-AbortBehavior::AbortBehavior(const std::string& name, const BT::NodeConfiguration& config)
-    : BT::ActionNodeBase(name, config)
+AbortBehavior::AbortBehavior(const std::string& name) : BT::ActionNodeBase(name, {})
 {
-  subStateData_ = nodeHandle_.subscribe("/state", 1, &AbortBehavior::stateDataCallback, this);
-
-  subThrusterRPM_ = nodeHandle_.subscribe("/thruster_control/report_rpm", 1,
-                                          &AbortBehavior::thrusterRPMCallback, this);
-
   attitudeServoBehaviorPub_ =
       nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
-
-  getInput<double>("roll", roll_);
-  getInput<double>("pitch", pitch_);
-  getInput<double>("yaw", yaw_);
-  getInput<double>("speed_knots", speedKnots_);
-  getInput<double>("roll_tol", rollTolerance_);
-  getInput<double>("pitch_tol", pitchTolerance_);
-  getInput<double>("yaw_tol", yawTolerance_);
 }
 
 BT::NodeStatus AbortBehavior::tick()
@@ -66,6 +52,10 @@ BT::NodeStatus AbortBehavior::tick()
   switch (current_status)
   {
     case BT::NodeStatus::IDLE:
+      subStateData_ = nodeHandle_.subscribe("/state", 1, &AbortBehavior::stateDataCallback, this);
+
+      subThrusterRPM_ = nodeHandle_.subscribe("/thruster_control/report_rpm", 1,
+                                              &AbortBehavior::thrusterRPMCallback, this);
       stateUpToDate_ = false;
       velocityUpToDate_ = false;
       publishAbortMsg();
@@ -74,7 +64,12 @@ BT::NodeStatus AbortBehavior::tick()
     case BT::NodeStatus::RUNNING:
       if (stateUpToDate_ && velocityUpToDate_)
       {
-        if (orientationReached_ && speedReached_)
+        double roll = stateData_.state.manoeuvring.pose.mean.orientation.x;
+        double pitch = stateData_.state.manoeuvring.pose.mean.orientation.y;
+        double yaw = stateData_.state.manoeuvring.pose.mean.orientation.z;
+
+        if ((abs(roll_ - roll) < rollTolerance_) && (abs(pitch_ - pitch) < pitchTolerance_) &&
+            (abs(yaw_ - yaw) < yawTolerance_) && (velocityData_.rpms <= speedKnots_))
         {
           current_status = BT::NodeStatus::SUCCESS;
         }
@@ -84,6 +79,16 @@ BT::NodeStatus AbortBehavior::tick()
       break;
   }
   return current_status;
+}
+
+void AbortBehavior::halt()
+{
+  if (status() == BT::NodeStatus::RUNNING)
+  {
+    subStateData_.shutdown();
+    subThrusterRPM_.shutdown();
+  }
+  setStatus(BT::NodeStatus::IDLE);
 }
 
 void AbortBehavior::publishAbortMsg()
@@ -106,20 +111,11 @@ void AbortBehavior::stateDataCallback(const auv_interfaces::StateStamped& data)
   // rotation with different RPY triplets
 
   stateUpToDate_ = true;
-  double roll = data.state.manoeuvring.pose.mean.orientation.x;
-  double pitch = data.state.manoeuvring.pose.mean.orientation.y;
-  double yaw = data.state.manoeuvring.pose.mean.orientation.z;
-
-  orientationReached_ =
-      ((abs(roll_ - roll) < rollTolerance_) && (abs(pitch_ - pitch) < pitchTolerance_) &&
-       (abs(yaw_ - yaw) < yawTolerance_));
-
-  ROS_DEBUG_STREAM("Orientation - Roll: " << roll << " Pitch: " << pitch << " Yaw: " << yaw);
+  stateData_ = data;
 }
 
 void AbortBehavior::thrusterRPMCallback(const thruster_control::ReportRPM& data)
 {
   velocityUpToDate_ = true;
-  speedReached_ = (data.rpms <= speedKnots_);
-  ROS_DEBUG_STREAM("Thruster Velocity: " << data.rpms);
+  velocityData_ = data;
 }

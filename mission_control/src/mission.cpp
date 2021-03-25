@@ -91,9 +91,7 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
   static constexpr char text[] = R"(
 <root main_tree_to_execute="Go to the surface" >
     <BehaviorTree ID="Go to the surface">
-       <AbortBehavior name="Command thruster and fins"
-           roll="0.0" pitch="-0.3490658503988659" yaw="0.0" speed_knots="0.0"
-           roll_tol="0.2" pitch_tol="0.2" yaw_tol="0.2" />
+       <AbortBehavior name="Command thruster and fins" />
     </BehaviorTree>
 </root>
 )";

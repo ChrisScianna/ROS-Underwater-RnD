@@ -53,22 +53,11 @@ namespace mission_control
 class AbortBehavior : public BT::ActionNodeBase
 {
  public:
-  AbortBehavior(const std::string& name, const BT::NodeConfiguration& config);
+  AbortBehavior(const std::string& name);
 
   BT::NodeStatus tick() override;
 
-  inline void halt() override { setStatus(BT::NodeStatus::IDLE); }
-
-  static BT::PortsList providedPorts()
-  {
-    return {BT::InputPort<double>("roll", "roll"),  //  NOLINT
-            BT::InputPort<double>("pitch", "pitch"),
-            BT::InputPort<double>("yaw", "yaw"),
-            BT::InputPort<double>("speed_knots", "speed_knots"),
-            BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
-            BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
-            BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")};
-  }
+  void halt() override;
 
  private:
   void stateDataCallback(const auv_interfaces::StateStamped& data);
@@ -80,19 +69,20 @@ class AbortBehavior : public BT::ActionNodeBase
   ros::Subscriber subStateData_;
   ros::Subscriber subThrusterRPM_;
 
-  double roll_;
-  double pitch_;
-  double yaw_;
-  double speedKnots_;
+  auv_interfaces::StateStamped stateData_;
+  thruster_control::ReportRPM velocityData_;
 
-  double rollTolerance_;
-  double pitchTolerance_;
-  double yawTolerance_;
+  // fins are set to surface and Thruster velocity is 0
+  double roll_{0.0};
+  double pitch_{-0.3490658503988659};
+  double yaw_{0.0};
+  double speedKnots_{0.0};
+  double rollTolerance_{0.1};
+  double pitchTolerance_{0.1};
+  double yawTolerance_{0.1};
 
   bool stateUpToDate_{false};
   bool velocityUpToDate_{false};
-  bool orientationReached_{false};
-  bool speedReached_{false};
 };
 
 }  //  namespace mission_control
