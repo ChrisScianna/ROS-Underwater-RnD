@@ -70,12 +70,12 @@ HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandl
     nodeHandle.getParam("/health_monitor_node/max_report_faults_rate", maxReportFaultRate);
 
     ROS_INFO("Report Faults Rate:[%lf]", reportFaultsRate);
-    reportFaultsTimer = nodeHandle.createTimer(ros::Duration(reportFaultsRate),
+    reportFaultsTimer = nodeHandle.createTimer(ros::Duration(1. / reportFaultsRate),
                                                &HealthMonitor::reportFaultsTimeout, this);
 
     diagnostic_tools::PeriodicMessageStatusParams paramsReportsHealthMonitorCheckPeriod{};
-    paramsReportsHealthMonitorCheckPeriod.min_acceptable_period(minReportFaultRate);
-    paramsReportsHealthMonitorCheckPeriod.max_acceptable_period(maxReportFaultRate);
+    paramsReportsHealthMonitorCheckPeriod.min_acceptable_period(1. / maxReportFaultRate);
+    paramsReportsHealthMonitorCheckPeriod.max_acceptable_period(1. / minReportFaultRate);
     diagnosticsUpdater.add(publisher_reportFault.add_check<diagnostic_tools::PeriodicMessageStatus>(
         "rate check", paramsReportsHealthMonitorCheckPeriod));
 }
