@@ -45,7 +45,6 @@
 #include <string>
 
 #include "mission_control/Waypoint.h"
-#include "mission_control/behavior.h"
 #include "auv_interfaces/StateStamped.h"
 
 namespace mission_control

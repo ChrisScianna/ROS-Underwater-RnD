@@ -47,7 +47,7 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
 {
   if (!getInput<double>("latitude", latitude_) || !getInput<double>("longitude", longitude_))
   {
-    throw std::runtime_error("Either latitude or longitude were left unspecified");
+    throw BT::RuntimeError("Either latitude or longitude were left unspecified");
   }
   geodesy::fromMsg(geodesy::toMsg(latitude_, longitude_), target_position_);
   enable_mask_ = Waypoint::LAT_ENA | Waypoint::LONG_ENA;
@@ -64,7 +64,7 @@ GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration&
   }
   else
   {
-    throw std::runtime_error("Neither altitude nor depth were specified");
+    throw BT::RuntimeError("Neither altitude nor depth were specified");
   }
 
   if (getInput<double>("speed_knots", speed_knots_))
