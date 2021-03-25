@@ -81,9 +81,9 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
 
         # Wait for the mission returns time_out Failure
         def aborting_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING
+            return ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state
         self.assertTrue(wait_for(aborting_mission_status_is_reported),
-                        msg='Mission control must report ABORTING')
+                        msg='Mission control must reports ABORTING')
 
         # Check if the mission control publishes the attitude servo msg to
         # set the fins to surface and velocity to 0 RPM

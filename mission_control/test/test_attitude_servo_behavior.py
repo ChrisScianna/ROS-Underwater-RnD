@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,6 @@ class TestAttitudeServoBehavior(unittest.TestCase):
     def setUp(self):
         self.attitude_servo_goal = AttitudeServo()
         self.mission = MissionInterface()
-        self.mission_has_failed = False
 
         # Subscribers
         self.attitude_servo_msg = rospy.Subscriber(
@@ -118,13 +117,10 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():
-            if self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING:
-                self.mission_has_failed = True
-            return (self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE and
-                    not self.mission_has_failed)
+            return (not ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
         self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report COMPLETE')
-
+                        msg='Mission control must report only COMPLETE')
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavior',

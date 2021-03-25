@@ -103,11 +103,10 @@ class TestFixedRudderBehavior(unittest.TestCase):
 
         # Wait for the mission to be complete
         def success_mission_status_is_reported():
-            if self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING:
-                self.mission_has_failed = True
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return (not ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
         self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report SUCCESS')
+                        msg='Mission control must report only COMPLETE')
 
 
 if __name__ == "__main__":

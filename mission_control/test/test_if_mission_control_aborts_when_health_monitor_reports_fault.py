@@ -90,17 +90,17 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.mission.execute_mission()
 
         def executing_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
+            return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
         self.assertTrue(wait_for(executing_mission_status_is_reported),
                         msg='Mission control must report EXECUTING')
+
 
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
 
-        # TODO(hidmic): check ABORTING state when missions are no longer short-lived
-        def complete_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
-        self.assertTrue(wait_for(complete_mission_status_is_reported),
+        def executing_mission_status_is_reported():
+            return ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state
+        self.assertTrue(wait_for(executing_mission_status_is_reported),
                         msg='Mission control must report COMPLETE')
 
         # Check if the behavior publishes the attitude servo msg to

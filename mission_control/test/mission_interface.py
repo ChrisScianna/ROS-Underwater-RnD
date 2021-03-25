@@ -75,7 +75,7 @@ class MissionInterface:
         report_mission = ReportMissions()
         self.mission_load_state = None
         self.mission_behavior_parameters = None
-        self.execute_mission_state = ReportExecuteMissionState()
+        self.execute_mission_state = []
 
         # Subscribers
         self.exec_state_sub = rospy.Subscriber(
@@ -94,7 +94,7 @@ class MissionInterface:
             '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
 
     def callback_mission_execute_state(self, msg):
-        self.execute_mission_state = msg.execute_mission_state
+        self.execute_mission_state.append(msg.execute_mission_state)
 
     def callback_mission_load_state(self, msg):
         self.mission_load_state = msg.load_state
