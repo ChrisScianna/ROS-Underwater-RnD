@@ -259,7 +259,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
 
   reportRPMTimer = nodeHandle.createTimer(ros::Duration(1. / reportRPMRate),
                                           &ThrusterControl::reportRPMSendTimeout, this);
-  reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(reportMotorTemperatureRate),
+  reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(1. / reportMotorTemperatureRate),
                                                 &ThrusterControl::reportMotorTempSendTimeout, this);
   reportBatteryHealthTimer =
       nodeHandle.createTimer(ros::Duration(1. / reportBatteryHealthRate),
