@@ -45,18 +45,19 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
-#include "thruster_control/ReportRPM.h"
 #include "mission_control/AttitudeServo.h"
-#include "mission_control/behavior.h"
+#include "thruster_control/ReportRPM.h"
 
 namespace mission_control
 {
-class AbortBehavior : public Behavior
+class AbortBehavior : public BT::ActionNodeBase
 {
  public:
   AbortBehavior(const std::string& name, const BT::NodeConfiguration& config);
 
-  BT::NodeStatus behaviorRunningProcess();
+  BT::NodeStatus tick() override;
+
+  inline void halt() override { setStatus(BT::NodeStatus::IDLE); }
 
   static BT::PortsList providedPorts()
   {
@@ -70,8 +71,8 @@ class AbortBehavior : public Behavior
   }
 
  private:
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
-  void thrusterRPMCallback(const thruster_control::ReportRPM &data);
+  void stateDataCallback(const auv_interfaces::StateStamped& data);
+  void thrusterRPMCallback(const thruster_control::ReportRPM& data);
   void publishAbortMsg();
 
   ros::NodeHandle nodeHandle_;
@@ -88,7 +89,8 @@ class AbortBehavior : public Behavior
   double pitchTolerance_;
   double yawTolerance_;
 
-  bool abortMsgHasBeenPublished_;
+  bool stateUpToDate_{false};
+  bool velocityUpToDate_{false};
   bool orientationReached_{false};
   bool speedReached_{false};
 };
