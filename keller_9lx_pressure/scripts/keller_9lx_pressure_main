@@ -245,6 +245,11 @@ class Keller9lxPressureSensorDriverNode(object):
         )
         self.__diagnostics_updater.add(check)
 
+        self.__diagnostics_timer = rospy.Timer(
+            self.__diagnostics_updater.period,
+            lambda ev: self.__diagnostics_updater.update()
+        )
+
     MAX_RECONNECTION_ATTEMPTS = 5
     RECONNECTION_CLEARING_PERIOD = 10  # in seconds
 
@@ -325,7 +330,6 @@ class Keller9lxPressureSensorDriverNode(object):
             pressure_message.fluid_pressure = pressure_in_pascals
             self.__pressure_pub.publish(pressure_message)
 
-            self.__diagnostics_updater.update()
             rate.sleep()
 
 
