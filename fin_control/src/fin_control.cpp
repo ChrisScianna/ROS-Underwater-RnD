@@ -121,7 +121,7 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
           "rate check", report_angle_rate_check_params));
 
   timer_reportAngle = nodeHandle.createTimer(
-      ros::Duration(1 ./ reportAngleRate), &FinControl::reportAngleSendTimeout, this);
+      ros::Duration(1. / reportAngleRate), &FinControl::reportAngleSendTimeout, this);
 
   finAngleCheck = diagnostic_tools::create_health_check<double>(
       "Fin angle within range",
