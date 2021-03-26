@@ -57,16 +57,13 @@
 #include "auv_interfaces/StateStamped.h"
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
-#include "geodesy/utm.h"
 #include "jaus_ros_bridge/ActivateManualControl.h"
-#include "mission_manager/AttitudeServo.h"
-#include "mission_manager/DepthHeading.h"
-#include "mission_manager/AltitudeHeading.h"
-#include "mission_manager/FixedRudder.h"
-#include "mission_manager/ReportExecuteMissionState.h"
-#include "mission_manager/ReportHeartbeat.h"
-#include "mission_manager/SetBehavior.h"
-#include "mission_manager/Waypoint.h"
+#include "mission_control/AttitudeServo.h"
+#include "mission_control/DepthHeading.h"
+#include "mission_control/AltitudeHeading.h"
+#include "mission_control/FixedRudder.h"
+#include "mission_control/ReportExecuteMissionState.h"
+#include "mission_control/ReportHeartbeat.h"
 #include "sensor_msgs/Imu.h"
 #include "thruster_control/ReportRPM.h"
 #include "thruster_control/SetRPM.h"
@@ -97,7 +94,6 @@ class AutoPilotNode
   ros::Subscriber setDepthHeadingBehaviorSub;
   ros::Subscriber setAltitudeHeadingBehaviorSub;
   ros::Subscriber setFixedRudderBehaviorSub;
-  ros::Subscriber setWaypointBehaviorSub;
 
   control_toolbox::Pid rollPIDController;
   control_toolbox::Pid pitchPIDController;
@@ -139,11 +135,13 @@ class AutoPilotNode
   double altitudeIMin;
   
   void stateCallback(const auv_interfaces::StateStamped& msg);
-  void missionStatusCallback(const mission_manager::ReportExecuteMissionState& data);
+  void missionStatusCallback(const mission_control::ReportExecuteMissionState& data);
 
   void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
 
   void mixActuators(double roll, double pitch, double yaw);
+  double radiansToDegrees(double radians);
+  double degreesToRadians(double degrees);
   void missionMgrHeartbeatTimeout(const ros::TimerEvent& timer);
 
   void workerFunc();
@@ -154,7 +152,7 @@ class AutoPilotNode
   double currentPitch;
   double currentYaw;
   double currentDepth;
-  geodesy::UTMPoint currentPosition;
+  double currentAltitude;
 
   double desiredRoll;
   double desiredPitch;
@@ -162,7 +160,7 @@ class AutoPilotNode
   double desiredDepth;
   double desiredRudder;
   double desiredSpeed;
-  geodesy::UTMPoint desiredPosition;
+  double desiredAltitude;
 
   double minimalSpeed;       // knots
   double rpmPerKnot;
@@ -173,9 +171,7 @@ class AutoPilotNode
   bool fixedRudder;          // Robot cordinate system for yaw if true
   bool depthControl;         // Depth if true, pitch if false
   bool altitudeControl;
-  bool waypointfollowing;
   bool autopilotEnabled;     // Autopilot if true, OCU if false
-  bool waypointControl{false};
 
   bool allowReverseThrusterAutopilot;  // allow negative RPM if true
 
@@ -186,12 +182,11 @@ class AutoPilotNode
   boost::shared_ptr<boost::thread> m_thread;
 
   // Behavior callbacks
-  void missionMgrHbCallback(const mission_manager::ReportHeartbeat& msg);
-  void attitudeServoCallback(const mission_manager::AttitudeServo& msg);
-  void depthHeadingCallback(const mission_manager::DepthHeading& msg);
-  void fixedRudderCallback(const mission_manager::FixedRudder& msg);
-  void altitudeHeadingCallback(const mission_manager::AltitudeHeading& msg);
-  void waypointCallback(const mission_manager::Waypoint& msg);
+  void missionMgrHbCallback(const mission_control::ReportHeartbeat& msg);
+  void attitudeServoCallback(const mission_control::AttitudeServo& msg);
+  void depthHeadingCallback(const mission_control::DepthHeading& msg);
+  void fixedRudderCallback(const mission_control::FixedRudder& msg);
+  void altitudeHeadingCallback(const mission_control::AltitudeHeading& msg);
 
   // Mask that keeps tracks of active behaviors
   boost::mutex behaviorMutex;
