@@ -48,8 +48,8 @@
 //#include <sea_scan_echo_sensor/ReportAltimeterRange.h>
 #include <health_monitor/ReportBatteryInfo.h>
 #include <pose_estimator/CorrectedData.h>
-//#include <mission_manager/ReportLoadMissionState.h>
-//#include <mission_manager/ReportExecuteMissionState.h>
+//#include <mission_control/ReportLoadMissionState.h>
+//#include <mission_control/ReportExecuteMissionState.h>
 
 class MessageHandler {
   ros::NodeHandle* nodeHandle;
@@ -153,13 +153,13 @@ class MessageHandler {
     //        message6.systemThermocouple1 = 99;
     //        publisher_reportBatteryInfo.publish(message6);
 
-    // mission_manager::ReportLoadMissionState message7;
+    // mission_control::ReportLoadMissionState message7;
     // message7.stamp = ros::Time::now();
     // message7.mission_id = 202;
     // message7.load_state = 0; //successful
     // publisher_reportLoadState.publish(message7);
 
-    // mission_manager::ReportExecuteMissionState message8;
+    // mission_control::ReportExecuteMissionState message8;
     // message8.stamp = ros::Time::now();
     // ROS_WARN("message8.stamp in second is: %f", message8.stamp.toSec());
     // ROS_WARN("message8.stamp in mili second is: %f", message8.stamp.toSec()*1000);
@@ -226,9 +226,9 @@ class MessageHandler {
         "/health_monitor/report_battery_info", 1);
 
     // publisher_reportLoadState =
-    // nodeHandle->advertise<mission_manager::ReportLoadMissionState>("/mngr/report_mission_load_state",
+    // nodeHandle->advertise<mission_control::ReportLoadMissionState>("/mngr/report_mission_load_state",
     // 1); publisher_reportMissionState =
-    // nodeHandle->advertise<mission_manager::ReportExecuteMissionState>("/mngr/report_mission_execute_state",
+    // nodeHandle->advertise<mission_control::ReportExecuteMissionState>("/mngr/report_mission_execute_state",
     // 1);
   };
 

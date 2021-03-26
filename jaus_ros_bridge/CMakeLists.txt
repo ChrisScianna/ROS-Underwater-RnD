@@ -18,7 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   message_generation
-  mission_manager
+  mission_control
   thruster_control
   health_monitor
   fin_control
@@ -31,7 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 #  fin_control
 #  keller_9lx_pressure
 #  pose_estimator
-#  mission_manager
+#  mission_control
 #  thruster_control
 #  message_generation
 #)
