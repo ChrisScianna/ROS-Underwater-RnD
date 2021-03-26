@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -60,18 +60,18 @@ class TestMissionControlPublishesHeartbeat(unittest.TestCase):
         rospy.init_node('heartbeat_mission_control')
 
     def setUp(self):
-        self.mission_manager_heart_beat_count = None
+        self.mission_control_heart_beat_count = None
         self.heart_beat_sub = rospy.Subscriber('/mission_control_node/report_heartbeat',
-                                               ReportHeartbeat, self.callback_mission_manager_heart_beat)
+                                               ReportHeartbeat, self.callback_mission_control_heart_beat)
 
-    def callback_mission_manager_heart_beat(self, msg):
-        self.mission_manager_heart_beat_count = msg.seq_id
-        rospy.loginfo(self.mission_manager_heart_beat_count)
+    def callback_mission_control_heart_beat(self, msg):
+        self.mission_control_heart_beat_count = msg.seq_id
+        rospy.loginfo(self.mission_control_heart_beat_count)
 
     def test_mission_control_published_heartbeat(self):
 
         def mission_control_publishes_heartbeat():
-            return self.mission_manager_heart_beat_count > 0
+            return self.mission_control_heart_beat_count > 0
         self.assertTrue(wait_for(mission_control_publishes_heartbeat),
                         msg='Mission control must report HeartBeat')
 
