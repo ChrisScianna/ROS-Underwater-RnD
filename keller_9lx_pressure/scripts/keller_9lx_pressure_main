@@ -246,7 +246,7 @@ class Keller9lxPressureSensorDriverNode(object):
         self.__diagnostics_updater.add(check)
 
         self.__diagnostics_timer = rospy.Timer(
-            self.__diagnostics_updater.period,
+            rospy.Duration.from_sec(self.__diagnostics_updater.period),
             lambda ev: self.__diagnostics_updater.update()
         )
 
