@@ -41,11 +41,12 @@
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
+
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
 #include "mission_control/FixedRudder.h"
 #include "mission_control/behavior.h"
-#include "auv_interfaces/StateStamped.h"
 
 namespace mission_control
 {
@@ -58,23 +59,23 @@ class MoveWithFixedRudder : public Behavior
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports =
-    {
-      BT::InputPort<double>("depth", 0.0, "depth"),
-      BT::InputPort<double>("rudder", 0.0, "altitude"),
-      BT::InputPort<double>("speed_knots", 0.0, "speed_knots"),
-      BT::InputPort<double>("behavior_time", 0.0, "behavior_time"),
-      BT::InputPort<double>("rudder_tol", 0.0, "rudder_tol"),
-      BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
-      BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol")
-    };
-    return ports;
+    return {BT::InputPort<double>("depth", "depth"),  //  NOLINT
+            BT::InputPort<double>("rudder", "altitude"),
+            BT::InputPort<double>("speed_knots", "speed_knots"),
+            BT::InputPort<double>("behavior_time", "behavior_time"),
+            BT::InputPort<double>("rudder_tol", 0.0, "rudder_tol"),
+            BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
+            BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol")};
   }
 
  private:
+  void stateDataCallback(const auv_interfaces::StateStamped& data);
+  void publishGoalMsg();
+
   ros::NodeHandle nodeHandle_;
   ros::Publisher fixedRudderBehaviorPub_;
   ros::Subscriber subStateData_;
+  ros::Time behaviorStartTime_;
 
   double depth_;
   double altitude_;
@@ -91,10 +92,7 @@ class MoveWithFixedRudder : public Behavior
   double rudderTolerance_;
   double altitudeTolerance_;
 
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
   bool goalHasBeenPublished_;
-  void publishGoalMsg();
-  ros::Time behaviorStartTime_;
 };
 
 }  //  namespace mission_control

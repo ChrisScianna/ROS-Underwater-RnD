@@ -103,23 +103,22 @@ class MissionInterface:
         # Simulate Jaus Ros Bridge sending a Load Command and wait for
         # response that the mission was loaded correctly
         self.full_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), 'test_files/test_missions', mission_name)
+            os.path.dirname(os.path.abspath(__file__)),
+            'test_files/test_missions', mission_name)
         self.mission_load_state_flag = False
         mission_to_load = LoadMission()
         mission_to_load.mission_file_full_path = self.full_path
-        self.simulated_mission_control_load_mission_pub.publish(
-            mission_to_load)
+        self.simulated_mission_control_load_mission_pub.publish(mission_to_load)
 
         def load_mission_state():
             return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        wait_for(load_mission_state)
+        return wait_for(load_mission_state)
 
     def execute_mission(self, mission_id=1):
         # Simulate Jaus Ros Bridge sending an Execute Command
         mission_to_execute = ExecuteMission()
         mission_to_execute.mission_id = mission_id
-        self.simulated_mission_control_execute_mission_pub.publish(
-            mission_to_execute)
+        self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
 
     def read_behavior_parameters(self, mission_behavior):
         # Look for the mission behavior in the xml mission file

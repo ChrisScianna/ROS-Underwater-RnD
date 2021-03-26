@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   auv_interfaces
   behaviortree_cpp_v3
+  geodesy
   health_monitor
   jaus_ros_bridge
   message_generation

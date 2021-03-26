@@ -11,6 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>auv_interfaces</build_depend>
   <build_depend>fin_control</build_depend>
+  <build_depend>geodesy</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslint</build_depend>
   <build_depend>rospy</build_depend>
@@ -29,6 +30,7 @@
   <build_export_depend>mission_manager</build_export_depend>
   <exec_depend>auv_interfaces</exec_depend>
   <exec_depend>fin_control</exec_depend>
+  <exec_depend>geodesy</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
