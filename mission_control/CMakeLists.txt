@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   behaviortree_cpp_v3
   geodesy
   health_monitor
-  jaus_ros_bridge
   message_generation
   roscpp
   roslint
@@ -45,7 +44,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS auv_interfaces payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
+ CATKIN_DEPENDS auv_interfaces payload_manager health_monitor roscpp rospy std_msgs
 )
 
 ###########
