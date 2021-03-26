@@ -33,29 +33,32 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/abort_behavior.h"
+#include "mission_control/behaviors/abort.h"
 
 #include <string>
 
-using mission_control::AbortBehavior;
+using mission_control::Abort;
 
-AbortBehavior::AbortBehavior(const std::string& name) : BT::ActionNodeBase(name, {})
+Abort::Abort(const std::string& name) : BT::ActionNodeBase(name, {})
 {
   attitudeServoBehaviorPub_ =
       nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+  
+  nodeHandle_.param<double>("/fin_control/max_ctrl_fin_angle", pitch_, 0.3490658503988659);
+
 }
 
-BT::NodeStatus AbortBehavior::tick()
+BT::NodeStatus Abort::tick()
 {
   BT::NodeStatus current_status = status();
 
   switch (current_status)
   {
     case BT::NodeStatus::IDLE:
-      subStateData_ = nodeHandle_.subscribe("/state", 1, &AbortBehavior::stateDataCallback, this);
+      subStateData_ = nodeHandle_.subscribe("/state", 1, &Abort::stateDataCallback, this);
 
       subThrusterRPM_ = nodeHandle_.subscribe("/thruster_control/report_rpm", 1,
-                                              &AbortBehavior::thrusterRPMCallback, this);
+                                              &Abort::thrusterRPMCallback, this);
       stateUpToDate_ = false;
       velocityUpToDate_ = false;
       publishAbortMsg();
@@ -81,7 +84,7 @@ BT::NodeStatus AbortBehavior::tick()
   return current_status;
 }
 
-void AbortBehavior::halt()
+void Abort::halt()
 {
   if (status() == BT::NodeStatus::RUNNING)
   {
@@ -91,7 +94,7 @@ void AbortBehavior::halt()
   setStatus(BT::NodeStatus::IDLE);
 }
 
-void AbortBehavior::publishAbortMsg()
+void Abort::publishAbortMsg()
 {
   AttitudeServo msg;
 
@@ -105,7 +108,7 @@ void AbortBehavior::publishAbortMsg()
   attitudeServoBehaviorPub_.publish(msg);
 }
 
-void AbortBehavior::stateDataCallback(const auv_interfaces::StateStamped& data)
+void Abort::stateDataCallback(const auv_interfaces::StateStamped& data)
 {
   // TODO(aschapiro): This ignores angle wraparound and the fact that you can represent the same
   // rotation with different RPY triplets
@@ -114,7 +117,7 @@ void AbortBehavior::stateDataCallback(const auv_interfaces::StateStamped& data)
   stateData_ = data;
 }
 
-void AbortBehavior::thrusterRPMCallback(const thruster_control::ReportRPM& data)
+void Abort::thrusterRPMCallback(const thruster_control::ReportRPM& data)
 {
   velocityUpToDate_ = true;
   velocityData_ = data;

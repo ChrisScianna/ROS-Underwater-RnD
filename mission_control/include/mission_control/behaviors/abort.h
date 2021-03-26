@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,8 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_CONTROL_BEHAVIORS_ABORT_BEHAVIOR_H
-#define MISSION_CONTROL_BEHAVIORS_ABORT_BEHAVIOR_H
+#ifndef MISSION_CONTROL_BEHAVIORS_ABORT_H
+#define MISSION_CONTROL_BEHAVIORS_ABORT_H
 
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
@@ -50,10 +50,10 @@
 
 namespace mission_control
 {
-class AbortBehavior : public BT::ActionNodeBase
+class Abort : public BT::ActionNodeBase
 {
  public:
-  AbortBehavior(const std::string& name);
+  Abort(const std::string& name);
 
   BT::NodeStatus tick() override;
 
@@ -74,7 +74,7 @@ class AbortBehavior : public BT::ActionNodeBase
 
   // fins are set to surface and Thruster velocity is 0
   double roll_{0.0};
-  double pitch_{-0.3490658503988659};
+  double pitch_;
   double yaw_{0.0};
   double speedKnots_{0.0};
   double rollTolerance_{0.1};
