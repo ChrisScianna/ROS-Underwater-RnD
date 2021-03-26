@@ -1,7 +1,7 @@
 <launch>
-  <include file="$(find mission_control)/launch/mission_control.launch" />
-  <!-- <include file="$(find fin_control)/launch/fin_control.launch" /> -->
+  <param name="fin_control/max_ctrl_fin_angle" type="double" value="-0.3490658503988659" />
 
+  <include file="$(find mission_control)/launch/mission_control.launch" />
   <!--
       Simulate error message sent by health monitor and checks if the mission control publishes the abort
   -->
