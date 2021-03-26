@@ -138,8 +138,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
       nodeHandle, "/thruster_control/report_battery_health", 1);
 
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsBatteryHealthCheckPeriod{};
-  paramsReportsBatteryHealthCheckPeriod.min_acceptable_period(minReportBatteryHealthRate);
-  paramsReportsBatteryHealthCheckPeriod.max_acceptable_period(maxReportBatteryHealthRate);
+  paramsReportsBatteryHealthCheckPeriod.min_acceptable_period(1. / maxReportBatteryHealthRate);
+  paramsReportsBatteryHealthCheckPeriod.max_acceptable_period(1. / minReportBatteryHealthRate);
   paramsReportsBatteryHealthCheckPeriod.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
   paramsReportsBatteryHealthCheckPeriod.stale_diagnostic({  // NOLINT(whitespace/braces)
       diagnostic_tools::Diagnostic::STALE, ReportFault::BATTERY_INFO_STALE
@@ -184,8 +184,8 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
   diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
-  paramsReportsRPMCheckPeriod.min_acceptable_period(1.0 / maxReportRPMRate);
-  paramsReportsRPMCheckPeriod.max_acceptable_period(1.0 / minReportRPMRate);
+  paramsReportsRPMCheckPeriod.min_acceptable_period(1. / maxReportRPMRate);
+  paramsReportsRPMCheckPeriod.max_acceptable_period(1. / minReportRPMRate);
   paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
   paramsReportsRPMCheckPeriod.stale_diagnostic({  // NOLINT(whitespace/braces)
       diagnostic_tools::Diagnostic::STALE, ReportFault::THRUSTER_RPM_STALE
