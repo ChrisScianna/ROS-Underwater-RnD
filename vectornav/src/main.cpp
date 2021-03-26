@@ -356,14 +356,23 @@ int run(int argc, char *argv[])
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
     diagnostic_updater::Updater diagnosticsUpdater;
     diagnosticsUpdater.setHardwareID("imu");
-    //The minimal rate is the same as sensor imu rate.
+    diagnostic_tools::PeriodicMessageStatusParams imu_data_rate_check_params;
+    imu_data_rate_check_params.min_acceptable_period(1.0 / max_async_output_rate);
+    imu_data_rate_check_params.max_acceptable_period(1.0 / min_async_output_rate);
+    imu_data_rate_check_params.abnormal_diagnostic(
+        diagnostic_tools::Diagnostic::WARN);
+    imu_data_rate_check_params.stale_diagnostic({  // NOLINT
+        diagnostic_tools::Diagnostic::STALE,
+        health_monitor::ReportFault::AHRS_DATA_STALE
+    });  // NOLINT
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
-        "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
-                          .min_acceptable_period(1.0 / max_async_output_rate)
-                          .max_acceptable_period(1.0 / min_async_output_rate)
-                          .abnormal_diagnostic({diagnostic_tools::Diagnostic::ERROR,
-                                                health_monitor::ReportFault::AHRS_DATA_STALE})));
+        "rate check", imu_data_rate_check_params));
 
+    diagnostic_tools::MessageStagnationCheckParams imu_data_stagnation_check_params;
+    imu_data_stagnation_check_params.stagnation_diagnostic({  // NOLINT
+        diagnostic_tools::Diagnostic::ERROR,
+        health_monitor::ReportFault::AHRS_DATA_STAGNATED
+    });  // NOLINT
     diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
         "stagnation check",
         [orientationSteadyBand](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
@@ -371,10 +380,7 @@ int run(int argc, char *argv[])
                   (std::fabs(a.orientation.y - b.orientation.y) < orientationSteadyBand) &&
                   (std::fabs(a.orientation.z - b.orientation.z) < orientationSteadyBand) &&
                   (std::fabs(a.orientation.w - b.orientation.w) < orientationSteadyBand));
-        },
-        diagnostic_tools::MessageStagnationCheckParams{}.stagnation_diagnostic(
-            {diagnostic_tools::Diagnostic::ERROR,
-             health_monitor::ReportFault::AHRS_DATA_STAGNATED})));
+        }, imu_data_stagnation_check_params));  // NOLINT
 
     //Call to set covariances
     if(pn.getParam("linear_accel_covariance",rpc_temp))

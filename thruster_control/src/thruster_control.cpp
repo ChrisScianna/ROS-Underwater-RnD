@@ -137,18 +137,35 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
   publisher_reportBatteryHealth = diagnostic_tools::create_publisher<sensor_msgs::BatteryState>(
       nodeHandle, "/thruster_control/report_battery_health", 1);
 
-  diagnostic_tools::PeriodicMessageStatusParams paramsReportsBatteryHealthCheckPeriod{};
-  paramsReportsBatteryHealthCheckPeriod.min_acceptable_period(minReportBatteryHealthRate);
-  paramsReportsBatteryHealthCheckPeriod.max_acceptable_period(maxReportBatteryHealthRate);
-  diagnostic_tools::Diagnostic diagnosticBatteryHealthInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                                ReportFault::BATTERY_INFO_STALE);
-  paramsReportsBatteryHealthCheckPeriod.abnormal_diagnostic(diagnosticBatteryHealthInfoStale);
+  diagnostic_tools::PeriodicMessageStatusParams batteryHealthRateCheckParams{};
+  batteryHealthRateCheckParams.min_acceptable_period(1. / maxReportBatteryHealthRate);
+  batteryHealthRateCheckParams.max_acceptable_period(1. / minReportBatteryHealthRate);
+  batteryHealthRateCheckParams.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  batteryHealthRateCheckParams.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::BATTERY_INFO_STALE
+  });  // NOLINT(whitespace/braces)
+
   diagnosticsUpdater.add(
       publisher_reportBatteryHealth.add_check<diagnostic_tools::PeriodicMessageStatus>(
-          "rate check", paramsReportsBatteryHealthCheckPeriod));
+          "rate check", batteryHealthRateCheckParams));
+
+  diagnostic_tools::MessageStagnationCheckParams batteryInfoStagnationCheckParams{};
+  batteryInfoStagnationCheckParams.stagnation_diagnostic({  // NOLINT(whitespace/braces)
+    diagnostic_tools::Diagnostic::WARN, ReportFault::BATTERY_INFO_STAGNATED
+  });  // NOLINT(whitespace/braces)
+
+  diagnosticsUpdater.add(
+      publisher_reportBatteryHealth.add_check<diagnostic_tools::MessageStagnationCheck>(
+          "stagnation check",
+          [batteryCurrentSteadyBand](const sensor_msgs::BatteryState& a,
+                                     const sensor_msgs::BatteryState& b)
+          {
+            return std::abs(a.current - b.current) < batteryCurrentSteadyBand;
+          }, batteryInfoStagnationCheckParams));  // NOLINT(whitespace/braces)
 
   batteryCurrentCheck = diagnostic_tools::create_health_check<double>(
-      "Battery current check", [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
+      "Battery current check",
+      [this](double batteryCurrent) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (maxBatteryTotalCurrent < batteryCurrent)
@@ -159,8 +176,7 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
                            maxBatteryTotalCurrent, batteryCurrent);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(batteryCurrentCheck);
 
   batteryVoltageCheck = diagnostic_tools::create_health_check<double>(
@@ -170,43 +186,46 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
         using diagnostic_tools::Diagnostic;
         if (batteryVoltage < minBatteryCellVoltage)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED)
-              .description("Battery Votlage - NOT OK (%f V < %f V)", batteryVoltage,
-                           minBatteryCellVoltage);
+          return Diagnostic(Diagnostic::WARN)
+              .code(ReportFault::BATTERY_VOLTAGE_THRESHOLD_REACHED)
+              .description("Battery Votlage - NOT OK (%f V < %f V)",
+                           batteryVoltage, minBatteryCellVoltage);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(batteryVoltageCheck);
 
   publisher_reportRPM = diagnostic_tools::create_publisher<thruster_control::ReportRPM>(
       nodeHandle, "/thruster_control/report_rpm", 1);
-  diagnostic_tools::PeriodicMessageStatusParams paramsReportsRPMCheckPeriod{};
-  paramsReportsRPMCheckPeriod.min_acceptable_period(1.0 / maxReportRPMRate);
-  paramsReportsRPMCheckPeriod.max_acceptable_period(1.0 / minReportRPMRate);
-  diagnostic_tools::Diagnostic diagnosticRPMInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                      ReportFault::THRUSTER_RPM_STALE);
-  paramsReportsRPMCheckPeriod.abnormal_diagnostic(diagnosticRPMInfoStale);
-  diagnosticsUpdater.add(publisher_reportRPM.add_check<diagnostic_tools::PeriodicMessageStatus>(
-      "rate check", paramsReportsRPMCheckPeriod));
+  diagnostic_tools::PeriodicMessageStatusParams rpmRateCheckParams{};
+  rpmRateCheckParams.min_acceptable_period(1. / maxReportRPMRate);
+  rpmRateCheckParams.max_acceptable_period(1. / minReportRPMRate);
+  rpmRateCheckParams.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  rpmRateCheckParams.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::THRUSTER_RPM_STALE
+  });  // NOLINT(whitespace/braces)
+  diagnosticsUpdater.add(
+      publisher_reportRPM.add_check<diagnostic_tools::PeriodicMessageStatus>(
+          "rate check", rpmRateCheckParams));
 
   publisher_reportMotorTemp =
       diagnostic_tools::create_publisher<thruster_control::ReportMotorTemperature>(
           nodeHandle, "/thruster_control/report_motor_temperature", 1);
-  diagnostic_tools::PeriodicMessageStatusParams paramsReportsTemperatureCheckPeriod{};
-  paramsReportsTemperatureCheckPeriod.min_acceptable_period(1. / maxReportMotorTemperatureRate);
-  paramsReportsTemperatureCheckPeriod.max_acceptable_period(1. / minReportMotorTemperatureRate);
-  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStale(diagnostic_tools::Diagnostic::WARN,
-                                                              ReportFault::THRUSTER_TEMP_STALE);
-  paramsReportsTemperatureCheckPeriod.abnormal_diagnostic(diagnosticTemperatureInfoStale);
+  diagnostic_tools::PeriodicMessageStatusParams temperatureRateCheckParams{};
+  temperatureRateCheckParams.min_acceptable_period(1. / maxReportMotorTemperatureRate);
+  temperatureRateCheckParams.max_acceptable_period(1. / minReportMotorTemperatureRate);
+  temperatureRateCheckParams.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
+  temperatureRateCheckParams.stale_diagnostic({  // NOLINT(whitespace/braces)
+      diagnostic_tools::Diagnostic::STALE, ReportFault::THRUSTER_TEMP_STALE
+  });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::PeriodicMessageStatus>(
-          "rate check", paramsReportsTemperatureCheckPeriod));
+          "rate check", temperatureRateCheckParams));
 
-  diagnostic_tools::MessageStagnationCheckParams paramsTemperatureMessageStagnationcheck;
-  diagnostic_tools::Diagnostic diagnosticTemperatureInfoStagnate(
-      diagnostic_tools::Diagnostic::WARN, ReportFault::THRUSTER_TEMP_STAGNATED);
-  paramsTemperatureMessageStagnationcheck.stagnation_diagnostic(diagnosticTemperatureInfoStagnate);
+  diagnostic_tools::MessageStagnationCheckParams temperatureStagnationCheckParams;
+  temperatureStagnationCheckParams.stagnation_diagnostic({  // NOLINT(whitespace/braces)
+    diagnostic_tools::Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_STAGNATED
+  });  // NOLINT(whitespace/braces)
 
   diagnosticsUpdater.add(
       publisher_reportMotorTemp.add_check<diagnostic_tools::MessageStagnationCheck>(
@@ -214,45 +233,47 @@ ThrusterControl::ThrusterControl(ros::NodeHandle& nodeHandle)
           [motorTemperatureSteadyBand](const thruster_control::ReportMotorTemperature& a,
                                        const thruster_control::ReportMotorTemperature& b)
           {
-            return std::fabs(a.motor_temp - b.motor_temp) < motorTemperatureSteadyBand;
-          }
-          , paramsTemperatureMessageStagnationcheck));
+            return std::abs(a.motor_temp - b.motor_temp) < motorTemperatureSteadyBand;
+          }, temperatureStagnationCheckParams));  // NOLINT(whitespace/braces)
 
   canIntf.SetMotorTimeoutSeconds(setRPMTimeout);
   canIntf.SetEnableCANLogging(currentLoggingEnabled);
 
   motorRPMCheck = diagnostic_tools::create_health_check<double>(
-      "Motor RPM check", [this](double rpms) -> diagnostic_tools::Diagnostic
+      "Motor RPM check",
+      [this](double rpms) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (std::abs(rpms) > maxAllowedMotorRPM)
         {
-          return Diagnostic(Diagnostic::WARN, ReportFault::THRUSTER_RPM_THRESHOLD_REACHED)
-              .description("Absolute RPMs above threshold: |%f| > %f", rpms, maxAllowedMotorRPM);
+          return Diagnostic(Diagnostic::WARN)
+              .code(ReportFault::THRUSTER_RPM_THRESHOLD_REACHED)
+              .description("Absolute RPMs above threshold: |%f| > %f",
+                           rpms, maxAllowedMotorRPM);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(motorRPMCheck);
 
   motorTemperatureCheck = diagnostic_tools::create_health_check<double>(
-      "Motor temperature check", [this](double temperature) -> diagnostic_tools::Diagnostic
+      "Motor temperature check",
+      [this](double temperature) -> diagnostic_tools::Diagnostic
       {
         using diagnostic_tools::Diagnostic;
         if (temperature > motorTemperatureThreshold)
         {
-          return Diagnostic(Diagnostic::ERROR, ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED)
-              .description("Temperature above threshold: %f degC > %f degC", temperature,
-                           motorTemperatureThreshold);
+          return Diagnostic(Diagnostic::ERROR)
+              .code(ReportFault::THRUSTER_TEMP_THRESHOLD_REACHED)
+              .description("Temperature above threshold: %f degC > %f degC",
+                           temperature, motorTemperatureThreshold);
         }
         return Diagnostic::OK;
-      }
-);
+      });  // NOLINT(whitespace/braces)
   diagnosticsUpdater.add(motorTemperatureCheck);
 
   reportRPMTimer = nodeHandle.createTimer(ros::Duration(1. / reportRPMRate),
                                           &ThrusterControl::reportRPMSendTimeout, this);
-  reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(reportMotorTemperatureRate),
+  reportMotorTempTimer = nodeHandle.createTimer(ros::Duration(1. / reportMotorTemperatureRate),
                                                 &ThrusterControl::reportMotorTempSendTimeout, this);
   reportBatteryHealthTimer =
       nodeHandle.createTimer(ros::Duration(1. / reportBatteryHealthRate),

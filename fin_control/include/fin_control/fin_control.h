@@ -54,10 +54,9 @@
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include <diagnostic_tools/diagnosed_publisher.h>
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
 #include <fin_control/ReportAngle.h>
 #include <fin_control/SetAngle.h>
 #include <fin_control/SetAngles.h>
@@ -104,7 +103,8 @@ class FinControl
   ros::Subscriber subscriber_setAngle;
   ros::Subscriber subscriber_setAngles;
   ros::Subscriber subscriber_enableReportAngles;
-  ros::Publisher publisher_reportAngle;
+  diagnostic_tools::DiagnosedPublisher<
+    fin_control::ReportAngle> publisher_reportAngle;
   ros::Timer timer_reportAngle;
 
   DynamixelWorkbench myWorkBench;

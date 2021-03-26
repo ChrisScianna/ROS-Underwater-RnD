@@ -206,7 +206,10 @@ class Keller9lxPressureSensorDriverNode(object):
             min_acceptable_period=(1.0 / max_rate),  # in seconds
             max_acceptable_period=(1.0 / min_rate),  # in seconds
             abnormal_diagnostic=diagnostic_tools.Diagnostic(
-                diagnostic_tools.Diagnostic.ERROR,
+                diagnostic_tools.Diagnostic.WARN
+            ),
+            stale_diagnostic=diagnostic_tools.Diagnostic(
+                diagnostic_tools.Diagnostic.STALE,
                 code=ReportFault.PRESSURE_DATA_STALE
             )
         )
@@ -241,6 +244,11 @@ class Keller9lxPressureSensorDriverNode(object):
             )
         )
         self.__diagnostics_updater.add(check)
+
+        self.__diagnostics_timer = rospy.Timer(
+            rospy.Duration.from_sec(self.__diagnostics_updater.period),
+            lambda ev: self.__diagnostics_updater.update()
+        )
 
     MAX_RECONNECTION_ATTEMPTS = 5
     RECONNECTION_CLEARING_PERIOD = 10  # in seconds
@@ -322,7 +330,6 @@ class Keller9lxPressureSensorDriverNode(object):
             pressure_message.fluid_pressure = pressure_in_pascals
             self.__pressure_pub.publish(pressure_message)
 
-            self.__diagnostics_updater.update()
             rate.sleep()
 
 
