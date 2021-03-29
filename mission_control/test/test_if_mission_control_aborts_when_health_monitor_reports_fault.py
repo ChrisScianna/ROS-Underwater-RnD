@@ -102,17 +102,21 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.mission.execute_mission()
 
         def executing_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
+            return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
         self.assertTrue(wait_for(executing_mission_status_is_reported),
                         msg='Mission control must report EXECUTING')
+
 
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
 
         def aborting_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.ABORTING
+            return ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state
         self.assertTrue(wait_for(aborting_mission_status_is_reported),
-                        msg='Mission control must report aborting')
+                        msg='Mission control must report ABORTING')
+
+        # Check if the behavior publishes the attitude servo msg to
+        # set the fins to surface and velocity to 0 RPM
 
         maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
         def attitude_servo_aborting_goals_are_set():

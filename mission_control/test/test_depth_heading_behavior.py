@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,9 @@ from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
+
 class TestDepthHeadingBehavior(unittest.TestCase):
-    """ 
+    """
         The test loads and execute a depth heading mission.
         -   Load the mission depth_heading_mission_test.xml
         -   Execute the mission
@@ -62,7 +63,7 @@ class TestDepthHeadingBehavior(unittest.TestCase):
     def setUp(self):
         self.depth_heading_goal = DepthHeading()
         self.mission = MissionInterface()
-        
+
         self.depth_heading_msg = rospy.Subscriber(
             '/mngr/depth_heading',
             DepthHeading,
@@ -79,25 +80,27 @@ class TestDepthHeadingBehavior(unittest.TestCase):
     def test_mission_with_depth_heading_behavior(self):
         self.mission.load_mission('depth_heading_mission_test.xml')
         self.mission.execute_mission()
-        
+
         self.mission.read_behavior_parameters('DepthHeadingBehavior')
         depth = self.mission.get_behavior_parameter('depth')
         heading = self.mission.get_behavior_parameter('heading')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
-        enable_mask = 0
 
-        #Calculate the mask
-        def get_mask(value, mask):
-            return mask if value > 0 else 0
-        enable_mask |= get_mask(depth, DepthHeading.DEPTH_ENA)
-        enable_mask |= get_mask(heading, DepthHeading.HEADING_ENA)
-        enable_mask |= get_mask(speed_knots, DepthHeading.SPEED_KNOTS_ENA)
-        
+        # Calculate the mask
+        enable_mask = 0
+        if depth is not None:
+            enable_mask |= DepthHeading.DEPTH_ENA
+        if heading is not None:
+            enable_mask |= DepthHeading.HEADING_ENA
+        if speed_knots is not None:
+            enable_mask |= DepthHeading.SPEED_KNOTS_ENA
+
         def depth_heading_goals_are_set():
-            return (self.depth_heading_goal.depth == depth and
-                    self.depth_heading_goal.heading == heading and
-                    self.depth_heading_goal.speed_knots == speed_knots and
+            return ((depth is None or self.depth_heading_goal.depth == float(depth)) and
+                    (heading is None or self.depth_heading_goal.heading == float(heading)) and
+                    (speed_knots is None or self.depth_heading_goal.speed_knots == float(speed_knots)) and
                     self.depth_heading_goal.ena_mask == enable_mask)
+
         self.assertTrue(wait_for(depth_heading_goals_are_set),
                         msg='Mission control must publish goals')
 
@@ -109,9 +112,11 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         self.simulated_auv_interface_data_pub.publish(auv_interface_data)
 
         def success_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
         self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report SUCCESS')
+                        msg='Mission control must report only COMPLETE')
+
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'mission_control_test_depth_heading_behavior',

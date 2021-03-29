@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -87,23 +87,25 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         pitch = self.mission.get_behavior_parameter('pitch')
         yaw = self.mission.get_behavior_parameter('yaw')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
-        enable_mask = 0
 
         # Calculate the mask
-        def get_mask(value, mask):
-            return mask if value > 0 else 0
-        enable_mask |= get_mask(roll, AttitudeServo.ROLL_ENA)
-        enable_mask |= get_mask(pitch, AttitudeServo.PITCH_ENA)
-        enable_mask |= get_mask(yaw, AttitudeServo.YAW_ENA)
-        enable_mask |= get_mask(speed_knots, AttitudeServo.SPEED_KNOTS_ENA)
+        enable_mask = 0
+        if roll is not None:
+            enable_mask |= AttitudeServo.ROLL_ENA
+        if pitch is not None:
+            enable_mask |= AttitudeServo.PITCH_ENA
+        if yaw is not None:
+            enable_mask |= AttitudeServo.YAW_ENA
+        if speed_knots is not None:
+            enable_mask |= AttitudeServo.SPEED_KNOTS_ENA
 
-        # Check if the behavior publishes the goal
         def attitude_servo_goals_are_set():
-            return (self.attitude_servo_goal.roll == roll and
-                    self.attitude_servo_goal.pitch == pitch and
-                    self.attitude_servo_goal.yaw == yaw and
-                    self.attitude_servo_goal.speed_knots == speed_knots and
+            return ((roll is None or self.attitude_servo_goal.roll == float(roll)) and
+                    (pitch is None or self.attitude_servo_goal.pitch == float(pitch)) and
+                    (yaw is None or self.attitude_servo_goal.yaw == float(yaw)) and
+                    (speed_knots is None or self.attitude_servo_goal.speed_knots == float(speed_knots)) and
                     self.attitude_servo_goal.ena_mask == enable_mask)
+
         self.assertTrue(wait_for(attitude_servo_goals_are_set),
                         msg='Mission control must publish goals')
 
@@ -115,10 +117,10 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
         self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report SUCCESS')
-
+                        msg='Mission control must report only COMPLETE')
 
 if __name__ == "__main__":
     rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavior',
