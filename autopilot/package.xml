@@ -11,7 +11,6 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>auv_interfaces</build_depend>
   <build_depend>fin_control</build_depend>
-  <build_depend>geodesy</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslint</build_depend>
   <build_depend>rospy</build_depend>
@@ -19,7 +18,7 @@
   <build_depend>thruster_control</build_depend>
   <build_depend>jaus_ros_bridge</build_depend>
   <build_depend>message_generation</build_depend>
-  <build_depend>mission_manager</build_depend>
+  <build_depend>mission_control</build_depend>
   <build_export_depend>auv_interfaces</build_export_depend>
   <build_export_depend>fin_control</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -27,16 +26,15 @@
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>thruster_control</build_export_depend>
   <build_export_depend>jaus_ros_bridge</build_export_depend>
-  <build_export_depend>mission_manager</build_export_depend>
+  <build_export_depend>mission_control</build_export_depend>
   <exec_depend>auv_interfaces</exec_depend>
   <exec_depend>fin_control</exec_depend>
-  <exec_depend>geodesy</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>thruster_control</exec_depend>
   <exec_depend>jaus_ros_bridge</exec_depend>
-  <exec_depend>mission_manager</exec_depend>
+  <exec_depend>mission_control</exec_depend>
   <exec_depend>message_runtime</exec_depend>
 
 </package>

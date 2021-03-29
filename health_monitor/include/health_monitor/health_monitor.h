@@ -82,7 +82,7 @@ private:
         {"vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
         {"ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
         {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
-        {"mission_manager_node", health_monitor::ReportFault::MISSION_NODE_DIED},
+        {"mission_control_node", health_monitor::ReportFault::MISSION_NODE_DIED},
         {"pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},
         {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
         {"autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},

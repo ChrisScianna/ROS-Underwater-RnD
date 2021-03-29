@@ -54,7 +54,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
       nh.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
 
   double mgr_report_hb_rate;
-  nh.param<double>("/mission_manager_node/report_heart_beat_rate", mgr_report_hb_rate, 2.0);
+  nh.param<double>("/mission_control_node/report_heart_beat_rate", mgr_report_hb_rate, 2.0);
   ROS_INFO("mm hb rate: [%f]", mgr_report_hb_rate);
   mmTimeout = 3.0 * mgr_report_hb_rate;
 
@@ -190,9 +190,9 @@ void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
   geodesy::fromMsg(msg.state.geolocation.position, currentPosition);
 }
 
-void AutoPilotNode::missionStatusCallback(const mission_manager::ReportExecuteMissionState& data)
+void AutoPilotNode::missionStatusCallback(const mission_control::ReportExecuteMissionState& data)
 {
-  using mission_manager::ReportExecuteMissionState;
+  using mission_control::ReportExecuteMissionState;
   if (data.execute_mission_state == ReportExecuteMissionState::COMPLETE)
   {
     boost::mutex::scoped_lock lock(m_mutex);
@@ -277,7 +277,7 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw)
   finsControlPub.publish(setAnglesMsg);
 }
 
-void AutoPilotNode::missionMgrHbCallback(const mission_manager::ReportHeartbeat& msg)
+void AutoPilotNode::missionMgrHbCallback(const mission_control::ReportHeartbeat& msg)
 {
   boost::mutex::scoped_lock lock(missonManagerHeartbeatMutex);
 
@@ -287,7 +287,7 @@ void AutoPilotNode::missionMgrHbCallback(const mission_manager::ReportHeartbeat&
   missionMgrHeartbeatTimer.start();
 }
 
-void AutoPilotNode::attitudeServoCallback(const mission_manager::AttitudeServo& msg)
+void AutoPilotNode::attitudeServoCallback(const mission_control::AttitudeServo& msg)
 {
   boost::mutex::scoped_lock lock(behaviorMutex);
   missionMode = true;
@@ -309,7 +309,7 @@ void AutoPilotNode::attitudeServoCallback(const mission_manager::AttitudeServo& 
   desiredSpeed = msg.speed_knots;
 }
 
-void AutoPilotNode::depthHeadingCallback(const mission_manager::DepthHeading& msg)
+void AutoPilotNode::depthHeadingCallback(const mission_control::DepthHeading& msg)
 {
   missionMode = true;
   fixedRudder = false;
@@ -329,7 +329,7 @@ void AutoPilotNode::depthHeadingCallback(const mission_manager::DepthHeading& ms
   desiredSpeed = msg.speed_knots;
 }
 
-void AutoPilotNode::altitudeHeadingCallback(const mission_manager::AltitudeHeading& msg)
+void AutoPilotNode::altitudeHeadingCallback(const mission_control::AltitudeHeading& msg)
 {
   boost::mutex::scoped_lock lock(behaviorMutex);
   fixedRudder = false;
@@ -349,7 +349,7 @@ void AutoPilotNode::altitudeHeadingCallback(const mission_manager::AltitudeHeadi
   desiredSpeed = msg.speed_knots;
 }
 
-void AutoPilotNode::fixedRudderCallback(const mission_manager::FixedRudder& msg)
+void AutoPilotNode::fixedRudderCallback(const mission_control::FixedRudder& msg)
 {
   boost::mutex::scoped_lock lock(behaviorMutex);
   missionMode = true;
@@ -369,7 +369,7 @@ void AutoPilotNode::fixedRudderCallback(const mission_manager::FixedRudder& msg)
   desiredSpeed = msg.speed_knots;
 }
 
-void AutoPilotNode::waypointCallback(const mission_manager::Waypoint& msg)
+void AutoPilotNode::waypointCallback(const mission_control::Waypoint& msg)
 {
   boost::mutex::scoped_lock lock(behaviorMutex);
   waypointfollowing = true;
@@ -383,7 +383,7 @@ void AutoPilotNode::waypointCallback(const mission_manager::Waypoint& msg)
   ROS_INFO("UTM desired Easting: [%f]", desiredPosition.easting);
   ROS_INFO("UTM desired Nothing: [%f]", desiredPosition.northing);
 
-  if (msg.ena_mask | mission_manager::Waypoint::ALTITUDE_ENA)
+  if (msg.ena_mask | mission_control::Waypoint::ALTITUDE_ENA)
   {
     desiredPosition.altitude = msg.altitude;
     altitudeControl = true;  // enabling altitude control
