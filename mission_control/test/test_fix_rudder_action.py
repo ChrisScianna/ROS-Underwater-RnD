@@ -46,21 +46,14 @@ from mission_interface import MissionInterface
 from mission_interface import wait_for
 
 
-class TestFixedRudderBehavior(unittest.TestCase):
-    """
-        The test:
-        -   Load a fixed rudder mission.
-        -   execute the mission
-        -   Wait until the mission is complete (behavior_time)
-    """
+class TestFixRudderAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_fixed_rudder_behavior')
+        rospy.init_node('test_fix_rudder')
 
     def setUp(self):
-        mission_execute_state = ReportExecuteMissionState.PAUSED
-        self.fixed_rudder_goal = []
+        self.fixed_rudder_goal = None
         self.mission = MissionInterface()
         self.fixed_rudder_goal = FixedRudder()
 
@@ -71,11 +64,18 @@ class TestFixedRudderBehavior(unittest.TestCase):
     def callback_publish_fixed_rudder_goal(self, msg):
         self.fixed_rudder_goal = msg
 
-    def test_mission_with_fixed_rudder_behavior(self):
+    def test_mission_with_fix_rudder_action(self):
+        """
+        This test:
+        -   Loads a mission with a single FixRudder action.
+        -   Executes the mission.
+        -   Waits until the mission is COMPLETE.
+        """
+
         self.mission.load_mission("fixed_rudder_mission_test.xml")
         self.mission.execute_mission()
 
-        self.mission.read_behavior_parameters('MoveWithFixedRudder')
+        self.mission.read_behavior_parameters('FixRudder')
         depth = self.mission.get_behavior_parameter('depth')
         rudder = self.mission.get_behavior_parameter('rudder')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
@@ -109,6 +109,5 @@ class TestFixedRudderBehavior(unittest.TestCase):
                         msg='Mission control must report only COMPLETE')
 
 
-if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_test_fixed_rudder_behavior',
-                   TestFixedRudderBehavior)
+if __name__ ==  '__main__':
+    rostest.rosrun('mission_control', 'test_fix_rudder_action', TestFixRudderAction)

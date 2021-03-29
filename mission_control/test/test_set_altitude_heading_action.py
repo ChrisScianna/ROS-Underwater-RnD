@@ -40,81 +40,77 @@ import rosnode
 import rospy
 import rostest
 from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import AttitudeServo
+from mission_control.msg import AltitudeHeading
 from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
 
-class TestAttitudeServoBehavior(unittest.TestCase):
-    """
-        The test loads and execute a attitude servo mission.
-        -   Load the mission attitude_servo_mission_test.xml
-        -   Execute the mission
-        -   Check if the behavior publishes the goal
-        -   Simulate auv_interfaces/StateStamped data to finish the behavior
-        -   Test if the mission is SUCCESS
-    """
+class TestSetAltitudeHeadingAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_attitude_servo_behavioral')
+        rospy.init_node('test_set_altitude_heading')
 
     def setUp(self):
-        self.attitude_servo_goal = AttitudeServo()
+        self.altitude_heading_goal = AltitudeHeading()
         self.mission = MissionInterface()
 
-        # Subscribers
-        self.attitude_servo_msg = rospy.Subscriber(
-            '/mngr/attitude_servo',
-            AttitudeServo,
-            self.attitude_servo_goal_callback)
+        self.altitude_heading_msg = rospy.Subscriber(
+            '/mngr/altitude_heading',
+            AltitudeHeading,
+            self.altitude_heading_goal_callback)
 
         self.simulated_auv_interface_data_pub = rospy.Publisher(
             '/state',
             StateStamped,
             queue_size=1)
 
-    def attitude_servo_goal_callback(self, msg):
-        self.attitude_servo_goal = msg
+    def altitude_heading_goal_callback(self, msg):
+        self.altitude_heading_goal = msg
 
-    def test_mission_with_attitude_servo_behavior(self):
-        self.mission.load_mission('attitude_servo_mission_test.xml')
+    def test_mission_with_set_altitude_heading_action(self):
+        """
+        The test:
+        -  Loads a mission with a single SetAltitudeHeading action.
+        -  Executes the mission.
+        -  Waits until the action publishes an AltitudeHeading setpoint.
+        -  Simulates state updates for the action to complete.
+        -  Waits until the mission is COMPLETE.
+        """
+        self.mission.load_mission('altitude_heading_mission_test.xml')
         self.mission.execute_mission()
-
-        self.mission.read_behavior_parameters('AttitudeServoBehavior')
-        roll = self.mission.get_behavior_parameter('roll')
-        pitch = self.mission.get_behavior_parameter('pitch')
-        yaw = self.mission.get_behavior_parameter('yaw')
+        self.mission.read_behavior_parameters('SetAltitudeHeading')
+        altitude = self.mission.get_behavior_parameter('altitude')
+        heading = self.mission.get_behavior_parameter('heading')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
 
         # Calculate the mask
         enable_mask = 0
-        if roll is not None:
-            enable_mask |= AttitudeServo.ROLL_ENA
-        if pitch is not None:
-            enable_mask |= AttitudeServo.PITCH_ENA
-        if yaw is not None:
-            enable_mask |= AttitudeServo.YAW_ENA
+        if altitude is not None:
+            enable_mask |= AltitudeHeading.ALTITUDE_ENA
+
+        if heading is not None:
+            enable_mask |= AltitudeHeading.HEADING_ENA
+
         if speed_knots is not None:
-            enable_mask |= AttitudeServo.SPEED_KNOTS_ENA
+            enable_mask |= AltitudeHeading.SPEED_KNOTS_ENA
 
-        def attitude_servo_goals_are_set():
-            return ((roll is None or self.attitude_servo_goal.roll == float(roll)) and
-                    (pitch is None or self.attitude_servo_goal.pitch == float(pitch)) and
-                    (yaw is None or self.attitude_servo_goal.yaw == float(yaw)) and
-                    (speed_knots is None or self.attitude_servo_goal.speed_knots == float(speed_knots)) and
-                    self.attitude_servo_goal.ena_mask == enable_mask)
+        def altitude_heading_goals_are_set():
+            return ((altitude is None or self.altitude_heading_goal.altitude == float(altitude)) and
+                    (heading is None or self.altitude_heading_goal.heading == float(heading)) and
+                    (speed_knots is None or self.altitude_heading_goal.speed_knots == float(speed_knots)) and
+                    self.altitude_heading_goal.ena_mask == enable_mask)
 
-        self.assertTrue(wait_for(attitude_servo_goals_are_set),
+        self.assertTrue(wait_for(altitude_heading_goals_are_set),
                         msg='Mission control must publish goals')
 
         # send data to finish the mission
-        msg = StateStamped()
-        msg.state.manoeuvring.pose.mean.orientation.x = 1.0
-        msg.state.manoeuvring.pose.mean.orientation.y = 1.0
-        msg.state.manoeuvring.pose.mean.orientation.z = 1.0
-        self.simulated_auv_interface_data_pub.publish(msg)
+        auv_interface_data = StateStamped()
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 0.0
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 0.0
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 2.0
+        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
 
         def success_mission_status_is_reported():
             return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
@@ -122,6 +118,6 @@ class TestAttitudeServoBehavior(unittest.TestCase):
         self.assertTrue(wait_for(success_mission_status_is_reported),
                         msg='Mission control must report only COMPLETE')
 
-if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'test_mission_with_attitude_servo_behavior',
-                   TestAttitudeServoBehavior)
+
+if __name__ == '__main__':
+    rostest.rosrun('mission_control', 'test_set_altitude_heading_action', TestSetAltitudeHeadingAction)
