@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2020, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,67 +34,64 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_CONTROL_BEHAVIORS_ALTITUDE_HEADING_H
-#define MISSION_CONTROL_BEHAVIORS_ALTITUDE_HEADING_H
+#ifndef MISSION_CONTROL_BEHAVIORS_GO_TO_WAYPOINT_H
+#define MISSION_CONTROL_BEHAVIORS_GO_TO_WAYPOINT_H
 
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
+#include <geodesy/utm.h>
 #include <ros/ros.h>
 
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
-#include "mission_control/AltitudeHeading.h"
-#include "mission_control/behavior.h"
+
+#include "mission_control/behaviors/reactive_action.h"
 
 namespace mission_control
 {
 
-class AltitudeHeadingBehavior : public Behavior
+class GoToWaypointNode : public ReactiveActionNode
 {
- public:
-  AltitudeHeadingBehavior(const std::string &name, const BT::NodeConfiguration &config);
-
-  BT::NodeStatus behaviorRunningProcess();
+public:
+  GoToWaypointNode(const std::string &name, const BT::NodeConfiguration &config);
 
   static BT::PortsList providedPorts()
   {
-    BT::PortsList ports = {BT::InputPort<double>("altitude", "altitude"),  //  NOLINT
-                           BT::InputPort<double>("heading", "heading"),
-                           BT::InputPort<double>("speed_knots", "speed_knots"),
-                           BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol"),
-                           BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
-                           BT::InputPort<double>("time_out", "time_out")};
-    return ports;
+    return {  // NOLINT
+      BT::InputPort<double>("depth", "Waypoint depth (positive down), in meters"),
+      BT::InputPort<double>("altitude", "Waypoint altitude (positive up), in meters"),
+      BT::InputPort<double>("latitude", "Waypoint latitude, in degrees"),
+      BT::InputPort<double>("longitude", "Waypoint longitude, in degrees"),
+      BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+      BT::InputPort<double>("tolerance_radius", 0.0, "Radius of the tolerance sphere "
+                            "for UTM coordinates, in meters")};  // NOLINT
   }
 
- private:
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
-  void publishGoalMsg();
+private:
+  void stateCallback(auv_interfaces::StateStamped::ConstPtr msg);
 
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher altitudeHeadingBehaviorPub_;
-  ros::Subscriber subCorrectedData_;
-  ros::Time behaviorStartTime_;
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
 
+  ros::NodeHandle nh_;
+  ros::Publisher waypoint_pub_;
+  ros::Subscriber state_sub_;
+
+  double latitude_;
+  double longitude_;
   double altitude_;
-  double heading_;
-  double speedKnots_;
-  double timeOut_;
+  double depth_;
+  double speed_knots_;
+  double tolerance_radius_;
+  uint8_t enable_mask_;
 
-  bool altitudeEnable_;
-  bool headingEnable_;
-  bool speedKnotsEnable_;
-  bool timeOutEnable_;
+  geodesy::UTMPoint target_position_;
 
-  double altitudeTolerance_;
-  double headingTolerance_;
-
-  bool goalHasBeenPublished_;
-  bool behaviorComplete_;
+  auv_interfaces::StateStamped::ConstPtr state_;
 };
 
 }  //  namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIORS_ALTITUDE_HEADING_H
+#endif  //  MISSION_CONTROL_BEHAVIORS_GO_TO_WAYPOINT_H

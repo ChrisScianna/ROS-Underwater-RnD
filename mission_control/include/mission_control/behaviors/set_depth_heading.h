@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2020, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,38 +34,55 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
-#define MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
+#ifndef MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H
+#define MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H
 
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
 
 #include <string>
 
-#include "mission_control/behaviors/introspectable_action.h"
+#include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/reactive_action.h"
 
 namespace mission_control
 {
-class PayloadCommandNode : public BT::SyncActionNode
+class SetDepthHeadingNode : public ReactiveActionNode
 {
-public:
-  PayloadCommandNode(const std::string& name, const BT::NodeConfiguration& config);
+ public:
+  SetDepthHeadingNode(const std::string &name, const BT::NodeConfiguration &config);
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<std::string>("command", "Command to be sent to payload")};
+    return {BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),  //  NOLINT
+            BT::InputPort<double>("heading", "Heading (or yaw) to reach, in radians"),
+            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+            BT::InputPort<double>("depth_tol", 0.0, "Tolerance for depth goal, in meters"),
+            BT::InputPort<double>("heading_tol", 0.0, "Tolerance for heading goal, in radians")};
   }
 
-protected:
-  BT::NodeStatus tick() override;
+ private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
 
-private:
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher payloadCommandPub_;
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
+
+  ros::NodeHandle nh_;
+  ros::Publisher depth_heading_pub_;
+  ros::Subscriber state_sub_;
+
+  double target_depth_;
+  double depth_tolerance_;
+  double target_heading_;
+  double heading_tolerance_;
+  double speed_knots_;
+  uint8_t enable_mask_;
+
+  auv_interfaces::StateStamped::ConstPtr state_;
 };
 
 }  //  namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
+#endif  //  MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H

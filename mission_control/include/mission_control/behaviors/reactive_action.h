@@ -32,40 +32,52 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#ifndef MISSION_CONTROL_BEHAVIORS_REACTIVE_ACTION_H
+#define MISSION_CONTROL_BEHAVIORS_REACTIVE_ACTION_H
 
-#ifndef MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
-#define MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
-
-#include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
-#include <ros/ros.h>
-
-#include <string>
-
-#include "mission_control/behaviors/introspectable_action.h"
 
 namespace mission_control
 {
-class PayloadCommandNode : public BT::SyncActionNode
+
+class ReactiveActionNode : public BT::ActionNodeBase
 {
 public:
-  PayloadCommandNode(const std::string& name, const BT::NodeConfiguration& config);
+  using BT::ActionNodeBase::ActionNodeBase;
 
-  static BT::PortsList providedPorts()
+  BT::NodeStatus tick() override
   {
-    return {BT::InputPort<std::string>("command", "Command to be sent to payload")};
+    BT::NodeStatus current_status = status();
+    switch (current_status)
+    {
+      case BT::NodeStatus::IDLE:
+        current_status = setUp();
+        break;
+      case BT::NodeStatus::RUNNING:
+        current_status = doWork();
+        if (BT::NodeStatus::RUNNING != current_status)
+        {
+          tearDown();
+        }
+        break;
+      default:
+        break;
+    }
+    return current_status;
   }
 
-protected:
-  BT::NodeStatus tick() override;
+  void halt() override
+  {
+    tearDown();
+    setStatus(BT::NodeStatus::IDLE);
+  }
 
 private:
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher payloadCommandPub_;
+  virtual BT::NodeStatus setUp() {};
+  virtual BT::NodeStatus doWork() = 0;
+  virtual void tearDown() {};
 };
 
-}  //  namespace mission_control
+}  // namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIORS_PAYLOAD_COMMAND_H
+#endif  // MISSION_CONTROL_BEHAVIORS_REACTIVE_ACTION_H

@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,69 +32,30 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H
+#define MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H
 
-#ifndef MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H
-#define MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H
-
-#include <behaviortree_cpp_v3/basic_types.h>
-#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/blackboard.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
-#include <ros/ros.h>
 
 #include <string>
 
-#include "auv_interfaces/StateStamped.h"
-#include "mission_control/FixedRudder.h"
-#include "mission_control/behavior.h"
-
 namespace mission_control
 {
-class MoveWithFixedRudder : public Behavior
+namespace introspection
 {
- public:
-  MoveWithFixedRudder(const std::string& name, const BT::NodeConfiguration& config);
 
-  BT::NodeStatus behaviorRunningProcess();
+void setActivePath(BT::Blackboard* bb, const std::string& path);
 
-  static BT::PortsList providedPorts()
-  {
-    return {BT::InputPort<double>("depth", "depth"),  //  NOLINT
-            BT::InputPort<double>("rudder", "altitude"),
-            BT::InputPort<double>("speed_knots", "speed_knots"),
-            BT::InputPort<double>("behavior_time", "behavior_time"),
-            BT::InputPort<double>("rudder_tol", 0.0, "rudder_tol"),
-            BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
-            BT::InputPort<double>("altitude_tol", 0.0, "altitude_tol")};
-  }
+bool getActivePath(const BT::Blackboard* bb, std::string& path);
 
- private:
-  void stateDataCallback(const auv_interfaces::StateStamped& data);
-  void publishGoalMsg();
+std::string getActivePath(const BT::Blackboard* bb);
 
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher fixedRudderBehaviorPub_;
-  ros::Subscriber subStateData_;
-  ros::Time behaviorStartTime_;
+std::string getActivePath(const BT::Tree& tree);
 
-  double depth_;
-  double altitude_;
-  double rudder_;
-  double speedKnots_;
-  double behaviorTime_;
+std::string extendActivePath(BT::Blackboard* bb, const std::string& node);
 
-  bool altitudeEnable_;
-  bool depthEnable_;
-  bool rudderEnable_;
-  bool speedKnotsEnable_;
+}  // namespace introspection
+}  // namespace mission_control
 
-  double depthTolerance_;
-  double rudderTolerance_;
-  double altitudeTolerance_;
-
-  bool goalHasBeenPublished_;
-};
-
-}  //  namespace mission_control
-
-#endif  //  MISSION_CONTROL_BEHAVIORS_FIXED_RUDDER_H
+#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H

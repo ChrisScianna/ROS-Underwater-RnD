@@ -35,33 +35,30 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/behaviors/payload_command.h"
 
+#include <payload_manager/PayloadCommand.h>
+
 #include <string>
 
-using mission_control::PayloadCommandBehavior;
+namespace mission_control
+{
 
-PayloadCommandBehavior::PayloadCommandBehavior(const std::string &name,
-                                               const BT::NodeConfiguration &config)
-    : Behavior(name, config)
+PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
+  : BT::SyncActionNode(name, config)
 {
   payloadCommandPub_ =
       nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
 }
 
-BT::NodeStatus PayloadCommandBehavior::behaviorRunningProcess()
+BT::NodeStatus PayloadCommandNode::tick()
 {
-  auto res = getInput<std::string>("command");
-  if (!res)
-  {
-    ROS_ERROR_STREAM("error reading port [command]:" << res.error());
-    setStatus(BT::NodeStatus::FAILURE);
+  payload_manager::PayloadCommand msg;
+  msg.header.stamp = ros::Time::now();
+  if (!getInput<std::string>("command", msg.command)) {
+    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
+    return BT::NodeStatus::FAILURE;
   }
-  else
-  {
-    payload_manager::PayloadCommand msg;
-    msg.header.stamp = ros::Time::now();
-    msg.command = res.value();
-    payloadCommandPub_.publish(msg);
-    setStatus(BT::NodeStatus::SUCCESS);
-  }
-  return (status());
+  payloadCommandPub_.publish(msg);
+  return BT::NodeStatus::SUCCESS;
 }
+
+}  // namespace mission_control

@@ -33,97 +33,64 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include <string>
+#include "mission_control/behaviors/go_to_waypoint.h"
 
-#include <geodesy/utm.h>
-
-#include "mission_control/behaviors/waypoint.h"
+#include "mission_control/Waypoint.h"
 
 namespace mission_control
 {
 
-GoToWaypoint::GoToWaypoint(const std::string& name, const BT::NodeConfiguration& config)
-    : BT::ActionNodeBase(name, config)
+GoToWaypointNode::GoToWaypointNode(const std::string& name, const BT::NodeConfiguration& config)
+  : ReactiveActionNode(name, config)
 {
+  waypoint_pub_ = nh_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
+}
+
+BT::NodeStatus GoToWaypointNode::setUp()
+{
+  // Update action parameters
   if (!getInput<double>("latitude", latitude_) || !getInput<double>("longitude", longitude_))
   {
-    throw BT::RuntimeError("Either latitude or longitude were left unspecified");
+    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs latitude and longitude");
+    return BT::NodeStatus::FAILURE;
   }
   geodesy::fromMsg(geodesy::toMsg(latitude_, longitude_), target_position_);
-  enable_mask_ = Waypoint::LAT_ENA | Waypoint::LONG_ENA;
+  enable_mask_ = mission_control::Waypoint::LAT_ENA | mission_control::Waypoint::LONG_ENA;
 
+  altitude_ = depth_ = 0.0;
   if (getInput<double>("altitude", altitude_))
   {
-    enable_mask_ |= Waypoint::ALTITUDE_ENA;
+    enable_mask_ |= mission_control::Waypoint::ALTITUDE_ENA;
     target_position_.altitude = altitude_;
   }
   else if (getInput<double>("depth", depth_))
   {
-    enable_mask_ |= Waypoint::DEPTH_ENA;
+    enable_mask_ |= mission_control::Waypoint::DEPTH_ENA;
     target_position_.altitude = depth_;
   }
   else
   {
-    throw BT::RuntimeError("Neither altitude nor depth were specified");
+    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs altitude or depth");
+    return BT::NodeStatus::FAILURE;
   }
 
   if (getInput<double>("speed_knots", speed_knots_))
   {
-    enable_mask_ |= Waypoint::SPEED_KNOTS_ENA;
+    enable_mask_ |= mission_control::Waypoint::SPEED_KNOTS_ENA;
+  }
+  else
+  {
+    speed_knots_ = 0.0;
   }
 
   getInput<double>("tolerance_radius", tolerance_radius_);
 
-  waypoint_pub_ = nh_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
-}
+  // Setup state subscriber
+  state_.reset();
+  state_sub_ = nh_.subscribe(
+      "/state", 1, &GoToWaypointNode::stateCallback, this);
 
-BT::NodeStatus GoToWaypoint::tick()
-{
-  BT::NodeStatus current_status = status();
-
-  switch (current_status)
-  {
-    case BT::NodeStatus::IDLE:
-      state_up_to_date_ = false;
-      state_sub_ = nh_.subscribe(
-        "/state", 1, &GoToWaypoint::stateCallback, this);
-      waypoint_pub_.publish(makeWaypointMsg());
-      current_status = BT::NodeStatus::RUNNING;
-      break;
-    case BT::NodeStatus::RUNNING:
-      if (state_up_to_date_)
-      {
-        double distance_to_waypoint =
-          std::sqrt(std::pow(target_position_.northing - current_position_.northing, 2) +
-                    std::pow(target_position_.easting - current_position_.easting, 2) +
-                    std::pow(target_position_.altitude - current_position_.altitude, 2));
-        ROS_DEBUG("Distance to (%f, %f) waypoint is %f m",
-                  latitude_, longitude_, distance_to_waypoint);
-        if (distance_to_waypoint < tolerance_radius_)
-        {
-          ROS_INFO("Arrived to the (%f, %f) waypoint!", latitude_, longitude_);
-          current_status = BT::NodeStatus::SUCCESS;
-          state_sub_.shutdown();
-        }
-      }
-      break;
-    default:
-      break;
-  }
-  return current_status;
-}
-
-void GoToWaypoint::halt()
-{
-  if (status() == BT::NodeStatus::RUNNING)
-  {
-    state_sub_.shutdown();
-  }
-  setStatus(BT::NodeStatus::IDLE);
-}
-
-mission_control::Waypoint GoToWaypoint::makeWaypointMsg()
-{
+  // Publish position setpoint
   mission_control::Waypoint msg;
   msg.header.stamp = ros::Time::now();
   msg.latitude = latitude_;
@@ -132,18 +99,44 @@ mission_control::Waypoint GoToWaypoint::makeWaypointMsg()
   msg.depth = depth_;
   msg.speed_knots = speed_knots_;
   msg.ena_mask = enable_mask_;
-  return msg;
+  waypoint_pub_.publish(msg);
+
+  return BT::NodeStatus::RUNNING;
 }
 
-void GoToWaypoint::stateCallback(const auv_interfaces::StateStamped& msg)
+BT::NodeStatus GoToWaypointNode::doWork()
 {
-  geodesy::fromMsg(msg.state.geolocation.position, current_position_);
-  if (enable_mask_ & mission_control::Waypoint::DEPTH_ENA)  // Use depth instead
+  if (state_)
   {
-    current_position_.altitude = msg.state.manoeuvring.pose.mean.position.z;
+    geodesy::UTMPoint current_position(state_->state.geolocation.position);
+    if (enable_mask_ & mission_control::Waypoint::DEPTH_ENA)  // Use depth instead
+    {
+      current_position.altitude = state_->state.manoeuvring.pose.mean.position.z;
+    }
+    double distance_to_waypoint =
+        std::sqrt(std::pow(target_position_.northing - current_position.northing, 2) +
+                  std::pow(target_position_.easting - current_position.easting, 2) +
+                  std::pow(target_position_.altitude - current_position.altitude, 2));
+    ROS_DEBUG("Distance to (%f, %f) waypoint is %f m",
+              latitude_, longitude_, distance_to_waypoint);
+    // TODO(QNA): check shaft speed?
+    if (distance_to_waypoint < tolerance_radius_)
+    {
+      ROS_INFO("Arrived to the (%f, %f) waypoint!", latitude_, longitude_);
+      return BT::NodeStatus::SUCCESS;
+    }
   }
-  state_up_to_date_ = true;
-  // TODO(QNA): check shaft speed?
+  return BT::NodeStatus::RUNNING;
+}
+
+void GoToWaypointNode::tearDown()
+{
+  state_sub_.shutdown();
+}
+
+void GoToWaypointNode::stateCallback(auv_interfaces::StateStamped::ConstPtr msg)
+{
+  state_ = msg;
 }
 
 }  // namespace mission_control

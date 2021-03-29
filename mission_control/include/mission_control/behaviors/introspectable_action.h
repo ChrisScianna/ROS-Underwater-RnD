@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef MISSION_CONTROL_BEHAVIOR_H
-#define MISSION_CONTROL_BEHAVIOR_H
+#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
+#define MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
 
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
@@ -41,42 +41,42 @@
 
 #include <string>
 
+#include "mission_control/behaviors/introspection.h"
+
+
 namespace mission_control
 {
-class Behavior : public BT::ActionNodeBase
+
+template<class BaseActionT>
+class IntrospectableActionNode : public BaseActionT
 {
- public:
-  Behavior(const std::string& name, const BT::NodeConfiguration& config)
-      : BT::ActionNodeBase(name, config)
-  {
-  }
+public:
+  using BaseActionT::BaseActionT;
 
-  ~Behavior() {}
-
-  // You must override the virtual function tick()
   BT::NodeStatus tick() override
   {
-    switch (status())
+    if (BT::NodeStatus::IDLE == this->status())
     {
-      case BT::NodeStatus::IDLE:
-        setStatus(BT::NodeStatus::RUNNING);
-        break;
-      case BT::NodeStatus::RUNNING:
-        setStatus(behaviorRunningProcess());
-        break;
-      default:
-        throw std::logic_error("Unexpected state in ::tick()");
-        break;
+      // TODO(hidmic): find a better way to access the blackboard
+      parent_path_ = introspection::extendActivePath(
+          this->config().blackboard.get(), this->name());
     }
-    return status();
-  }
-  void halt() override { setStatus(BT::NodeStatus::IDLE); }
 
-  /// Method (to be implemented by the user) to implement the function when the satus is RUNNING
-  /// User should return the NodeStatus of the action (RUNNING, SUCCESS or FAILURE).
-  virtual BT::NodeStatus behaviorRunningProcess() = 0;
+    BT::NodeStatus current_status = BaseActionT::tick();
+
+    if (BT::NodeStatus::RUNNING != current_status)
+    {
+      // TODO(hidmic): find a better way to access the blackboard
+      introspection::setActivePath(
+          this->config().blackboard.get(), parent_path_);
+    }
+    return current_status;
+  }
+
+private:
+  std::string parent_path_{};
 };
 
-}  //  namespace mission_control
+}  // namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIOR_H
+#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H

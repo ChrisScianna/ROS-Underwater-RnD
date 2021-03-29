@@ -33,66 +33,44 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include "mission_control/behaviors/fix_rudder.h"
 
-#ifndef MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
-#define MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
-
-#include <behaviortree_cpp_v3/basic_types.h>
-#include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
-#include <ros/ros.h>
+#include "mission_control/FixedRudder.h"
 
 #include <string>
 
-#include "auv_interfaces/StateStamped.h"
-#include "mission_control/DepthHeading.h"
-#include "mission_control/behavior.h"
-
 namespace mission_control
 {
-class DepthHeadingBehavior : public Behavior
+
+FixRudderNode::FixRudderNode(const std::string& name, const BT::NodeConfiguration& config)
+  : BT::SyncActionNode(name, config)
 {
- public:
-  DepthHeadingBehavior(const std::string &name, const BT::NodeConfiguration &config);
+  fixedRudderBehaviorPub_ =
+      nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
+}
 
-  BT::NodeStatus behaviorRunningProcess();
+BT::NodeStatus FixRudderNode::tick()
+{
+  mission_control::FixedRudder msg;
+  msg.header.stamp = ros::Time::now();
 
-  static BT::PortsList providedPorts()
+  msg.ena_mask = 0u;
+  if (getInput<decltype(msg.depth)>("depth", msg.depth))
   {
-    return {BT::InputPort<double>("depth", "depth"),  //  NOLINT
-            BT::InputPort<double>("heading", "heading"),
-            BT::InputPort<double>("speed_knots", "speed_knots"),
-            BT::InputPort<double>("depth_tol", 0.0, "depth_tol"),
-            BT::InputPort<double>("heading_tol", 0.0, "heading_tol"),
-            BT::InputPort<double>("time_out", "time_out")};
+    msg.ena_mask |= mission_control::FixedRudder::DEPTH_ENA;
+  }
+  if (getInput<decltype(msg.rudder)>("rudder", msg.rudder))
+  {
+    msg.ena_mask |= mission_control::FixedRudder::RUDDER_ENA;
+  }
+  if (getInput<decltype(msg.speed_knots)>("speed_knots", msg.speed_knots))
+  {
+    msg.ena_mask |= mission_control::FixedRudder::SPEED_KNOTS_ENA;
   }
 
- private:
-  void stateDataCallback(const auv_interfaces::StateStamped &data);
-  void publishGoalMsg();
+  fixedRudderBehaviorPub_.publish(msg);
 
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher depthHeadingBehaviorPub;
-  ros::Subscriber subCorrectedData_;
-  ros::Time behaviorStartTime_;
+  return BT::NodeStatus::SUCCESS;
+}
 
-  double depth_;
-  double heading_;
-  double speedKnots_;
-  double timeOut_;
-
-  bool depthEnable_;
-  bool headingEnable_;
-  bool speedKnotsEnable_;
-  bool timeOutEnable_;
-
-  double depthTolerance_;
-  double headingTolerance_;
-
-  bool goalHasBeenPublished_;
-  bool behaviorComplete_;
-};
-
-}  //  namespace mission_control
-
-#endif  //  MISSION_CONTROL_BEHAVIORS_DEPTH_HEADING_H
+}  // namespace mission_control

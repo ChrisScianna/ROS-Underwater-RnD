@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,66 +32,53 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
-#ifndef MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
-#define MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
-
-#include <behaviortree_cpp_v3/basic_types.h>
-#include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
-#include <geodesy/utm.h>
-#include <ros/ros.h>
-#include <string>
-
-#include "mission_control/Waypoint.h"
-#include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/introspection.h"
 
 namespace mission_control
 {
-
-class GoToWaypoint : public BT::ActionNodeBase
+namespace introspection
 {
-public:
-  GoToWaypoint(const std::string &name, const BT::NodeConfiguration &config);
+static constexpr char ACTIVE_PATH_KEY[] = "introspection/active_path";
 
-  BT::NodeStatus tick() override;
+std::string extendActivePath(BT::Blackboard* bb, const std::string& node)
+{
+  std::string parent_path;
+  if (bb->get(ACTIVE_PATH_KEY, parent_path))
+    {
+      bb->set(ACTIVE_PATH_KEY, parent_path + "/" + node);
+    }
+  else
+    {
+      bb->set(ACTIVE_PATH_KEY, node);
+    }
+  return parent_path;
+}
 
-  void halt() override;
+void setActivePath(BT::Blackboard* bb, const std::string& path)
+{
+  bb->set(ACTIVE_PATH_KEY, path);
+}
 
-  static BT::PortsList providedPorts()
+bool getActivePath(const BT::Blackboard* bb, std::string& path)
+{
+  return bb->get(ACTIVE_PATH_KEY, path);
+}
+
+std::string getActivePath(const BT::Blackboard* bb)
+{
+  std::string path;
+  if (!getActivePath(bb, path))
   {
-    return {  // NOLINT
-      BT::InputPort<double>("depth", "depth"),
-      BT::InputPort<double>("altitude", "altitude"),
-      BT::InputPort<double>("latitude", "latitude"),
-      BT::InputPort<double>("longitude", "longitude"),
-      BT::InputPort<double>("speed_knots", "speed_knots"),
-      BT::InputPort<double>("tolerance_radius", 0.0, "tolerance_radius")};  // NOLINT
+    path = "?";
   }
+  return path;
+}
 
-private:
-  void stateCallback(const auv_interfaces::StateStamped &data);
-  mission_control::Waypoint makeWaypointMsg();
+std::string getActivePath(const BT::Tree& tree)
+{
+  // NOTE(hidmic): no mutation will occur, it is safe to cast
+  return getActivePath(const_cast<BT::Tree&>(tree).rootBlackboard().get());
+}
 
-  ros::NodeHandle nh_;
-  ros::Publisher waypoint_pub_;
-  ros::Subscriber state_sub_;
-
-  double latitude_;
-  double longitude_;
-  double altitude_{0.0};
-  double depth_{0.0};
-  double speed_knots_{0.0};
-  double tolerance_radius_;
-  uint8_t enable_mask_{0};
-
-  geodesy::UTMPoint current_position_;
-  geodesy::UTMPoint target_position_;
-  bool state_up_to_date_;
-  ros::Time start_time_;
-};
-
-}  //  namespace mission_control
-
-#endif  //  MISSION_CONTROL_BEHAVIORS_WAYPOINT_H
+}  // namespace introspection
+}  // namespace mission_control
