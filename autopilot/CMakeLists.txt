@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   auv_interfaces
   fin_control
+  geodesy
   roscpp
   rospy
   roslint
