@@ -65,7 +65,6 @@
 #include "mission_control/ReportHeartbeat.h"
 #include "mission_control/ReportLoadMissionState.h"
 #include "mission_control/ReportMissions.h"
-#include "mission_control/behavior.h"
 #include "mission_control/mission.h"
 
 #define NODE_VERSION "1.0x"

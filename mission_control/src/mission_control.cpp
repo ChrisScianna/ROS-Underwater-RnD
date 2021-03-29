@@ -133,11 +133,11 @@ void MissionControlNode::reportOn(const Mission& mission)
     case Mission::Status::PENDING:
     case Mission::Status::EXECUTING:
       msg.execute_mission_state = ReportExecuteMissionState::EXECUTING;
-      msg.current_behavior_name = "";  // TODO(hidmic): populate
+      msg.current_behavior_name = mission.active_path();
       break;
     case Mission::Status::ABORTING:
       msg.execute_mission_state = ReportExecuteMissionState::ABORTING;
-      msg.current_behavior_name = "";  // TODO(hidmic): populate
+      msg.current_behavior_name = mission.active_path();
       break;
     case Mission::Status::COMPLETED:
     case Mission::Status::PREEMPTED:
