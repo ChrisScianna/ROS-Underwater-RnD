@@ -39,9 +39,9 @@
 
 #include "JausMessageOut.h"
 
-#include <mission_manager/ReportExecuteMissionState.h>
-#include <mission_manager/ReportLoadMissionState.h>
-#include <mission_manager/ReportMissions.h>
+#include <mission_control/ReportExecuteMissionState.h>
+#include <mission_control/ReportLoadMissionState.h>
+#include <mission_control/ReportMissions.h>
 
 struct MissionState {
   int timestamp_seconds;
@@ -72,9 +72,9 @@ class ReportMissionInfo : public JausMessageOut {
   void init(ros::NodeHandle* nodeHandle, udpserver* udp);
 
   void handleReportMissionStateData(
-      const mission_manager::ReportExecuteMissionState::ConstPtr& msg);
-  void handleReportUploadData(const mission_manager::ReportLoadMissionState::ConstPtr& msg);
-  void handleReportMissions(const mission_manager::ReportMissions& msg);
+      const mission_control::ReportExecuteMissionState::ConstPtr& msg);
+  void handleReportUploadData(const mission_control::ReportLoadMissionState::ConstPtr& msg);
+  void handleReportMissions(const mission_control::ReportMissions& msg);
 
   virtual DataInfo GetPackedMessage(void* data) {}
   DataInfo GetPackedMessageMissionState(void* data);

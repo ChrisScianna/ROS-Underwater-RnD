@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,35 +34,57 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-#ifndef MISSION_MANAGER_MISSION_PARSER_H
-#define MISSION_MANAGER_MISSION_PARSER_H
+#ifndef MISSION_CONTROL_BEHAVIORS_ABORT_H
+#define MISSION_CONTROL_BEHAVIORS_ABORT_H
 
-#include <ros/node_handle.h>
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
+
 #include <string>
 
-#include "mission_manager/behavior_factory.h"
-#include "mission_manager/mission.h"
-#include "tinyxml/tinyxml.h"
+#include "auv_interfaces/StateStamped.h"
+#include "mission_control/AttitudeServo.h"
+#include "thruster_control/ReportRPM.h"
 
-namespace mission_manager
+namespace mission_control
 {
-
-class MissionParser
+class Abort : public BT::ActionNodeBase
 {
  public:
-  MissionParser();
-  explicit MissionParser(ros::NodeHandle nh);
-  virtual ~MissionParser();
+  Abort(const std::string& name);
 
-  bool parseMissionFile(Mission& mission, const std::string& mission_file);
+  BT::NodeStatus tick() override;
 
-  void cleanupMission(Mission& mission);
+  void halt() override;
 
- protected:
-  BehaviorFactory m_factory;
-  ros::NodeHandle node_handle;
+ private:
+  void stateDataCallback(const auv_interfaces::StateStamped& data);
+  void thrusterRPMCallback(const thruster_control::ReportRPM& data);
+  void publishAbortMsg();
+
+  ros::NodeHandle nodeHandle_;
+  ros::Publisher attitudeServoBehaviorPub_;
+  ros::Subscriber subStateData_;
+  ros::Subscriber subThrusterRPM_;
+
+  auv_interfaces::StateStamped stateData_;
+  thruster_control::ReportRPM velocityData_;
+
+  // fins are set to surface and Thruster velocity is 0
+  double roll_{0.0};
+  double pitch_;
+  double yaw_{0.0};
+  double speedKnots_{0.0};
+  double rollTolerance_{0.1};
+  double pitchTolerance_{0.1};
+  double yawTolerance_{0.1};
+
+  bool stateUpToDate_{false};
+  bool velocityUpToDate_{false};
 };
 
-}   //  namespace mission_manager
+}  //  namespace mission_control
 
-#endif  //  MISSION_MANAGER_MISSION_PARSER_H
+#endif  //  MISSION_CONTROL_BEHAVIORS_ABORT_BEHAVIOR_H

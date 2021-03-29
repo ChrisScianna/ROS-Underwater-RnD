@@ -40,8 +40,14 @@ import rospy
 import rostest
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import AttitudeServo
+from thruster_control.msg import ReportRPM
+from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
+
+
+def isclose(a, b, tol):
+    return abs(a - b) < tol
 
 
 class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCase):
@@ -56,7 +62,10 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
             1)  Load a mission
             2)  Execute the mission
             4)  Wait the mission control to publish a Failure state
-            5)  Wait the mission control to publish to actuators
+            5)  check if the mission control aborts the mission
+                a) Receive Aborting State
+                b) Set the fins to surface and Thruster velocity to 0 RPM
+                c) The abort behavior is complete
     """
 
     @classmethod
@@ -71,6 +80,15 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
             '/mngr/attitude_servo',
             AttitudeServo,
             self.attitude_servo_callback)
+
+        self.simulated_auv_interface_data_pub = rospy.Publisher(
+            '/state',
+            StateStamped,
+            queue_size=1)
+
+        self.simulated_thruster_velocity_pub = rospy.Publisher(
+            '/thruster_control/report_rpm',
+            ReportRPM, queue_size=1)
 
     def attitude_servo_callback(self, msg):
         self.attitude_servo_aborting_goal = msg
@@ -88,15 +106,31 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
         # Check if the mission control publishes the attitude servo msg to
         # set the fins to surface and velocity to 0 RPM
         maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
-
         def attitude_servo_aborting_goals_are_set():
-            return (self.attitude_servo_aborting_goal.roll == 0.0 and
-                    self.attitude_servo_aborting_goal.pitch == -maxCtrlFinAngle and
-                    self.attitude_servo_aborting_goal.yaw == 0.0 and
-                    self.attitude_servo_aborting_goal.speed_knots == 0.0 and
-                    self.attitude_servo_aborting_goal.ena_mask == 15)
+            tol = 1e-3
+            return (isclose(self.attitude_servo_aborting_goal.roll, 0.0, tol) and
+                    isclose(self.attitude_servo_aborting_goal.pitch, maxCtrlFinAngle, tol) and
+                    isclose(self.attitude_servo_aborting_goal.yaw, 0.0, tol) and
+                    isclose(self.attitude_servo_aborting_goal.speed_knots, 0.0, tol) and
+                    self.attitude_servo_aborting_goal.ena_mask == 0xF)
         self.assertTrue(wait_for(attitude_servo_aborting_goals_are_set),
                         msg='Mission control must publish goals')
+
+        # Publishes values sent to the actuators
+        msg = StateStamped()
+        msg.state.manoeuvring.pose.mean.orientation.x = 0.0
+        msg.state.manoeuvring.pose.mean.orientation.y = maxCtrlFinAngle
+        msg.state.manoeuvring.pose.mean.orientation.z = 0.0
+        self.simulated_auv_interface_data_pub.publish(msg)
+
+        thruster_velocity = ReportRPM()
+        thruster_velocity.rpms = 0
+        self.simulated_thruster_velocity_pub.publish(thruster_velocity)
+
+        def complete_mission_status_is_reported():
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(complete_mission_status_is_reported),
+                        msg='Mission control must report COMPLETE')
 
 
 if __name__ == "__main__":

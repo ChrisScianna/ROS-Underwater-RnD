@@ -2,7 +2,7 @@
 """
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,8 @@ import rostest
 from mission_control.msg import ReportExecuteMissionState
 from health_monitor.msg import ReportFault
 from mission_control.msg import AttitudeServo
+from thruster_control.msg import ReportRPM
+from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
@@ -57,9 +59,10 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             1)  Load a mission
             2)  Execute the Mission
             3)  Simulate an error sent by health monitor
-            4)  check if the mission control abort the mission
+            4)  check if the mission control aborts the mission
                 a) Receive Aborting State
                 b) Set the fins to surface and Thruster velocity to 0 RPM
+                c) The abort behavior is complete
     """
 
     @classmethod
@@ -82,11 +85,20 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             '/health_monitor/report_fault',
             ReportFault, queue_size=1)
 
+        self.simulated_auv_interface_data_pub = rospy.Publisher(
+            '/state',
+            StateStamped,
+            queue_size=1)
+
+        self.simulated_thruster_velocity_pub = rospy.Publisher(
+            '/thruster_control/report_rpm',
+            ReportRPM, queue_size=1)
+
     def attitude_servo_callback(self, msg):
         self.attitude_servo_aborting_goal = msg
 
     def test_mission_control_aborts_if_health_monitor_reports_fault(self):
-        self.mission.load_mission('mission.xml')
+        self.mission.load_mission('attitude_servo_mission_test.xml')
         self.mission.execute_mission()
 
         def executing_mission_status_is_reported():
@@ -98,25 +110,40 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
 
-        def executing_mission_status_is_reported():
-            return ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state
-        self.assertTrue(wait_for(executing_mission_status_is_reported),
-                        msg='Mission control must report COMPLETE')
+        def aborting_mission_status_is_reported():
+            return ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state
+        self.assertTrue(wait_for(aborting_mission_status_is_reported),
+                        msg='Mission control must report ABORTING')
 
         # Check if the behavior publishes the attitude servo msg to
         # set the fins to surface and velocity to 0 RPM
-        # maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
 
+        maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
         def attitude_servo_aborting_goals_are_set():
             tol = 1e-3
-            raise RuntimeError(isclose(self.attitude_servo_aborting_goal.pitch, -0.3490658503988659, tol))
             return (isclose(self.attitude_servo_aborting_goal.roll, 0.0, tol) and
-                    isclose(self.attitude_servo_aborting_goal.pitch, -0.3490658503988659, tol) and
+                    isclose(self.attitude_servo_aborting_goal.pitch, maxCtrlFinAngle, tol) and
                     isclose(self.attitude_servo_aborting_goal.yaw, 0.0, tol) and
                     isclose(self.attitude_servo_aborting_goal.speed_knots, 0.0, tol) and
                     self.attitude_servo_aborting_goal.ena_mask == 0xF)
         self.assertTrue(wait_for(attitude_servo_aborting_goals_are_set),
                         msg='Mission control must publish goals')
+
+        # Publishes values sent to the actuators
+        msg = StateStamped()
+        msg.state.manoeuvring.pose.mean.orientation.x = 0.0
+        msg.state.manoeuvring.pose.mean.orientation.y = maxCtrlFinAngle
+        msg.state.manoeuvring.pose.mean.orientation.z = 0.0
+        self.simulated_auv_interface_data_pub.publish(msg)
+
+        thruster_velocity = ReportRPM()
+        thruster_velocity.rpms = 0
+        self.simulated_thruster_velocity_pub.publish(thruster_velocity)
+
+        def complete_mission_status_is_reported():
+            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+        self.assertTrue(wait_for(complete_mission_status_is_reported),
+                        msg='Mission control must report COMPLETE')
 
 
 if __name__ == "__main__":

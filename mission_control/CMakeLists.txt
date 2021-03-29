@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   behaviortree_cpp_v3
   geodesy
   health_monitor
-  jaus_ros_bridge
   message_generation
   roscpp
   roslint
@@ -45,7 +44,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS auv_interfaces payload_manager health_monitor jaus_ros_bridge roscpp rospy std_msgs
+ CATKIN_DEPENDS auv_interfaces payload_manager health_monitor roscpp rospy std_msgs
 )
 
 ###########
@@ -66,6 +65,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/attitude_servo.cpp
   src/behaviors/altitude_heading.cpp
   src/behaviors/payload_command.cpp
+  src/behaviors/abort.cpp
 )
 
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
