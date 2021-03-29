@@ -34,6 +34,8 @@
 
 #include "mission_control/behaviors/introspection.h"
 
+#include <string>
+
 namespace mission_control
 {
 namespace introspection

@@ -57,10 +57,9 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {
-      BT::InputPort<double>("rudder", "Rudder angle, in radians"),
-      BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),
-      BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots")};
+    return {BT::InputPort<double>("rudder", "Rudder angle, in radians"),  // NOLINT
+            BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),
+            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots")};
   }
 
 protected:

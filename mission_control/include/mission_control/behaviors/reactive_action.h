@@ -73,9 +73,9 @@ public:
   }
 
 private:
-  virtual BT::NodeStatus setUp() {};
+  virtual BT::NodeStatus setUp() {}
   virtual BT::NodeStatus doWork() = 0;
-  virtual void tearDown() {};
+  virtual void tearDown() {}
 };
 
 }  // namespace mission_control

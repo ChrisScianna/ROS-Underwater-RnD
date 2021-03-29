@@ -37,6 +37,8 @@
 
 #include "mission_control/Waypoint.h"
 
+#include <string>
+
 namespace mission_control
 {
 
