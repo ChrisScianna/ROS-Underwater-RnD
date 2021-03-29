@@ -59,11 +59,12 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
   src/mission.cpp
   src/mission_control.cpp
-  src/behaviors/waypoint.cpp
-  src/behaviors/fixed_rudder.cpp
-  src/behaviors/depth_heading.cpp
+  src/behaviors/introspection.cpp
+  src/behaviors/go_to_waypoint.cpp
+  src/behaviors/fix_rudder.cpp
+  src/behaviors/set_depth_heading.cpp
   src/behaviors/attitude_servo.cpp
-  src/behaviors/altitude_heading.cpp
+  src/behaviors/set_altitude_heading.cpp
   src/behaviors/payload_command.cpp
   src/behaviors/abort.cpp
 )
@@ -107,6 +108,6 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
   add_rostest(test/test_mission_control_publishes_heartbeat.test)
   add_rostest(test/test_mission_control_behaviors.test)
-  catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
-  target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${PROJECT_NAME})
+  #catkin_add_gtest(behavior-object-test test/test_behavior_object.cpp)
+  #target_link_libraries(behavior-object-test ${catkin_LIBRARIES} ${PROJECT_NAME})
 endif()
