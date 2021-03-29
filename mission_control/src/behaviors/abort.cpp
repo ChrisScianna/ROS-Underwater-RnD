@@ -90,7 +90,7 @@ BT::NodeStatus AbortNode::doWork()
     if ((std::abs(roll_ - roll) < roll_tolerance_) &&
         (std::abs(pitch_ - pitch) < pitch_tolerance_) &&
         (std::abs(yaw_ - yaw) < yaw_tolerance_) &&
-        (speed <= speed_tolerance_))
+        (speed < speed_tolerance_))
     {
       return BT::NodeStatus::SUCCESS;
     }

@@ -55,17 +55,26 @@ BT::NodeStatus FixRudderNode::tick()
   msg.header.stamp = ros::Time::now();
 
   msg.ena_mask = 0u;
-  if (getInput<decltype(msg.depth)>("depth", msg.depth))
+
+  double depth;
+  if (getInput<double>("depth", depth))
   {
     msg.ena_mask |= mission_control::FixedRudder::DEPTH_ENA;
+    msg.depth = depth;
   }
-  if (getInput<decltype(msg.rudder)>("rudder", msg.rudder))
+
+  double rudder;
+  if (getInput<double>("rudder", rudder))
   {
     msg.ena_mask |= mission_control::FixedRudder::RUDDER_ENA;
+    msg.rudder = rudder;
   }
-  if (getInput<decltype(msg.speed_knots)>("speed_knots", msg.speed_knots))
+
+  double speed_knots;
+  if (getInput<double>("speed_knots", speed_knots))
   {
     msg.ena_mask |= mission_control::FixedRudder::SPEED_KNOTS_ENA;
+    msg.speed_knots = speed_knots;
   }
 
   fixedRudderBehaviorPub_.publish(msg);
