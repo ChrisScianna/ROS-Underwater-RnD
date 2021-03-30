@@ -108,11 +108,12 @@ class MissionInterface:
         self.mission_load_state_flag = False
         mission_to_load = LoadMission()
         mission_to_load.mission_file_full_path = self.full_path
-        self.simulated_mission_control_load_mission_pub.publish(mission_to_load)
-
+        self.simulated_mission_control_load_mission_pub.publish(
+            mission_to_load)
+        self.mission_load_state = None
         def load_mission_state():
-            return self.mission_load_state == ReportLoadMissionState.SUCCESS
-        return wait_for(load_mission_state)
+            return self.mission_load_state is not None
+        if wait_for(load_mission_state): return self.mission_load_state
 
     def execute_mission(self, mission_id=1):
         # Simulate Jaus Ros Bridge sending an Execute Command

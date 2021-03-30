@@ -70,8 +70,6 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.report_mission = ReportMissions()
         self.mission = MissionInterface()
         self.mission_load_state = None
-        self.dir_path = os.path.dirname(
-            os.path.abspath(__file__)) + '/test_files/'
         self.mission_to_load = LoadMission()
 
         # Subscribers
@@ -120,16 +118,8 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         self.mission_load_state = msg.load_state
 
     def test_jaus_ros_bridge_interface(self):
-        # A wrong mission is sent to the mission control
-        self.mission_to_load.mission_file_full_path = "NO_MISSION"
-        self.simulated_mission_control_load_mission_pub.publish(
-            self.mission_to_load)
-
-        def load_wrong_mission():
-            return self.mission_load_state == ReportLoadMissionState.FAILED
-        self.assertTrue(
-            wait_for(load_wrong_mission),
-            msg='Mission control must report FAILED')
+        # Test if the mission control reports FAILED if cannot load a mission
+        self.assertEqual(self.mission.load_mission("NO_MISSION"), ReportLoadMissionState.FAILED)
 
         # A valid mission is sent to the mission control
         # Execute Mission and check if the mission control reports status
@@ -138,7 +128,7 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
         # Wait for the mission to report EXECUTING
         def executing_mission_status_is_reported():
-            return (ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state)
+            return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
         self.assertTrue(
             wait_for(executing_mission_status_is_reported),
             msg='Mission control must report EXECUTING')
@@ -148,10 +138,10 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         abortMission.mission_id = 1
         self.simulated_abort_mission_msg_pub.publish(abortMission)
 
-        def complete_mission_status_is_reported():
-            return (ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state)
+        def aborting_mission_status_is_reported():
+            return ReportExecuteMissionState.ABORTING in self.mission.execute_mission_state
         self.assertTrue(
-            wait_for(complete_mission_status_is_reported),
+            wait_for(aborting_mission_status_is_reported),
             msg='Mission control must report ABORTING')
 
         # Query mission and test response
