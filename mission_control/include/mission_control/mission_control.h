@@ -41,15 +41,21 @@
 #ifndef MISSION_CONTROL_MISSION_CONTROL_H
 #define MISSION_CONTROL_MISSION_CONTROL_H
 
+#include <behaviortree_cpp_v3/action_node.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 #include <dirent.h>
 #include <ros/ros.h>
 #include <stdint.h>
 
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "health_monitor/ReportFault.h"
+#include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_control/AbortMission.h"
 #include "mission_control/ExecuteMission.h"
 #include "mission_control/LoadMission.h"
@@ -59,95 +65,62 @@
 #include "mission_control/ReportHeartbeat.h"
 #include "mission_control/ReportLoadMissionState.h"
 #include "mission_control/ReportMissions.h"
-#include "mission_control/behavior.h"
 #include "mission_control/mission.h"
-#include "mission_control/mission_parser.h"
-#include "pose_estimator/CorrectedData.h"
 
-#define LOGGING (1)
+#define NODE_VERSION "1.0x"
 
-// Version 2.0 rewritten in 2019 for SeaScout mkIII
-// Version 2.1 removed the battery handling for faults. There is now a
-//      HeatlhMonitor ROS Node that publishes a ReportFault message.
-//      The mission manager now subscribes to the ReportFault message.
-#define NODE_VERSION "2.1x"
 
-using mission_control::LoadMission;
-using mission_control::Mission;
-using mission_control::MissionData;
-using mission_control::MissionParser;
-using mission_control::ReportExecuteMissionState;
-using mission_control::ReportHeartbeat;
-using mission_control::ReportLoadMissionState;
-using mission_control::ReportMissions;
-using pose_estimator::CorrectedData;
+namespace mission_control
+{
 
 class MissionControlNode
 {
- public:
-  ros::NodeHandle node_handle;
-  ros::Subscriber sub_corrected_data;
+public:
+  MissionControlNode();
 
-  ros::Subscriber report_fault_sub;
+  void spin();
 
-  ros::Subscriber load_mission_sub;
-  ros::Subscriber execute_mission_sub;
-  ros::Subscriber abort_mission_sub;
-  ros::Subscriber query_mission_sub;
-  ros::Subscriber remove_mission_sub;
+private:
+  void reportOn(const Mission& mission);
+  void update(const ros::TimerEvent& ev);
 
-  ros::Publisher pub_report_mission_load_state;
-  ros::Publisher pub_report_mission_execute_state;
-  ros::Publisher pub_report_missions;
-  ros::Publisher pub_report_heartbeat;
+  void reportHeartbeat(const ros::TimerEvent& ev);
 
-  ros::Timer reportExecuteMissionStateTimer;
-  Mission::MissionState last_state;
-  int last_id;
+  void loadMissionCallback(const LoadMission& msg);
+  void executeMissionCallback(const ExecuteMission& msg);
+  void abortMissionCallback(const AbortMission& msg);
+  void queryMissionsCallback(const QueryMissions& msg);
+  void removeMissionsCallback(const RemoveMissions& msg);
 
-  ros::Timer reportHeartbeatTimer;
+  void faultCallback(const health_monitor::ReportFault& msg);
 
- private:
-  // Vars holding runtime params
-  std::string mission_path;
-  bool disable_abort;
-  double reportExecuteMissionStateRate;
-  double reportHeartbeatRate;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
 
-  pose_estimator::CorrectedData m_correctedData;
+  ros::Subscriber fault_sub_;
 
-  int m_current_mission_id;
-  int m_mission_id_counter;
-  Mission* m_cur_mission;
+  ros::Subscriber load_mission_sub_;
+  ros::Subscriber execute_mission_sub_;
+  ros::Subscriber abort_mission_sub_;
+  ros::Subscriber query_mission_sub_;
+  ros::Subscriber remove_mission_sub_;
 
-  std::map<int, Mission*> m_mission_map;
+  ros::Publisher report_mission_load_state_pub_;
+  ros::Publisher report_mission_execute_state_pub_;
+  ros::Publisher report_missions_pub_;
+  ros::Publisher report_heartbeat_pub_;
 
-  uint64_t heartbeat_sequence_id;
+  ros::Timer heartbeat_timer_;
+  ros::Timer update_timer_;
 
- public:
-  explicit MissionControlNode(ros::NodeHandle& h);
-  ~MissionControlNode();
+  uint64_t system_fault_ids_{0};
+  uint64_t heartbeat_sequence_id_{0};
 
-  int loadMissionFile(std::string mission_full_path);
-  int executeMission(int missionId);
-  int abortMission(int missionId);
-
-  int start();
-  int stop();
-  bool spin();
-
-  void reportHeartbeat(const ros::TimerEvent& timer);
-  void reportExecuteMissionState(const ros::TimerEvent& timer);
-  void loadMissionCallback(const mission_control::LoadMission::ConstPtr& msg);
-  void executeMissionCallback(const mission_control::ExecuteMission::ConstPtr& msg);
-  void abortMissionCallback(const mission_control::AbortMission::ConstPtr& msg);
-  void queryMissionsCallback(const mission_control::QueryMissions::ConstPtr& msg);
-  void removeMissionsCallback(const mission_control::RemoveMissions::ConstPtr& msg);
-  void correctedDataCallback(const pose_estimator::CorrectedData& data);
-  void reportFaultCallback(const health_monitor::ReportFault::ConstPtr& msg);
-
-  bool endsWith(const std::string& str, const char* suffix);
-  bool FoundMissionFile();
+  std::shared_ptr<Mission> current_mission_;
+  std::unordered_map<int, std::shared_ptr<Mission>> mission_map_;
+  ReportExecuteMissionState last_mission_state_report_;
 };
+
+}  // namespace mission_control
 
 #endif  // MISSION_CONTROL_MISSION_CONTROL_H

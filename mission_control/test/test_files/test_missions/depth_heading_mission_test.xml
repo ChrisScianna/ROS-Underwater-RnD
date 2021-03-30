@@ -1,0 +1,16 @@
+<!-- This file is used for testing  -->
+
+<root main_tree_to_execute = "MainTree" >
+  <BehaviorTree ID="MainTree">
+    <Sequence name="mission test">
+      <Timeout msec="2000">
+        <SetDepthHeading
+            depth="1.0"
+            heading="2.0"
+            speed_knots="3.0"
+            depth_tol="10.0"
+            heading_tol="10.0"/>
+      </Timeout>
+    </Sequence>
+  </BehaviorTree>
+</root>

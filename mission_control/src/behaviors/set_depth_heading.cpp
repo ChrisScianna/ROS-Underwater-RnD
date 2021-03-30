@@ -33,61 +33,51 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/set_depth_heading.h"
 
-#include "mission_control/AttitudeServo.h"
+#include "mission_control/DepthHeading.h"
 
 #include <string>
 
 namespace mission_control
 {
 
-AttitudeServoNode::AttitudeServoNode(const std::string& name,
-                                     const BT::NodeConfiguration& config)
+SetDepthHeadingNode::SetDepthHeadingNode(const std::string &name,
+                                         const BT::NodeConfiguration &config)
   : ReactiveActionNode(name, config)
 {
-  attitude_servo_pub_ =
-      nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+  depth_heading_pub_ =
+      nh_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
 }
 
-BT::NodeStatus AttitudeServoNode::setUp()
+BT::NodeStatus SetDepthHeadingNode::setUp()
 {
   // Update action parameters
   enable_mask_ = 0u;
 
-  if (getInput<double>("roll", target_roll_))
+  if (getInput<double>("depth", target_depth_))
   {
-    getInput<double>("roll_tol", roll_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::ROLL_ENA;
+    getInput<double>("depth_tol", depth_tolerance_);
+    enable_mask_ |= mission_control::DepthHeading::DEPTH_ENA;
   }
   else
   {
-    target_roll_ = 0.0;
+    target_depth_ = 0.0;
   }
 
-  if (getInput<double>("pitch", target_pitch_))
+  if (getInput<double>("heading", target_heading_))
   {
-    getInput<double>("pitch_tol", pitch_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::PITCH_ENA;
+    getInput<double>("heading_tol", heading_tolerance_);
+    enable_mask_ |= mission_control::DepthHeading::HEADING_ENA;
   }
   else
   {
-    target_pitch_ = 0.0;
-  }
-
-  if (getInput<double>("yaw", target_yaw_))
-  {
-    getInput<double>("yaw_tol", yaw_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::YAW_ENA;
-  }
-  else
-  {
-    target_yaw_ = 0.0;
+    target_heading_ = 0.0;
   }
 
   if (getInput<double>("speed_knots", speed_knots_))
   {
-    enable_mask_ |= mission_control::AttitudeServo::SPEED_KNOTS_ENA;
+    enable_mask_ |= mission_control::DepthHeading::SPEED_KNOTS_ENA;
   }
   else
   {
@@ -97,70 +87,56 @@ BT::NodeStatus AttitudeServoNode::setUp()
   // Setup state subscriber
   state_.reset();
   state_sub_ = nh_.subscribe(
-      "/state", 1, &AttitudeServoNode::stateDataCallback, this);
+      "/state", 1, &SetDepthHeadingNode::stateDataCallback, this);
 
-  // Publish attitude setpoint
-  mission_control::AttitudeServo msg;
+  // Publish depth+heading setpoint
+  mission_control::DepthHeading msg;
   msg.header.stamp = ros::Time::now();
-  msg.roll = target_roll_;
-  msg.pitch = target_pitch_;
-  msg.yaw = target_yaw_;
+  msg.depth = target_depth_;
+  msg.heading = target_heading_;
   msg.speed_knots = speed_knots_;
   msg.ena_mask = enable_mask_;
-  attitude_servo_pub_.publish(msg);
+  depth_heading_pub_.publish(msg);
 
   return BT::NodeStatus::RUNNING;
 }
 
-BT::NodeStatus AttitudeServoNode::doWork()
+BT::NodeStatus SetDepthHeadingNode::doWork()
 {
   if (!state_)
   {
     return BT::NodeStatus::RUNNING;
   }
 
-  if (enable_mask_ & mission_control::AttitudeServo::ROLL_ENA)
+  if (enable_mask_ & mission_control::DepthHeading::HEADING_ENA)
   {
-    double current_roll = state_->state.manoeuvring.pose.mean.orientation.x;
+    double current_heading = state_->state.manoeuvring.pose.mean.orientation.z;
 
-    if (std::abs(target_roll_ - current_roll) > roll_tolerance_)
+    if (std::abs(target_heading_ - current_heading) > heading_tolerance_)
     {
       return BT::NodeStatus::RUNNING;
     }
   }
 
-  if (enable_mask_ & mission_control::AttitudeServo::PITCH_ENA)
+  if (enable_mask_ & mission_control::DepthHeading::DEPTH_ENA)
   {
-    double current_pitch = state_->state.manoeuvring.pose.mean.orientation.y;
+    double current_depth = state_->state.manoeuvring.pose.mean.position.z;
 
-    if (std::abs(target_pitch_ - current_pitch) > pitch_tolerance_)
+    if (std::abs(target_depth_ - current_depth) > depth_tolerance_)
     {
       return BT::NodeStatus::RUNNING;
     }
   }
-
-  if (enable_mask_ & mission_control::AttitudeServo::YAW_ENA)
-  {
-    double current_yaw = state_->state.manoeuvring.pose.mean.orientation.z;
-
-    if (std::abs(target_yaw_ - current_yaw) > yaw_tolerance_)
-    {
-      return BT::NodeStatus::RUNNING;
-    }
-  }
-
-  // TODO(QNA): check shaft speed and/or battery position?
-  // TODO(QNA): make sure our RPY rates are close to zero?
 
   return BT::NodeStatus::SUCCESS;
 }
 
-void AttitudeServoNode::tearDown()
+void SetDepthHeadingNode::tearDown()
 {
   state_sub_.shutdown();
 }
 
-void AttitudeServoNode::stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg)
+void SetDepthHeadingNode::stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg)
 {
   state_ = msg;
 }

@@ -34,63 +34,61 @@
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 
-/* Behavioral Attitude Servo
-        <attitude_servo>
-            <description>
-                00:00:00 - At the beginning of the mission, set everything to initial conditions.
-            </description>
-            <when unit="sec">0</when>
-            <timeout unit="sec">5</timeout>
-            <roll unit="deg">0.0</roll>
-            <pitch unit="deg">0.0</pitch>
-            <yaw unit="deg">0.0</yaw>
-            <speed_knots>0.0</speed_knots>
-        </attitude_servo>
-*/
-
 #ifndef MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
 #define MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H
 
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
+
 #include <string>
-#include "mission_control/behavior.h"
-#include "mission_control/AttitudeServo.h"
+
+#include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/reactive_action.h"
 
 namespace mission_control
 {
-
-class AttitudeServoBehavior : public Behavior
+class AttitudeServoNode : public ReactiveActionNode
 {
- public:
-  AttitudeServoBehavior();
-  virtual ~AttitudeServoBehavior();
+public:
+  AttitudeServoNode(const std::string& name, const BT::NodeConfiguration& config);
 
-  virtual bool parseMissionFileParams();
-  bool getParams(ros::NodeHandle nh);
-  virtual void publishMsg();
-  bool checkCorrectedData(const pose_estimator::CorrectedData& data);
+  static BT::PortsList providedPorts()
+  {
+    return {BT::InputPort<double>("roll", "Roll angle to reach, in radians"),  //  NOLINT
+            BT::InputPort<double>("pitch", "Pitch angle to reach, in radians"),
+            BT::InputPort<double>("yaw", "Yaw angle to reach, in radians"),
+            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+            BT::InputPort<double>("roll_tol", 0.0, "Tolerance for roll angle goal, in radians"),
+            BT::InputPort<double>("pitch_tol", 0.0, "Tolerance for pitch angle goal, in radians"),
+            BT::InputPort<double>("yaw_tol", 0.0, "Tolerance for yaw angle goal, in radians")};
+  }
 
- private:
-  ros::Publisher attitude_servo_behavior_pub;
+private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
 
-  float m_roll;
-  float m_pitch;
-  float m_yaw;
-  float m_speed_knots;
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
 
-  std::string m_roll_unit;
-  std::string m_pitch_unit;
-  std::string m_yaw_unit;
+  ros::NodeHandle nh_;
+  ros::Publisher attitude_servo_pub_;
+  ros::Subscriber state_sub_;
 
-  bool m_roll_ena;
-  bool m_pitch_ena;
-  bool m_yaw_ena;
-  bool m_speed_knots_ena;
+  double target_roll_;
+  double target_pitch_;
+  double target_yaw_;
+  double speed_knots_;
+  uint8_t enable_mask_;
 
-  float m_roll_tol;
-  float m_pitch_tol;
-  float m_yaw_tol;
+  double roll_tolerance_;
+  double pitch_tolerance_;
+  double yaw_tolerance_;
+
+  auv_interfaces::StateStamped::ConstPtr state_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_BEHAVIORS_ATTITUDE_SERVO_H

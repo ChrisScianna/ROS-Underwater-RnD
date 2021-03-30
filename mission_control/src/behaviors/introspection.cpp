@@ -32,34 +32,55 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
-
-#include <payload_manager/PayloadCommand.h>
+#include "mission_control/behaviors/introspection.h"
 
 #include <string>
 
 namespace mission_control
 {
-
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+namespace introspection
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
+static constexpr char ACTIVE_PATH_KEY[] = "introspection/active_path";
+
+std::string extendActivePath(BT::Blackboard* bb, const std::string& node)
+{
+  std::string parent_path;
+  if (bb->get(ACTIVE_PATH_KEY, parent_path))
+    {
+      bb->set(ACTIVE_PATH_KEY, parent_path + "/" + node);
+    }
+  else
+    {
+      bb->set(ACTIVE_PATH_KEY, node);
+    }
+  return parent_path;
 }
 
-BT::NodeStatus PayloadCommandNode::tick()
+void setActivePath(BT::Blackboard* bb, const std::string& path)
 {
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
+  bb->set(ACTIVE_PATH_KEY, path);
+}
+
+bool getActivePath(const BT::Blackboard* bb, std::string& path)
+{
+  return bb->get(ACTIVE_PATH_KEY, path);
+}
+
+std::string getActivePath(const BT::Blackboard* bb)
+{
+  std::string path;
+  if (!getActivePath(bb, path))
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
+    path = "?";
   }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
+  return path;
 }
 
+std::string getActivePath(const BT::Tree& tree)
+{
+  // NOTE(hidmic): no mutation will occur, it is safe to cast
+  return getActivePath(const_cast<BT::Tree&>(tree).rootBlackboard().get());
+}
+
+}  // namespace introspection
 }  // namespace mission_control

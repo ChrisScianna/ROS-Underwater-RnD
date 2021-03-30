@@ -37,88 +37,54 @@
 #ifndef MISSION_CONTROL_MISSION_H
 #define MISSION_CONTROL_MISSION_H
 
-#include <vector>
+#include <behaviortree_cpp_v3/bt_factory.h>
+
+#include <memory>
 #include <string>
-#include "mission_control/behavior.h"
+
 
 namespace mission_control
 {
 
 class Mission
 {
- public:
-  Mission();
-  virtual ~Mission();
-
-  void addBehavior(Behavior *behavior);
-  Behavior *getNextBehavior(bool reset = false);
-
-  void addAbortBehavior(Behavior *behavior);
-  Behavior *getNextAbortBehavior(bool reset = false);
-
-  enum MissionState
+public:
+  enum class Status
   {
     READY,
+    PENDING,
     EXECUTING,
     ABORTING,
-    STOPPED,
-    PAUSED,
-    COMPLETE
+    COMPLETED,
+    ABORTED,
+    PREEMPTED
   };
-  void SetState(MissionState state);
-  MissionState GetState();
-  boost::mutex m_MissionStateLock;
 
-  void ExecuteMission(ros::NodeHandle nh);
-  void AbortMissionWrapper(ros::NodeHandle nh);
+  static std::unique_ptr<Mission> fromFile(const std::string& path);
 
-  void Stop();
+  inline int id() const { return id_; }
+  inline Status status() const { return status_; }
+  const std::string& description() const;
+  std::string active_path() const;
+  bool active() const;
 
-  boost::shared_ptr<boost::thread> m_threadProcMission, m_threadAbortMission;
+  Mission& start();
+  Mission& resume();
+  Mission& preempt();
+  Mission& abort();
 
-  void ProcessCorrectedPoseData(const pose_estimator::CorrectedData &data);
+private:
+  explicit Mission(BT::Tree&& tree);  // NOLINT
 
-  void setMissionDescription(std::string descStr) { m_mission_description = descStr; }
-  std::string getMissionDescription() { return m_mission_description; }
+  BT::Tree main_behavior_tree_;
+  BT::Tree abort_behavior_tree_;
 
-  std::string getCurrentBehaviorsName() { return current_behavior_name; }
-  std::string getCurrentAbortBehaviorsName() { return current_abort_behavior_name; }
+  Status status_;
+  int id_;
 
-  int getCurrentBehaviorId() { return current_behavior_id; }
-  int getCurrentAbortBehaviorId() { return current_abort_behavior_id; }
-
- private:
-  void AbortMission();
-
-  ros::NodeHandle node_handle;
-  ros::Timer callBackTmr;
-
-  MissionState missionState;
-  void processAbort();
-  void processMission();
-
-  Behavior *m_current_behavior;  // this is a the current behavior which can be accessed from ROS
-                                 // callbacks
-  boost::mutex m_mutCallbacks;   // this is mutex to give safe access in callbacks
-
-  std::vector<Behavior *> m_behaviors;
-  std::vector<Behavior *>::iterator m_behavior_iterator;
-
-  std::vector<Behavior *> m_aborts;
-  std::vector<Behavior *>::iterator m_abort_behavior_iterator;
-
-  int mission_status;  // loaded, running, complete, aborted, error
-  double elasped_time;
-
-  std::string m_mission_description;
-
-  std::string current_behavior_name;
-  int current_behavior_id;
-
-  std::string current_abort_behavior_name;
-  int current_abort_behavior_id;
+  static int id_sequence_;
 };
 
-}   //  namespace mission_control
+}  //  namespace mission_control
 
 #endif  //  MISSION_CONTROL_MISSION_H

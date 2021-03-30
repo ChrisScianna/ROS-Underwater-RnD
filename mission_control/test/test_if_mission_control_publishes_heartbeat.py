@@ -1,4 +1,5 @@
-/*********************************************************************
+#!/usr/bin/env python
+"""
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2021, QinetiQ, Inc.
@@ -30,36 +31,51 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *********************************************************************/
+"""
+import sys
+import os
+import unittest
+import rosnode
+import rospy
+import rostest
+from mission_control.msg import ReportHeartbeat
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
 
-#include <payload_manager/PayloadCommand.h>
+def wait_for(predicate, period=1):
+    while not rospy.is_shutdown():
+        result = predicate()
+        if result:
+            return result
+        rospy.sleep(period)
+    return predicate()
 
-#include <string>
 
-namespace mission_control
-{
+class TestMissionControlPublishesHeartbeat(unittest.TestCase):
+    """
+        this test checks if mission control publishes heartbeats.
+    """
 
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
-{
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
-}
+    @classmethod
+    def setUpClass(cls):
+        rospy.init_node('heartbeat_mission_control')
 
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
-  {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
-  }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
+    def setUp(self):
+        self.mission_control_heart_beat_count = None
+        self.heart_beat_sub = rospy.Subscriber('/mission_control_node/report_heartbeat',
+                                               ReportHeartbeat, self.callback_mission_control_heart_beat)
 
-}  // namespace mission_control
+    def callback_mission_control_heart_beat(self, msg):
+        self.mission_control_heart_beat_count = msg.seq_id
+        rospy.loginfo(self.mission_control_heart_beat_count)
+
+    def test_mission_control_published_heartbeat(self):
+
+        def mission_control_publishes_heartbeat():
+            return self.mission_control_heart_beat_count > 0
+        self.assertTrue(wait_for(mission_control_publishes_heartbeat),
+                        msg='Mission control must report HeartBeat')
+
+
+if __name__ == "__main__":
+    rostest.rosrun('mission_control_node', 'mission_control_heartbeat',
+                   TestMissionControlPublishesHeartbeat)

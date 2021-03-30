@@ -37,25 +37,25 @@
 #include "SetMissionCommands.h"
 #include "JausDataManager.h"
 
-#include <mission_manager/AbortMission.h>
-#include <mission_manager/ExecuteMission.h>
-#include <mission_manager/LoadMission.h>
-#include <mission_manager/QueryMissions.h>
-#include <mission_manager/RemoveMissions.h>
+#include <mission_control/AbortMission.h>
+#include <mission_control/ExecuteMission.h>
+#include <mission_control/LoadMission.h>
+#include <mission_control/QueryMissions.h>
+#include <mission_control/RemoveMissions.h>
 
 void SetMissionCommands::init(ros::NodeHandle* nodeHandle) {
   _nodeHandle = nodeHandle;
   // All Set command handlings should be moved to here!
   _publisher_Execute_mission =
-      _nodeHandle->advertise<mission_manager::ExecuteMission>("/mngr/execute_mission", 1, true);
+      _nodeHandle->advertise<mission_control::ExecuteMission>("/mngr/execute_mission", 1, true);
   _publisher_Abort_mission =
-      _nodeHandle->advertise<mission_manager::AbortMission>("/mngr/abort_mission", 1, true);
+      _nodeHandle->advertise<mission_control::AbortMission>("/mngr/abort_mission", 1, true);
   _publisher_Load_mission =
-      _nodeHandle->advertise<mission_manager::LoadMission>("/mngr/load_mission", 1, true);
+      _nodeHandle->advertise<mission_control::LoadMission>("/mngr/load_mission", 1, true);
   _publisher_Query_mission =
-      _nodeHandle->advertise<mission_manager::QueryMissions>("/mngr/query_missions", 1, true);
+      _nodeHandle->advertise<mission_control::QueryMissions>("/mngr/query_missions", 1, true);
   _publisher_Remove_mission =
-      _nodeHandle->advertise<mission_manager::RemoveMissions>("/mngr/remove_missions", 1, true);
+      _nodeHandle->advertise<mission_control::RemoveMissions>("/mngr/remove_missions", 1, true);
 }
 
 void SetMissionCommands::ProcessData(char* message, JausCommandID cmdID) {
@@ -69,21 +69,21 @@ void SetMissionCommands::ProcessData(char* message, JausCommandID cmdID) {
 
   switch (cmdID) {
     case JAUS_COMMAND_ExecuteMission: {
-      mission_manager::ExecuteMission msg;
+      mission_control::ExecuteMission msg;
       msg.mission_id = (int8_t)message[index++];
       _publisher_Execute_mission.publish(msg);
       if (debug_mode) ROS_INFO("Starting mission... Mission ID is %d ", msg.mission_id);
       break;
     }
     case JAUS_COMMAND_AbortMission: {
-      mission_manager::AbortMission msg;
+      mission_control::AbortMission msg;
       msg.mission_id = (int8_t)message[index++];
       _publisher_Abort_mission.publish(msg);
       if (debug_mode) ROS_INFO("Aborting mission... Mission ID is %d ", msg.mission_id);
       break;
     }
     case JAUS_COMMAND_LoadMission: {
-      mission_manager::LoadMission msg;
+      mission_control::LoadMission msg;
       short size = _header->GetDatasize();
       //             ROS_ERROR("size =  %d", size);
 
@@ -96,13 +96,13 @@ void SetMissionCommands::ProcessData(char* message, JausCommandID cmdID) {
       break;
     }
     case JAUS_COMMAND_QueryMissions: {
-      mission_manager::QueryMissions msg;
+      mission_control::QueryMissions msg;
       _publisher_Query_mission.publish(msg);
       if (debug_mode) ROS_INFO("Query mission... ");
       break;
     }
     case JAUS_COMMAND_RemoveMissions: {
-      mission_manager::RemoveMissions msg;
+      mission_control::RemoveMissions msg;
       _publisher_Remove_mission.publish(msg);
       if (debug_mode) ROS_INFO("Remove mission... ");
       break;

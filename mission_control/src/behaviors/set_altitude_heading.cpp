@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,61 +33,51 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/set_altitude_heading.h"
 
-#include "mission_control/AttitudeServo.h"
+#include "mission_control/AltitudeHeading.h"
 
 #include <string>
 
 namespace mission_control
 {
 
-AttitudeServoNode::AttitudeServoNode(const std::string& name,
-                                     const BT::NodeConfiguration& config)
+SetAltitudeHeadingNode::SetAltitudeHeadingNode(
+    const std::string &name, const BT::NodeConfiguration &config)
   : ReactiveActionNode(name, config)
 {
-  attitude_servo_pub_ =
-      nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+  altitude_heading_pub_ =
+      nh_.advertise<mission_control::AltitudeHeading>("/mngr/altitude_heading", 1);
 }
 
-BT::NodeStatus AttitudeServoNode::setUp()
+BT::NodeStatus SetAltitudeHeadingNode::setUp()
 {
   // Update action parameters
   enable_mask_ = 0u;
 
-  if (getInput<double>("roll", target_roll_))
+  if (getInput<double>("altitude", target_altitude_))
   {
-    getInput<double>("roll_tol", roll_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::ROLL_ENA;
+    getInput<double>("altitude_tol", altitude_tolerance_);
+    enable_mask_ |= mission_control::AltitudeHeading::ALTITUDE_ENA;
   }
   else
   {
-    target_roll_ = 0.0;
+    target_altitude_ = 0.0;
   }
 
-  if (getInput<double>("pitch", target_pitch_))
+  if (getInput<double>("heading", target_heading_))
   {
-    getInput<double>("pitch_tol", pitch_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::PITCH_ENA;
+    getInput<double>("heading_tol", heading_tolerance_);
+    enable_mask_ |= mission_control::AltitudeHeading::HEADING_ENA;
   }
   else
   {
-    target_pitch_ = 0.0;
-  }
-
-  if (getInput<double>("yaw", target_yaw_))
-  {
-    getInput<double>("yaw_tol", yaw_tolerance_);
-    enable_mask_ |= mission_control::AttitudeServo::YAW_ENA;
-  }
-  else
-  {
-    target_yaw_ = 0.0;
+    target_heading_ = 0.0;
   }
 
   if (getInput<double>("speed_knots", speed_knots_))
   {
-    enable_mask_ |= mission_control::AttitudeServo::SPEED_KNOTS_ENA;
+    enable_mask_ |= mission_control::AltitudeHeading::SPEED_KNOTS_ENA;
   }
   else
   {
@@ -97,70 +87,56 @@ BT::NodeStatus AttitudeServoNode::setUp()
   // Setup state subscriber
   state_.reset();
   state_sub_ = nh_.subscribe(
-      "/state", 1, &AttitudeServoNode::stateDataCallback, this);
+      "/state", 1, &SetAltitudeHeadingNode::stateDataCallback, this);
 
-  // Publish attitude setpoint
-  mission_control::AttitudeServo msg;
+  // Publish altitude+heading setpoint
+  mission_control::AltitudeHeading msg;
   msg.header.stamp = ros::Time::now();
-  msg.roll = target_roll_;
-  msg.pitch = target_pitch_;
-  msg.yaw = target_yaw_;
+  msg.altitude = target_altitude_;
+  msg.heading = target_heading_;
   msg.speed_knots = speed_knots_;
   msg.ena_mask = enable_mask_;
-  attitude_servo_pub_.publish(msg);
+  altitude_heading_pub_.publish(msg);
 
   return BT::NodeStatus::RUNNING;
 }
 
-BT::NodeStatus AttitudeServoNode::doWork()
+BT::NodeStatus SetAltitudeHeadingNode::doWork()
 {
   if (!state_)
   {
     return BT::NodeStatus::RUNNING;
   }
 
-  if (enable_mask_ & mission_control::AttitudeServo::ROLL_ENA)
+  if (enable_mask_ & mission_control::AltitudeHeading::HEADING_ENA)
   {
-    double current_roll = state_->state.manoeuvring.pose.mean.orientation.x;
+    double current_heading = state_->state.manoeuvring.pose.mean.orientation.z;
 
-    if (std::abs(target_roll_ - current_roll) > roll_tolerance_)
+    if (std::abs(target_heading_ - current_heading) > heading_tolerance_)
     {
       return BT::NodeStatus::RUNNING;
     }
   }
 
-  if (enable_mask_ & mission_control::AttitudeServo::PITCH_ENA)
+  if (enable_mask_ & mission_control::AltitudeHeading::ALTITUDE_ENA)
   {
-    double current_pitch = state_->state.manoeuvring.pose.mean.orientation.y;
+    double current_altitude = state_->state.geolocation.position.altitude;
 
-    if (std::abs(target_pitch_ - current_pitch) > pitch_tolerance_)
+    if (std::abs(target_altitude_ - current_altitude) > altitude_tolerance_)
     {
       return BT::NodeStatus::RUNNING;
     }
   }
-
-  if (enable_mask_ & mission_control::AttitudeServo::YAW_ENA)
-  {
-    double current_yaw = state_->state.manoeuvring.pose.mean.orientation.z;
-
-    if (std::abs(target_yaw_ - current_yaw) > yaw_tolerance_)
-    {
-      return BT::NodeStatus::RUNNING;
-    }
-  }
-
-  // TODO(QNA): check shaft speed and/or battery position?
-  // TODO(QNA): make sure our RPY rates are close to zero?
 
   return BT::NodeStatus::SUCCESS;
 }
 
-void AttitudeServoNode::tearDown()
+void SetAltitudeHeadingNode::tearDown()
 {
   state_sub_.shutdown();
 }
 
-void AttitudeServoNode::stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg)
+void SetAltitudeHeadingNode::stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg)
 {
   state_ = msg;
 }

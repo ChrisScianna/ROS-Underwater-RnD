@@ -56,8 +56,8 @@
 #include "PowerPlantControl.h"
 #include "ReportPowerPlantStatus.h"
 
-#include <mission_manager/AbortMission.h>
-#include <mission_manager/ExecuteMission.h>
+#include <mission_control/AbortMission.h>
+#include <mission_control/ExecuteMission.h>
 
 #include <health_monitor/ClearFault.h>
 

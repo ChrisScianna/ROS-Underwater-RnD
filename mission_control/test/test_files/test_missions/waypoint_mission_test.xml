@@ -1,0 +1,16 @@
+<!-- This file is used for testing  -->
+
+<root main_tree_to_execute="main" >
+  <BehaviorTree ID="main">
+    <Sequence>
+      <Timeout msec="5000">
+        <GoToWaypoint
+            latitude="3.0"
+            longitude="4.0"
+            altitude="2.0"
+            speed_knots="6.0"
+            tolerance_radius="0.1"/>
+      </Timeout>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   auv_interfaces
   fin_control
+  geodesy
   roscpp
   rospy
   roslint
@@ -15,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   thruster_control
   jaus_ros_bridge
   message_generation
-  mission_manager
+  mission_control
 )
 
 add_message_files(
@@ -34,7 +35,7 @@ generate_messages(
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS auv_interfaces fin_control roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_manager
+ CATKIN_DEPENDS auv_interfaces fin_control roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_control
 )
 
 roslint_cpp(

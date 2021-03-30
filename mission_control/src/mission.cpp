@@ -1,8 +1,7 @@
-
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,361 +33,205 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-
 #include "mission_control/mission.h"
-#include "mission_control/behavior.h"
-using mission_control::Mission;
-using mission_control::Behavior;
 
-Mission::Mission() : missionState(MissionState::READY), m_current_behavior(NULL), elasped_time(0.0)
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include "mission_control/behaviors/abort.h"
+#include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/fix_rudder.h"
+#include "mission_control/behaviors/go_to_waypoint.h"
+#include "mission_control/behaviors/payload_command.h"
+#include "mission_control/behaviors/set_altitude_heading.h"
+#include "mission_control/behaviors/set_depth_heading.h"
+
+#include "mission_control/behaviors/introspectable_action.h"
+
+#include <string>
+
+
+namespace mission_control
 {
-  current_abort_behavior_id = 0;
-  current_behavior_id = 0;
+
+namespace
+{
+
+class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
+{
+ public:
+  static MissionBehaviorTreeFactory& instance()
+  {
+    static MissionBehaviorTreeFactory factory;
+    return factory;
+  }
+ private:
+  MissionBehaviorTreeFactory()
+  {
+    // TODO(hidmic): load behavior classes from ROS plugins
+    this->registerNodeType<IntrospectableActionNode<AbortNode>>("Abort");
+    this->registerNodeType<IntrospectableActionNode<AttitudeServoNode>>("AttitudeServo");
+    this->registerNodeType<IntrospectableActionNode<FixRudderNode>>("FixRudder");
+    this->registerNodeType<IntrospectableActionNode<GoToWaypointNode>>("GoToWaypoint");
+    this->registerNodeType<IntrospectableActionNode<PayloadCommandNode>>("PayloadCommand");
+    this->registerNodeType<IntrospectableActionNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
+    this->registerNodeType<IntrospectableActionNode<SetDepthHeadingNode>>("SetDepthHeading");
+  }
+};
+
+}  // namespace
+
+int Mission::id_sequence_ = 0;
+
+Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
+    : main_behavior_tree_(std::move(behavior_tree)),
+      status_(Mission::Status::READY),
+      id_(++id_sequence_)
+{
+  // TODO(hidmic): fetch pitch angle from blackboard
+  static constexpr char text[] = R"(
+<root main_tree_to_execute="Go to the surface" >
+    <BehaviorTree ID="Go to the surface">
+       <Abort name="Command thruster and fins" />
+    </BehaviorTree>
+</root>
+)";
+
+  MissionBehaviorTreeFactory& factory =
+      MissionBehaviorTreeFactory::instance();
+  abort_behavior_tree_ = factory.createTreeFromText(text);
 }
 
-Mission::~Mission()
+namespace filesystem
 {
-  if (m_behaviors.size() > 0)
+
+bool exists(const std::string& path)
+{
+  struct stat tmp;
+  return stat(path.c_str(), &tmp) == 0;
+}
+
+}  // namespace filesystem
+
+std::unique_ptr<Mission> Mission::fromFile(const std::string& path)
+{
+  if (!filesystem::exists(path))
   {
-    for (int x = 0; x < m_behaviors.size(); x++)
-    {
-      delete m_behaviors[x];
-    }
-    m_behaviors.clear();
+    ROS_ERROR_STREAM("Cannot read mission definition from " << path);
+    return nullptr;
   }
 
-  if (m_aborts.size() > 0)
-  {
-    for (int x = 0; x < m_aborts.size(); x++)
-    {
-      delete m_aborts[x];
-    }
-    m_aborts.clear();
-  }
-
-  current_abort_behavior_id = 0;
-  current_behavior_id = 0;
+  MissionBehaviorTreeFactory& factory = MissionBehaviorTreeFactory::instance();
+  return std::unique_ptr<Mission>(new Mission(factory.createTreeFromFile(path)));
 }
 
-void Mission::Stop()
+const std::string& Mission::description() const
 {
-  if (GetState() == MissionState::EXECUTING)
+  return main_behavior_tree_.rootNode()->name();
+}
+
+std::string Mission::active_path() const
+{
+  switch (status_)
   {
-    SetState(MissionState::STOPPED);
-
-    // Wait for the mission processing thread to finish
-    ROS_INFO("Stopping mission processing thread");
-    m_threadProcMission->interrupt();  // wake up thread if sleeping
-    m_threadProcMission->join();
-
-    // Clean up all of the behavior publishers and messages
-    ROS_INFO("Stopping and cleaning up active behaviors");
-    Behavior* cur_behavior = getNextBehavior(true);
-    do
-    {
-      cur_behavior->stopBehavior();
-      cur_behavior = getNextBehavior();
-    }
-    while (cur_behavior != NULL);
-  }
-  else if (GetState() == MissionState::ABORTING)
-  {
-    SetState(MissionState::STOPPED);
-
-    ROS_INFO("Stopping abort mission thread");
-    m_threadAbortMission->interrupt();
-    m_threadAbortMission->join();
-
-    // Clean up all of the behavior publishers and messages
-    ROS_INFO("Stopping and cleaning up active behaviors");
-    Behavior* cur_behavior = getNextAbortBehavior(true);
-    do
-    {
-      cur_behavior->stopBehavior();
-      cur_behavior = getNextAbortBehavior();
-    }
-    while (cur_behavior != NULL);
+    case Mission::Status::EXECUTING:
+      return introspection::getActivePath(main_behavior_tree_);
+    case Mission::Status::ABORTING:
+      return introspection::getActivePath(abort_behavior_tree_);
+    default:
+      return "";
   }
 }
 
-void Mission::addBehavior(Behavior* behavior) { m_behaviors.push_back(behavior); }
-
-Behavior* Mission::getNextBehavior(bool reset)
+bool Mission::active() const
 {
-  static bool firsttime = true;
-  if (reset || (firsttime == true))
+  return (status_ != Mission::Status::READY &&
+          status_ != Mission::Status::PREEMPTED &&
+          status_ != Mission::Status::COMPLETED &&
+          status_ != Mission::Status::ABORTED);
+}
+
+Mission& Mission::start()
+{
+  if (!active())
   {
-    m_behavior_iterator = m_behaviors.begin();
-    firsttime = false;
+    status_ = Mission::Status::PENDING;
   }
+  return *this;
+}
 
-  if (m_behavior_iterator == m_behaviors.end())
+Mission& Mission::resume()
+{
+  switch (status_)
   {
-    return NULL;
-  }
-
-  return *m_behavior_iterator++;
-}
-
-void Mission::addAbortBehavior(Behavior* behavior) { m_aborts.push_back(behavior); }
-
-Behavior* Mission::getNextAbortBehavior(bool reset)
-{
-  static bool abortfirsttime = true;
-  if (reset || (abortfirsttime == true))
-  {
-    m_abort_behavior_iterator = m_aborts.begin();
-    abortfirsttime = false;
-  }
-
-  if (m_abort_behavior_iterator == m_aborts.end())
-  {
-    return NULL;
-  }
-
-  return *m_abort_behavior_iterator++;
-}
-
-void Mission::ProcessCorrectedPoseData(const pose_estimator::CorrectedData& data)
-{
-  if (m_current_behavior == NULL) return;
-
-  if ((GetState() != MissionState::ABORTING) && (GetState() != MissionState::EXECUTING)) return;
-
-  boost::mutex::scoped_lock callback_lock(m_mutCallbacks);
-  if (m_current_behavior->checkCorrectedData(data)) callBackTmr.stop();
-  callback_lock.unlock();
-}
-
-void Mission::SetState(MissionState state)
-{
-  boost::mutex::scoped_lock run_lock(m_MissionStateLock);
-  missionState = state;
-  run_lock.unlock();
-}
-
-Mission::MissionState Mission::GetState()
-{
-  MissionState temp;
-
-  boost::mutex::scoped_lock run_lock(m_MissionStateLock);
-  temp = missionState;
-  run_lock.unlock();
-
-  return temp;
-}
-
-void Mission::AbortMissionWrapper(ros::NodeHandle nh)
-{
-  node_handle = nh;
-
-  AbortMission();
-}
-
-void Mission::ExecuteMission(ros::NodeHandle nh)
-{
-  if ((GetState() == MissionState::EXECUTING) || (GetState() == MissionState::ABORTING))
-  {
-    ROS_WARN("Mission is already executing or aborting");
-    return;
-  }
-
-  SetState(MissionState::EXECUTING);
-  node_handle = nh;
-  // Start the mission processing thread
-  m_threadProcMission = boost::shared_ptr<boost::thread>(
-      new boost::thread(boost::bind(&Mission::processMission, this)));
-}
-
-void Mission::processMission()
-{
-  ROS_INFO("Processing mission");
-
-  SetState(MissionState::EXECUTING);
-
-  current_behavior_id = 0;
-  current_behavior_name = "";
-
-  bool firsttime = true;
-
-  try
-  {
-    while (1)
-    {
-      ROS_INFO("Mission Execution Loop");
-
-      if (GetState() != MissionState::EXECUTING) break;
-
-      // cancel the previous behaviors abort timer
-      if (callBackTmr.isValid()) callBackTmr.stop();
-
-      // Get the next runtime behavior
-      boost::mutex::scoped_lock lock(m_mutCallbacks);
-      m_current_behavior = getNextBehavior(firsttime);
-      lock.unlock();
-      firsttime = false;
-
-      if (m_current_behavior == NULL)
+    case Mission::Status::PENDING:
+    case Mission::Status::EXECUTING:
+      switch (main_behavior_tree_.tickRoot())
       {
-        ROS_INFO("Mission Complete - no more behaviors");
-        SetState(MissionState::COMPLETE);
-        break;  // no more behaviors
-      }
-
-      current_behavior_id++;
-      current_behavior_name = m_current_behavior->getXmlTag();
-
-      ROS_INFO("Starting behavior [%s]", m_current_behavior->getXmlTag());
-      m_current_behavior->startBehavior();
-
-      // Sleep until we need to execute the behavior
-      int success = 0;
-      try
-      {
-        success = m_current_behavior->WaitForExecutionTimeSlot();
-      }
-      catch (boost::thread_interrupted)
-      {
-        break;
-      }
-
-      if (success == -1)
-      {
-        ROS_WARN("Aborting mission - WaitForExecutionTimeSlot failed");
-        AbortMission();
-        break;
-      }
-
-      if (true == m_current_behavior->getTimeoutEna())
-      {
-        int behaviorTime = m_current_behavior->computeExecutionTimeForBehavior();
-        if (behaviorTime == -1)
-        {
-          ROS_WARN("Aborting mission - computeExecutionTimeForBehavior failed");
-          AbortMission();
+        case BT::NodeStatus::RUNNING:
+          status_ = Mission::Status::EXECUTING;
           break;
-        }
-
-        ROS_INFO("registering abort callback in %d seconds", behaviorTime);
-        callBackTmr = node_handle.createTimer(ros::Duration(behaviorTime),
-                                              boost::bind(&Mission::AbortMission, this), true);
-        // t.start();
-        callBackTmr.start();
+        case BT::NodeStatus::SUCCESS:
+          status_ = Mission::Status::COMPLETED;
+          break;
+        case BT::NodeStatus::FAILURE:
+          status_ = Mission::Status::ABORTING;
+          break;
       }
-
-      m_current_behavior->ExecuteBehavior(node_handle);
-
-      unsigned int loop_delay_usec = 1000;
-      float time_elapsed = 0;
-      while ((GetState() == MissionState::EXECUTING) && (!m_current_behavior->getBehaviorDone()))
+      break;
+    case Mission::Status::ABORTING:
+      switch (abort_behavior_tree_.tickRoot())
       {
-        usleep(loop_delay_usec);
-        int behaviorDuration = m_current_behavior->getBehaviorDuration();
-        if (behaviorDuration == 0.0) break;
-        if (behaviorDuration > 0.0)
-        {
-          time_elapsed += loop_delay_usec / 1000000.0;  // add seconds passed
-          if (time_elapsed >= behaviorDuration) break;
-        }
+        case BT::NodeStatus::RUNNING:
+          status_ = Mission::Status::ABORTING;
+          break;
+        case BT::NodeStatus::SUCCESS:
+        case BT::NodeStatus::FAILURE:
+          status_ = Mission::Status::ABORTED;
+          break;
       }
-    }
+      break;
+    default:
+      break;
   }
-  catch (...)
-  {
-    ROS_WARN("Mission Execution failed because of an execption");
-    AbortMission();
-  }
-
-  ROS_INFO("Leaving ProcessMission");
+  return *this;
 }
 
-void Mission::AbortMission()
+Mission& Mission::preempt()
 {
-  if ((GetState() == MissionState::ABORTING) || (GetState() == MissionState::COMPLETE)) return;
-
-  ROS_WARN("Aborting mission");
-  SetState(MissionState::ABORTING);
-
-  m_threadAbortMission = boost::shared_ptr<boost::thread>(
-      new boost::thread(boost::bind(&Mission::processAbort, this)));
+  switch (status_)
+  {
+    case Mission::Status::PENDING:
+      status_ = Mission::Status::PREEMPTED;
+      break;
+    case Mission::Status::EXECUTING:
+      status_ = Mission::Status::PREEMPTED;
+      main_behavior_tree_.haltTree();
+      break;
+    case Mission::Status::ABORTING:
+      status_ = Mission::Status::PREEMPTED;
+      abort_behavior_tree_.haltTree();
+    default:
+      break;
+  }
+  return *this;
 }
 
-void Mission::processAbort()
+Mission& Mission::abort()
 {
-  m_threadProcMission->interrupt();
-  m_threadProcMission->join();
-
-  current_abort_behavior_id = 0;
-  current_abort_behavior_name = "";
-
-  bool abortfirsttime = true;
-
-  try
+  switch (status_)
   {
-    while (1)
-    {
-      // Get the next abort behavior
-      boost::mutex::scoped_lock lock(m_mutCallbacks);
-      m_current_behavior = getNextAbortBehavior(abortfirsttime);
-      lock.unlock();
-      abortfirsttime = false;
-
-      if (m_current_behavior == NULL)
-      {
-        SetState(MissionState::COMPLETE);
-        ROS_INFO("Done with abort behaviors");
-        break;  // no more behaviors
-      }
-
-      current_abort_behavior_id++;
-      current_abort_behavior_name = m_current_behavior->getXmlTag();
-
-      ROS_INFO("Starting behavior [%s]", m_current_behavior->getXmlTag());
-      m_current_behavior->startBehavior();
-
-      // Sleep until we need to execute the behavior
-      int success = 0;
-      try
-      {
-        success = m_current_behavior->WaitForExecutionTimeSlot();
-      }
-      catch (boost::thread_interrupted)
-      {
-        break;
-      }
-
-      if (success == -1)
-      {
-        continue;  // go on to the next abort behavior
-      }
-
-      int behaviorTime = m_current_behavior->computeExecutionTimeForBehavior();
-      if (behaviorTime == -1)
-      {
-        continue;  // go on to the next abort behavior
-      }
-
-      m_current_behavior->ExecuteBehavior(node_handle);
-
-      unsigned int loop_delay_usec = 1000;
-      float time_elapsed = 0;
-      while (!m_current_behavior->getBehaviorDone())
-      {
-        usleep(loop_delay_usec);
-        int behaviorDuration = m_current_behavior->getBehaviorDuration();
-        if (behaviorDuration == 0.0) break;
-        if (behaviorDuration > 0.0)
-        {
-          time_elapsed += loop_delay_usec / 1000000.0;  // add seconds passed
-          if (time_elapsed >= behaviorDuration) break;
-        }
-      }
-    }
+    case Mission::Status::PENDING:
+      status_ = Mission::Status::ABORTED;
+      break;
+    case Mission::Status::EXECUTING:
+      status_ = Mission::Status::ABORTING;
+      main_behavior_tree_.haltTree();
+      break;
+    default:
+      break;
   }
-  catch (...)
-  {
-    ROS_WARN("Mission Abort Execution failed because of an execption");
-  }
-
-  ROS_INFO("LEaving processAbort");
+  return *this;
 }
+
+}  // namespace mission_control

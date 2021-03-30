@@ -1,0 +1,44 @@
+<launch>
+  <param name="fin_control/max_ctrl_fin_angle" type="double" value="-0.3490658503988659" />
+
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+  <!--
+      These test verifyes the behaviors/actions:
+        -   FixRudder
+        -   SetDepthHeading
+        -   AttitudeServo
+        -   SetAltitudeHeading
+        -   GoToWaypoint
+  -->
+
+  <test test-name="test_fix_rudder_action" pkg="mission_control" type="test_fix_rudder_action.py" time-limit="10.0" />
+  <test test-name="test_attitude_servo_action" pkg="mission_control" type="test_attitude_servo_action.py" time-limit="10.0" />
+  <test test-name="test_set_depth_heading_action" pkg="mission_control" type="test_set_depth_heading_action.py" time-limit="10.0" />
+  <test test-name="test_set_altitude_heading_action" pkg="mission_control" type="test_set_altitude_heading_action.py" time-limit="10.0" />
+  <test test-name="test_go_to_waypoint_action" pkg="mission_control" type="test_go_to_waypoint_action.py" time-limit="10.0" />
+
+  <!--
+      Test if behaviors return Failure state after time out. 
+      The mission control must set fins to surface and Thruster velocity to 0 RPM.
+      The argument passed to the test is
+            - Mission filename to load and execute.
+  -->
+  
+  <test test-name="test_if_mission_control_aborts_when_attitude_servo_behavior_returns_time_out_failure" 
+        pkg="mission_control" type="test_if_mission_control_aborts_when_behavior_returns_time_out_failure.py" 
+        time-limit="10.0" args="attitude_servo_mission_test.xml"/>
+
+  <test test-name="test_if_mission_control_aborts_when_depth_heading_behavior_returns_time_out_failure" 
+        pkg="mission_control" type="test_if_mission_control_aborts_when_behavior_returns_time_out_failure.py" 
+        time-limit="10.0" args="depth_heading_mission_test.xml"/>
+
+  <test test-name="test_if_mission_control_aborts_when_altitude_heading_behavior_returns_time_out_failure" 
+        pkg="mission_control" type="test_if_mission_control_aborts_when_behavior_returns_time_out_failure.py" 
+        time-limit="10.0" args="altitude_heading_mission_test.xml"/>
+
+  <test test-name="test_if_mission_control_aborts_when_go_to_waypoint_behavior_returns_time_out_failure" 
+        pkg="mission_control" type="test_if_mission_control_aborts_when_behavior_returns_time_out_failure.py" 
+        time-limit="10.0" args="waypoint_mission_test.xml"/>
+
+</launch>
+

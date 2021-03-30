@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2020, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,33 +33,28 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
 
-#include <payload_manager/PayloadCommand.h>
+/*
+ * mission_control_main.cpp
+ */
 
-#include <string>
+#include <ros/ros.h>
 
-namespace mission_control
+#include "mission_control/mission_control.h"
+
+int main(int argc, char** argv)
 {
+  ros::init(argc, argv, "mission_control_node");
 
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
-{
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
+  ros::NodeHandle nh;
+  ROS_INFO("Starting mission control version: [%s]", NODE_VERSION);
+  nh.setParam("/version_numbers/mission_control_node", NODE_VERSION);
+
+  mission_control::MissionControlNode node;
+
+  node.spin();
+
+  ROS_INFO("Shutting down mission control");
+
+  return 0;
 }
-
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
-  {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
-  }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
-
-}  // namespace mission_control

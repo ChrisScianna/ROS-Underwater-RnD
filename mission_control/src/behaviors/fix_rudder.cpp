@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2020, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,32 +33,52 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
+#include "mission_control/behaviors/fix_rudder.h"
 
-#include <payload_manager/PayloadCommand.h>
+#include "mission_control/FixedRudder.h"
 
 #include <string>
 
 namespace mission_control
 {
 
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
+FixRudderNode::FixRudderNode(const std::string& name, const BT::NodeConfiguration& config)
   : BT::SyncActionNode(name, config)
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
+  fixedRudderBehaviorPub_ =
+      nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
 }
 
-BT::NodeStatus PayloadCommandNode::tick()
+BT::NodeStatus FixRudderNode::tick()
 {
-  payload_manager::PayloadCommand msg;
+  mission_control::FixedRudder msg;
   msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
+
+  msg.ena_mask = 0u;
+
+  double depth;
+  if (getInput<double>("depth", depth))
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
+    msg.ena_mask |= mission_control::FixedRudder::DEPTH_ENA;
+    msg.depth = depth;
   }
-  payloadCommandPub_.publish(msg);
+
+  double rudder;
+  if (getInput<double>("rudder", rudder))
+  {
+    msg.ena_mask |= mission_control::FixedRudder::RUDDER_ENA;
+    msg.rudder = rudder;
+  }
+
+  double speed_knots;
+  if (getInput<double>("speed_knots", speed_knots))
+  {
+    msg.ena_mask |= mission_control::FixedRudder::SPEED_KNOTS_ENA;
+    msg.speed_knots = speed_knots;
+  }
+
+  fixedRudderBehaviorPub_.publish(msg);
+
   return BT::NodeStatus::SUCCESS;
 }
 

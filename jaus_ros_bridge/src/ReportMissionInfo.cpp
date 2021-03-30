@@ -52,7 +52,7 @@ void ReportMissionInfo::init(ros::NodeHandle* nodeHandle, udpserver* udp) {
 }
 
 void ReportMissionInfo::handleReportMissionStateData(
-    const mission_manager::ReportExecuteMissionState::ConstPtr& msg) {
+    const mission_control::ReportExecuteMissionState::ConstPtr& msg) {
   if (!_udpserver->IsConnected()) return;
 
   MissionState missionState;
@@ -71,7 +71,7 @@ void ReportMissionInfo::handleReportMissionStateData(
 }
 
 void ReportMissionInfo::handleReportUploadData(
-    const mission_manager::ReportLoadMissionState::ConstPtr& msg) {
+    const mission_control::ReportLoadMissionState::ConstPtr& msg) {
   if (!_udpserver->IsConnected()) return;
 
   UploadState uploadState;
@@ -91,10 +91,10 @@ void ReportMissionInfo::handleReportUploadData(
   delete[] info._data;
 }
 
-void ReportMissionInfo::handleReportMissions(const mission_manager::ReportMissions& msg) {
+void ReportMissionInfo::handleReportMissions(const mission_control::ReportMissions& msg) {
   // ROS_INFO("handleReportMissions()... msg.missions.size() = %ld", msg.missions.size());
   for (int i = 0; i < msg.missions.size(); ++i) {
-    const mission_manager::MissionData& mdata = msg.missions[i];
+    const mission_control::MissionData& mdata = msg.missions[i];
     if (debug_mode)
       ROS_INFO("Inside handleReportMissions() - Mission Id:[%d] Description:[%s]", mdata.mission_id,
                mdata.mission_description.c_str());

@@ -32,34 +32,30 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
+#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H
+#define MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H
 
-#include <payload_manager/PayloadCommand.h>
+#include <behaviortree_cpp_v3/blackboard.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
 
 #include <string>
 
 namespace mission_control
 {
-
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+namespace introspection
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
-}
 
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
-  {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
-  }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
+void setActivePath(BT::Blackboard* bb, const std::string& path);
 
+bool getActivePath(const BT::Blackboard* bb, std::string& path);
+
+std::string getActivePath(const BT::Blackboard* bb);
+
+std::string getActivePath(const BT::Tree& tree);
+
+std::string extendActivePath(BT::Blackboard* bb, const std::string& node);
+
+}  // namespace introspection
 }  // namespace mission_control
+
+#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTION_H

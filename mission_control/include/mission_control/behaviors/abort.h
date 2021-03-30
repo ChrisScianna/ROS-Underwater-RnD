@@ -33,33 +33,53 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
 
-#include <payload_manager/PayloadCommand.h>
+#ifndef MISSION_CONTROL_BEHAVIORS_ABORT_H
+#define MISSION_CONTROL_BEHAVIORS_ABORT_H
+
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <ros/ros.h>
 
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
+
+#include "mission_control/behaviors/reactive_action.h"
+
 namespace mission_control
 {
-
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+class AbortNode : public ReactiveActionNode
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
-}
+public:
+  AbortNode(const std::string& name, const BT::NodeConfiguration& config);
 
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
-  {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
-  }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
+  static BT::PortsList providedPorts() { return {}; }
 
-}  // namespace mission_control
+private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
+
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
+
+  ros::NodeHandle nh_;
+  ros::Publisher attitude_servo_pub_;
+  ros::Subscriber state_sub_;
+
+  auv_interfaces::StateStamped::ConstPtr state_;
+
+  // fins are set to surface and Thruster velocity is 0
+  double roll_{0.0};
+  double pitch_;
+  double yaw_{0.0};
+  double speed_knots_{0.0};
+  double roll_tolerance_{0.1};
+  double pitch_tolerance_{0.1};
+  double yaw_tolerance_{0.1};
+  double speed_tolerance_{0.1};
+};
+
+}  //  namespace mission_control
+
+#endif  //  MISSION_CONTROL_BEHAVIORS_ABORT_H

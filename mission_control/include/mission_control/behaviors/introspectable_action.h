@@ -32,34 +32,51 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
+#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
+#define MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
 
-#include <payload_manager/PayloadCommand.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <behaviortree_cpp_v3/bt_factory.h>
+#include <ros/ros.h>
 
 #include <string>
+
+#include "mission_control/behaviors/introspection.h"
+
 
 namespace mission_control
 {
 
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+template<class BaseActionT>
+class IntrospectableActionNode : public BaseActionT
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
-}
+public:
+  using BaseActionT::BaseActionT;
 
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
+  BT::NodeStatus tick() override
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
+    if (BT::NodeStatus::IDLE == this->status())
+    {
+      // TODO(hidmic): find a better way to access the blackboard
+      parent_path_ = introspection::extendActivePath(
+          this->config().blackboard.get(), this->name());
+    }
+
+    BT::NodeStatus current_status = BaseActionT::tick();
+
+    if (BT::NodeStatus::RUNNING != current_status)
+    {
+      // TODO(hidmic): find a better way to access the blackboard
+      introspection::setActivePath(
+          this->config().blackboard.get(), parent_path_);
+    }
+    return current_status;
   }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
+
+private:
+  std::string parent_path_{};
+};
 
 }  // namespace mission_control
+
+#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
