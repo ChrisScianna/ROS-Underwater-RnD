@@ -90,10 +90,6 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             StateStamped,
             queue_size=1)
 
-        self.simulated_thruster_velocity_pub = rospy.Publisher(
-            '/thruster_control/report_rpm',
-            ReportRPM, queue_size=1)
-
     def attitude_servo_callback(self, msg):
         self.attitude_servo_aborting_goal = msg
 
@@ -134,18 +130,17 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         msg.state.manoeuvring.pose.mean.orientation.x = 0.0
         msg.state.manoeuvring.pose.mean.orientation.y = maxCtrlFinAngle
         msg.state.manoeuvring.pose.mean.orientation.z = 0.0
+        msg.state.manoeuvring.velocity.mean.linear.x = 0.0
+        msg.state.manoeuvring.velocity.mean.linear.y = 0.0
+        msg.state.manoeuvring.velocity.mean.linear.z = 0.0
         self.simulated_auv_interface_data_pub.publish(msg)
 
-        thruster_velocity = ReportRPM()
-        thruster_velocity.rpms = 0
-        self.simulated_thruster_velocity_pub.publish(thruster_velocity)
-
         def complete_mission_status_is_reported():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return ReportExecuteMissionState.COMPLETE == self.mission.execute_mission_state[-1]
         self.assertTrue(wait_for(complete_mission_status_is_reported),
                         msg='Mission control must report COMPLETE')
 
 
 if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_aborts_when_health_monitor_reports_fault',
+    rostest.rosrun('mission_control', 'test_mission_control_aborts_when_health_monitor_reports_fault',
                    TestMissionControlAbortsWhenHealthMonitorReportsFault)

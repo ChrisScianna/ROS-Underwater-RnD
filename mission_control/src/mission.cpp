@@ -38,14 +38,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "mission_control/behaviors/waypoint.h"
-#include "mission_control/behaviors/fixed_rudder.h"
-#include "mission_control/behaviors/depth_heading.h"
-#include "mission_control/behaviors/attitude_servo.h"
-#include "mission_control/behaviors/altitude_heading.h"
-#include "mission_control/behaviors/payload_command.h"
 #include "mission_control/behaviors/abort.h"
+#include "mission_control/behaviors/attitude_servo.h"
+#include "mission_control/behaviors/fix_rudder.h"
+#include "mission_control/behaviors/go_to_waypoint.h"
+#include "mission_control/behaviors/payload_command.h"
+#include "mission_control/behaviors/set_altitude_heading.h"
+#include "mission_control/behaviors/set_depth_heading.h"
 
+#include "mission_control/behaviors/introspectable_action.h"
 
 #include <string>
 
@@ -68,13 +69,13 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
   MissionBehaviorTreeFactory()
   {
     // TODO(hidmic): load behavior classes from ROS plugins
-    this->registerNodeType<mission_control::GoToWaypoint>("GoToWaypoint");
-    this->registerNodeType<mission_control::MoveWithFixedRudder>("MoveWithFixedRudder");
-    this->registerNodeType<mission_control::DepthHeadingBehavior>("DepthHeadingBehavior");
-    this->registerNodeType<mission_control::AttitudeServoBehavior>("AttitudeServoBehavior");
-    this->registerNodeType<mission_control::AltitudeHeadingBehavior>("AltitudeHeadingBehavior");
-    this->registerNodeType<mission_control::PayloadCommandBehavior>("PayloadCommandBehavior");
-    this->registerNodeType<mission_control::Abort>("Abort");
+    this->registerNodeType<IntrospectableActionNode<AbortNode>>("Abort");
+    this->registerNodeType<IntrospectableActionNode<AttitudeServoNode>>("AttitudeServo");
+    this->registerNodeType<IntrospectableActionNode<FixRudderNode>>("FixRudder");
+    this->registerNodeType<IntrospectableActionNode<GoToWaypointNode>>("GoToWaypoint");
+    this->registerNodeType<IntrospectableActionNode<PayloadCommandNode>>("PayloadCommand");
+    this->registerNodeType<IntrospectableActionNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
+    this->registerNodeType<IntrospectableActionNode<SetDepthHeadingNode>>("SetDepthHeading");
   }
 };
 
@@ -127,6 +128,19 @@ std::unique_ptr<Mission> Mission::fromFile(const std::string& path)
 const std::string& Mission::description() const
 {
   return main_behavior_tree_.rootNode()->name();
+}
+
+std::string Mission::active_path() const
+{
+  switch (status_)
+  {
+    case Mission::Status::EXECUTING:
+      return introspection::getActivePath(main_behavior_tree_);
+    case Mission::Status::ABORTING:
+      return introspection::getActivePath(abort_behavior_tree_);
+    default:
+      return "";
+  }
 }
 
 bool Mission::active() const

@@ -32,51 +32,54 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef MISSION_CONTROL_BEHAVIOR_H
-#define MISSION_CONTROL_BEHAVIOR_H
+// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include "mission_control/behaviors/fix_rudder.h"
 
-#include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
-#include <ros/ros.h>
+#include "mission_control/FixedRudder.h"
 
 #include <string>
 
 namespace mission_control
 {
-class Behavior : public BT::ActionNodeBase
+
+FixRudderNode::FixRudderNode(const std::string& name, const BT::NodeConfiguration& config)
+  : BT::SyncActionNode(name, config)
 {
- public:
-  Behavior(const std::string& name, const BT::NodeConfiguration& config)
-      : BT::ActionNodeBase(name, config)
+  fixedRudderBehaviorPub_ =
+      nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
+}
+
+BT::NodeStatus FixRudderNode::tick()
+{
+  mission_control::FixedRudder msg;
+  msg.header.stamp = ros::Time::now();
+
+  msg.ena_mask = 0u;
+
+  double depth;
+  if (getInput<double>("depth", depth))
   {
+    msg.ena_mask |= mission_control::FixedRudder::DEPTH_ENA;
+    msg.depth = depth;
   }
 
-  ~Behavior() {}
-
-  // You must override the virtual function tick()
-  BT::NodeStatus tick() override
+  double rudder;
+  if (getInput<double>("rudder", rudder))
   {
-    switch (status())
-    {
-      case BT::NodeStatus::IDLE:
-        setStatus(BT::NodeStatus::RUNNING);
-        break;
-      case BT::NodeStatus::RUNNING:
-        setStatus(behaviorRunningProcess());
-        break;
-      default:
-        throw std::logic_error("Unexpected state in ::tick()");
-        break;
-    }
-    return status();
+    msg.ena_mask |= mission_control::FixedRudder::RUDDER_ENA;
+    msg.rudder = rudder;
   }
-  void halt() override { setStatus(BT::NodeStatus::IDLE); }
 
-  /// Method (to be implemented by the user) to implement the function when the satus is RUNNING
-  /// User should return the NodeStatus of the action (RUNNING, SUCCESS or FAILURE).
-  virtual BT::NodeStatus behaviorRunningProcess() = 0;
-};
+  double speed_knots;
+  if (getInput<double>("speed_knots", speed_knots))
+  {
+    msg.ena_mask |= mission_control::FixedRudder::SPEED_KNOTS_ENA;
+    msg.speed_knots = speed_knots;
+  }
 
-}  //  namespace mission_control
+  fixedRudderBehaviorPub_.publish(msg);
 
-#endif  //  MISSION_CONTROL_BEHAVIOR_H
+  return BT::NodeStatus::SUCCESS;
+}
+
+}  // namespace mission_control

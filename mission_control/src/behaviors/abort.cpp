@@ -35,90 +35,77 @@
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
 #include "mission_control/behaviors/abort.h"
 
+#include "mission_control/AttitudeServo.h"
+
 #include <string>
 
-using mission_control::Abort;
-
-Abort::Abort(const std::string& name) : BT::ActionNodeBase(name, {})
+namespace mission_control
 {
-  attitudeServoBehaviorPub_ =
-      nodeHandle_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
-  
-  nodeHandle_.param<double>("/fin_control/max_ctrl_fin_angle", pitch_, 0.3490658503988659);
 
+AbortNode::AbortNode(const std::string& name, const BT::NodeConfiguration& config)
+  : ReactiveActionNode(name, config)
+{
+  attitude_servo_pub_ =
+      nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+
+  nh_.param<double>("/fin_control/max_ctrl_fin_angle", pitch_, 0.3490658503988659);
 }
 
-BT::NodeStatus Abort::tick()
+BT::NodeStatus AbortNode::setUp()
 {
-  BT::NodeStatus current_status = status();
+  state_.reset();
+  state_sub_ =
+    nh_.subscribe("/state", 1, &AbortNode::stateDataCallback, this);
 
-  switch (current_status)
-  {
-    case BT::NodeStatus::IDLE:
-      subStateData_ = nodeHandle_.subscribe("/state", 1, &Abort::stateDataCallback, this);
-
-      subThrusterRPM_ = nodeHandle_.subscribe("/thruster_control/report_rpm", 1,
-                                              &Abort::thrusterRPMCallback, this);
-      stateUpToDate_ = false;
-      velocityUpToDate_ = false;
-      publishAbortMsg();
-      current_status = BT::NodeStatus::RUNNING;
-      break;
-    case BT::NodeStatus::RUNNING:
-      if (stateUpToDate_ && velocityUpToDate_)
-      {
-        double roll = stateData_.state.manoeuvring.pose.mean.orientation.x;
-        double pitch = stateData_.state.manoeuvring.pose.mean.orientation.y;
-        double yaw = stateData_.state.manoeuvring.pose.mean.orientation.z;
-
-        if ((abs(roll_ - roll) < rollTolerance_) && (abs(pitch_ - pitch) < pitchTolerance_) &&
-            (abs(yaw_ - yaw) < yawTolerance_) && (velocityData_.rpms <= speedKnots_))
-        {
-          current_status = BT::NodeStatus::SUCCESS;
-        }
-      }
-      break;
-    default:
-      break;
-  }
-  return current_status;
-}
-
-void Abort::halt()
-{
-  if (status() == BT::NodeStatus::RUNNING)
-  {
-    subStateData_.shutdown();
-    subThrusterRPM_.shutdown();
-  }
-  setStatus(BT::NodeStatus::IDLE);
-}
-
-void Abort::publishAbortMsg()
-{
-  AttitudeServo msg;
-
+  mission_control::AttitudeServo msg;
+  msg.header.stamp = ros::Time::now();
   msg.roll = roll_;
   msg.pitch = pitch_;
   msg.yaw = yaw_;
-  msg.speed_knots = speedKnots_;
-  msg.ena_mask = AttitudeServo::ROLL_ENA | AttitudeServo::PITCH_ENA | AttitudeServo::YAW_ENA |
-                 AttitudeServo::SPEED_KNOTS_ENA;
-  msg.header.stamp = ros::Time::now();
-  attitudeServoBehaviorPub_.publish(msg);
+  msg.speed_knots = speed_knots_;
+  msg.ena_mask =
+    mission_control::AttitudeServo::ROLL_ENA |
+    mission_control::AttitudeServo::PITCH_ENA |
+    mission_control::AttitudeServo::YAW_ENA |
+    mission_control::AttitudeServo::SPEED_KNOTS_ENA;
+  attitude_servo_pub_.publish(msg);
+
+  return BT::NodeStatus::RUNNING;
 }
 
-void Abort::stateDataCallback(const auv_interfaces::StateStamped& data)
+BT::NodeStatus AbortNode::doWork()
 {
-  // TODO(aschapiro): This ignores angle wraparound and the fact that you can represent the same
-  // rotation with different RPY triplets
+  if (state_)
+  {
+    double roll = state_->state.manoeuvring.pose.mean.orientation.x;
+    double pitch = state_->state.manoeuvring.pose.mean.orientation.y;
+    double yaw = state_->state.manoeuvring.pose.mean.orientation.z;
+    double speed =
+      std::sqrt(std::pow(state_->state.manoeuvring.velocity.mean.linear.x, 2) +
+                std::pow(state_->state.manoeuvring.velocity.mean.linear.y, 2) +
+                std::pow(state_->state.manoeuvring.velocity.mean.linear.z, 2));
 
-  stateUpToDate_ = true;
-  stateData_ = data;
+    // NOTE(aschapiro): This ignores angle wraparound and the fact that
+    // you can represent the same rotation with different RPY triplets
+    if ((std::abs(roll_ - roll) < roll_tolerance_) &&
+        (std::abs(pitch_ - pitch) < pitch_tolerance_) &&
+        (std::abs(yaw_ - yaw) < yaw_tolerance_) &&
+        (speed < speed_tolerance_))
+    {
+      return BT::NodeStatus::SUCCESS;
+    }
+  }
+  return BT::NodeStatus::RUNNING;
 }
 
-void Abort::thrusterRPMCallback(const thruster_control::ReportRPM& data)
+void AbortNode::tearDown()
 {
-  velocityUpToDate_ = true;
-  velocityData_ = data;
+  state_sub_.shutdown();
 }
+
+void AbortNode::stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg)
+{
+  state_ = msg;
+}
+
+}  // namespace mission_control

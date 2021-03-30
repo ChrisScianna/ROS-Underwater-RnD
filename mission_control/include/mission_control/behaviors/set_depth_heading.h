@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2020, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,33 +33,56 @@
  *********************************************************************/
 
 // Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
-#include "mission_control/behaviors/payload_command.h"
 
-#include <payload_manager/PayloadCommand.h>
+#ifndef MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H
+#define MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H
+
+#include <behaviortree_cpp_v3/basic_types.h>
+#include <behaviortree_cpp_v3/behavior_tree.h>
+#include <ros/ros.h>
 
 #include <string>
 
+#include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/reactive_action.h"
+
 namespace mission_control
 {
-
-PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+class SetDepthHeadingNode : public ReactiveActionNode
 {
-  payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
-}
+ public:
+  SetDepthHeadingNode(const std::string &name, const BT::NodeConfiguration &config);
 
-BT::NodeStatus PayloadCommandNode::tick()
-{
-  payload_manager::PayloadCommand msg;
-  msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
+  static BT::PortsList providedPorts()
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
-    return BT::NodeStatus::FAILURE;
+    return {BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),  //  NOLINT
+            BT::InputPort<double>("heading", "Heading (or yaw) to reach, in radians"),
+            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+            BT::InputPort<double>("depth_tol", 0.0, "Tolerance for depth goal, in meters"),
+            BT::InputPort<double>("heading_tol", 0.0, "Tolerance for heading goal, in radians")};
   }
-  payloadCommandPub_.publish(msg);
-  return BT::NodeStatus::SUCCESS;
-}
 
-}  // namespace mission_control
+ private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
+
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
+
+  ros::NodeHandle nh_;
+  ros::Publisher depth_heading_pub_;
+  ros::Subscriber state_sub_;
+
+  double target_depth_;
+  double depth_tolerance_;
+  double target_heading_;
+  double heading_tolerance_;
+  double speed_knots_;
+  uint8_t enable_mask_;
+
+  auv_interfaces::StateStamped::ConstPtr state_;
+};
+
+}  //  namespace mission_control
+
+#endif  //  MISSION_CONTROL_BEHAVIORS_SET_DEPTH_HEADING_H

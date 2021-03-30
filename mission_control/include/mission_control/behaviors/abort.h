@@ -39,52 +39,47 @@
 
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/behavior_tree.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
 #include <ros/ros.h>
 
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
-#include "mission_control/AttitudeServo.h"
-#include "thruster_control/ReportRPM.h"
+
+#include "mission_control/behaviors/reactive_action.h"
 
 namespace mission_control
 {
-class Abort : public BT::ActionNodeBase
+class AbortNode : public ReactiveActionNode
 {
- public:
-  Abort(const std::string& name);
+public:
+  AbortNode(const std::string& name, const BT::NodeConfiguration& config);
 
-  BT::NodeStatus tick() override;
+  static BT::PortsList providedPorts() { return {}; }
 
-  void halt() override;
+private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
 
- private:
-  void stateDataCallback(const auv_interfaces::StateStamped& data);
-  void thrusterRPMCallback(const thruster_control::ReportRPM& data);
-  void publishAbortMsg();
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
 
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher attitudeServoBehaviorPub_;
-  ros::Subscriber subStateData_;
-  ros::Subscriber subThrusterRPM_;
+  ros::NodeHandle nh_;
+  ros::Publisher attitude_servo_pub_;
+  ros::Subscriber state_sub_;
 
-  auv_interfaces::StateStamped stateData_;
-  thruster_control::ReportRPM velocityData_;
+  auv_interfaces::StateStamped::ConstPtr state_;
 
   // fins are set to surface and Thruster velocity is 0
   double roll_{0.0};
   double pitch_;
   double yaw_{0.0};
-  double speedKnots_{0.0};
-  double rollTolerance_{0.1};
-  double pitchTolerance_{0.1};
-  double yawTolerance_{0.1};
-
-  bool stateUpToDate_{false};
-  bool velocityUpToDate_{false};
+  double speed_knots_{0.0};
+  double roll_tolerance_{0.1};
+  double pitch_tolerance_{0.1};
+  double yaw_tolerance_{0.1};
+  double speed_tolerance_{0.1};
 };
 
 }  //  namespace mission_control
 
-#endif  //  MISSION_CONTROL_BEHAVIORS_ABORT_BEHAVIOR_H
+#endif  //  MISSION_CONTROL_BEHAVIORS_ABORT_H

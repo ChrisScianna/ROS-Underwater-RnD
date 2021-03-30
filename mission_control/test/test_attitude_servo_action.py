@@ -40,76 +40,81 @@ import rosnode
 import rospy
 import rostest
 from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import DepthHeading
+from mission_control.msg import AttitudeServo
 from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
 
-class TestDepthHeadingBehavior(unittest.TestCase):
-    """
-        The test loads and execute a depth heading mission.
-        -   Load the mission depth_heading_mission_test.xml
-        -   Execute the mission
-        -   Check if the behavior publishes the goal
-        -   Simulate auv_inteface data to finish the behavior
-        -   Test if the mission is SUCCESS
-    """
+class TestAttitudeServoAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_depth_heading_behavior')
+        rospy.init_node('test_attitude_servo')
 
     def setUp(self):
-        self.depth_heading_goal = DepthHeading()
+        self.attitude_servo_goal = AttitudeServo()
         self.mission = MissionInterface()
 
-        self.depth_heading_msg = rospy.Subscriber(
-            '/mngr/depth_heading',
-            DepthHeading,
-            self.depth_heading_goal_callback)
+        # Subscribers
+        self.attitude_servo_msg = rospy.Subscriber(
+            '/mngr/attitude_servo',
+            AttitudeServo,
+            self.attitude_servo_goal_callback)
 
         self.simulated_auv_interface_data_pub = rospy.Publisher(
             '/state',
             StateStamped,
             queue_size=1)
 
-    def depth_heading_goal_callback(self, msg):
-        self.depth_heading_goal = msg
+    def attitude_servo_goal_callback(self, msg):
+        self.attitude_servo_goal = msg
 
-    def test_mission_with_depth_heading_behavior(self):
-        self.mission.load_mission('depth_heading_mission_test.xml')
+    def test_mission_with_attitude_servo_action(self):
+        """
+        This test:
+        -  Loads a mission with a single AttitudeServo action.
+        -  Executes the mission just loaded.
+        -  Waits until the action publishes an AttitudeServo setpoint.
+        -  Simulates state updates for the action to complete.
+        -  Waits until the mission is COMPLETE.
+        """
+        self.mission.load_mission('attitude_servo_mission_test.xml')
         self.mission.execute_mission()
 
-        self.mission.read_behavior_parameters('DepthHeadingBehavior')
-        depth = self.mission.get_behavior_parameter('depth')
-        heading = self.mission.get_behavior_parameter('heading')
+        self.mission.read_behavior_parameters('AttitudeServo')
+        roll = self.mission.get_behavior_parameter('roll')
+        pitch = self.mission.get_behavior_parameter('pitch')
+        yaw = self.mission.get_behavior_parameter('yaw')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
 
         # Calculate the mask
         enable_mask = 0
-        if depth is not None:
-            enable_mask |= DepthHeading.DEPTH_ENA
-        if heading is not None:
-            enable_mask |= DepthHeading.HEADING_ENA
+        if roll is not None:
+            enable_mask |= AttitudeServo.ROLL_ENA
+        if pitch is not None:
+            enable_mask |= AttitudeServo.PITCH_ENA
+        if yaw is not None:
+            enable_mask |= AttitudeServo.YAW_ENA
         if speed_knots is not None:
-            enable_mask |= DepthHeading.SPEED_KNOTS_ENA
+            enable_mask |= AttitudeServo.SPEED_KNOTS_ENA
 
-        def depth_heading_goals_are_set():
-            return ((depth is None or self.depth_heading_goal.depth == float(depth)) and
-                    (heading is None or self.depth_heading_goal.heading == float(heading)) and
-                    (speed_knots is None or self.depth_heading_goal.speed_knots == float(speed_knots)) and
-                    self.depth_heading_goal.ena_mask == enable_mask)
+        def attitude_servo_goals_are_set():
+            return ((roll is None or self.attitude_servo_goal.roll == float(roll)) and
+                    (pitch is None or self.attitude_servo_goal.pitch == float(pitch)) and
+                    (yaw is None or self.attitude_servo_goal.yaw == float(yaw)) and
+                    (speed_knots is None or self.attitude_servo_goal.speed_knots == float(speed_knots)) and
+                    self.attitude_servo_goal.ena_mask == enable_mask)
 
-        self.assertTrue(wait_for(depth_heading_goals_are_set),
+        self.assertTrue(wait_for(attitude_servo_goals_are_set),
                         msg='Mission control must publish goals')
 
         # send data to finish the mission
-        auv_interface_data = StateStamped()
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 2.0
-        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
+        msg = StateStamped()
+        msg.state.manoeuvring.pose.mean.orientation.x = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.y = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.z = 1.0
+        self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():
             return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
@@ -117,7 +122,5 @@ class TestDepthHeadingBehavior(unittest.TestCase):
         self.assertTrue(wait_for(success_mission_status_is_reported),
                         msg='Mission control must report only COMPLETE')
 
-
-if __name__ == "__main__":
-    rostest.rosrun('mission_control', 'mission_control_test_depth_heading_behavior',
-                   TestDepthHeadingBehavior)
+if __name__ == '__main__':
+    rostest.rosrun('mission_control', 'test_attitude_servo_action', TestAttitudeServoAction)

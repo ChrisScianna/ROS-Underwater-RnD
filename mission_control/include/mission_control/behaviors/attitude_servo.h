@@ -45,57 +45,48 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
-#include "mission_control/AttitudeServo.h"
-#include "mission_control/behavior.h"
+#include "mission_control/behaviors/reactive_action.h"
 
 namespace mission_control
 {
-class AttitudeServoBehavior : public Behavior
+class AttitudeServoNode : public ReactiveActionNode
 {
- public:
-  AttitudeServoBehavior(const std::string& name, const BT::NodeConfiguration& config);
-
-  BT::NodeStatus behaviorRunningProcess();
+public:
+  AttitudeServoNode(const std::string& name, const BT::NodeConfiguration& config);
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<double>("roll", "roll"),  //  NOLINT
-            BT::InputPort<double>("pitch", "pitch"),
-            BT::InputPort<double>("yaw", "yaw"),
-            BT::InputPort<double>("speed_knots", "speed_knots"),
-            BT::InputPort<double>("time_out", "time_out"),
-            BT::InputPort<double>("roll_tol", 0.0, "roll_tol"),
-            BT::InputPort<double>("pitch_tol", 0.0, "pitch_tol"),
-            BT::InputPort<double>("yaw_tol", 0.0, "yaw_tol")};
+    return {BT::InputPort<double>("roll", "Roll angle to reach, in radians"),  //  NOLINT
+            BT::InputPort<double>("pitch", "Pitch angle to reach, in radians"),
+            BT::InputPort<double>("yaw", "Yaw angle to reach, in radians"),
+            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+            BT::InputPort<double>("roll_tol", 0.0, "Tolerance for roll angle goal, in radians"),
+            BT::InputPort<double>("pitch_tol", 0.0, "Tolerance for pitch angle goal, in radians"),
+            BT::InputPort<double>("yaw_tol", 0.0, "Tolerance for yaw angle goal, in radians")};
   }
 
- private:
-  void stateDataCallback(const auv_interfaces::StateStamped& data);
-  void publishGoalMsg();
+private:
+  void stateDataCallback(auv_interfaces::StateStamped::ConstPtr msg);
 
-  ros::NodeHandle nodeHandle_;
-  ros::Publisher attitudeServoBehaviorPub_;
-  ros::Subscriber subStateData_;
-  ros::Time behaviorStartTime_;
+  BT::NodeStatus setUp() override;
+  BT::NodeStatus doWork() override;
+  void tearDown() override;
 
-  double roll_;
-  double pitch_;
-  double yaw_;
-  double speedKnots_;
-  double timeOut_;
+  ros::NodeHandle nh_;
+  ros::Publisher attitude_servo_pub_;
+  ros::Subscriber state_sub_;
 
-  bool rollEnable_;
-  bool pitchEnable_;
-  bool yawEnable_;
-  bool speedKnotsEnable_;
-  bool timeOutEnable_;
+  double target_roll_;
+  double target_pitch_;
+  double target_yaw_;
+  double speed_knots_;
+  uint8_t enable_mask_;
 
-  double rollTolerance_;
-  double pitchTolerance_;
-  double yawTolerance_;
+  double roll_tolerance_;
+  double pitch_tolerance_;
+  double yaw_tolerance_;
 
-  bool goalHasBeenPublished_;
-  bool behaviorComplete_;
+  auv_interfaces::StateStamped::ConstPtr state_;
 };
 
 }  //  namespace mission_control

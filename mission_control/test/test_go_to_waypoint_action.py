@@ -95,7 +95,8 @@ class TestGoToWaypointAction(unittest.TestCase):
         self._state_pub.publish(msg)
 
         def mission_complete():
-            return self.mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE == self.mission.execute_mission_state[-1])
         self.assertTrue(wait_for(mission_complete), msg='Mission did not complete')
 
 

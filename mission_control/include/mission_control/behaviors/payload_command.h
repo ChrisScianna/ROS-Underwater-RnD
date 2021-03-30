@@ -44,24 +44,24 @@
 
 #include <string>
 
-#include "mission_control/behavior.h"
-#include "payload_manager/PayloadCommand.h"
+#include "mission_control/behaviors/introspectable_action.h"
 
 namespace mission_control
 {
-class PayloadCommandBehavior : public Behavior
+class PayloadCommandNode : public BT::SyncActionNode
 {
- public:
-  PayloadCommandBehavior(const std::string& name, const BT::NodeConfiguration& config);
-
-  BT::NodeStatus behaviorRunningProcess();
+public:
+  PayloadCommandNode(const std::string& name, const BT::NodeConfiguration& config);
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<std::string>("command", "command")};
+    return {BT::InputPort<std::string>("command", "Command to be sent to payload")};
   }
 
- private:
+protected:
+  BT::NodeStatus tick() override;
+
+private:
   ros::NodeHandle nodeHandle_;
   ros::Publisher payloadCommandPub_;
 };

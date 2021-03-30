@@ -142,19 +142,19 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         mission_to_execute = ExecuteMission()
         mission_to_execute.mission_id = 1
         self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
-        def success_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.EXECUTING
+        def mission_status_is_reported():
+            return ReportExecuteMissionState.EXECUTING in self.report_execute_mission.execute_mission_state
         self.assertTrue(
-            wait_for(success_mission_status_is_reported),
-            msg='Mission control must report SUCCESS')
+            wait_for(mission_status_is_reported),
+            msg='Mission control must report EXECUTING')
 
         # Abort mission and wait for it to wrap up
         abortMission = AbortMission()
         abortMission.mission_id = 1
         self.simulated_abort_mission_msg_pub.publish(abortMission)
-        # TODO(hidmic): check ABORTING state when missions are no longer short-lived
         def complete_mission_status_is_reported():
-            return self.report_execute_mission.execute_mission_state == ReportExecuteMissionState.COMPLETE
+            return (ReportExecuteMissionState.ABORTING not in self.report_execute_mission.execute_mission_state and
+                    ReportExecuteMissionState.COMPLETE == self.report_execute_mission.execute_mission_state[-1])
         self.assertTrue(
             wait_for(complete_mission_status_is_reported),
             msg='Mission control must report COMPLETE')

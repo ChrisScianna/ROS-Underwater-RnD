@@ -65,6 +65,7 @@ public:
   inline int id() const { return id_; }
   inline Status status() const { return status_; }
   const std::string& description() const;
+  std::string active_path() const;
   bool active() const;
 
   Mission& start();
