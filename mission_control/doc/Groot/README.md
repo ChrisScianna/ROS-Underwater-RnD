@@ -6,16 +6,6 @@ This document explains how to install and use [Groot](https://github.com/Behavio
 Groot is a Graphical Editor, written in C++ and Qt, to build and inspect behavior trees.
 It is compliant with the the [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP) library. 
 
-The next behaviors/actions were implemented as tree node model (Groot Palette)
-- Abort
-- Attitude Servo
-- Fix Rudder
-- Go To Waypoint
-- Payload Command
-- Set Altitude Heading
-- Set Depth Heading
-
-
 ## Installation
 
 ### As a ROS package
@@ -36,9 +26,9 @@ Instructions to a standalone Groot installation on Windows can be found [here](h
 
 For creating mission with the custom behaviors, the tree node model must be loaded.
 
-- Load the Tree Node Model to get the custom behavior/actions from the toolbar:  
+- Load the Tree Node Model to get the custom actions from the toolbar:  
 ![Toolbar](Images/toolbar.png "Toolbar")
-- Select the icon to load a pallette. The palette can be found in the [mission control package](https://github.com/ChrisScianna/ROS-Underwater-RnD/tree/master/mission_control/groot_palette)
+- Select the icon to load a pallette. The palette can be found in the [mission control package](../../groot_palette/mission_control_behaviors_palette.xml)
 - Now the behaviors are displayed on the tree Node Palette.
 ![Actions](Images/nodes.png "Actions")
 - Draw the mission. Drag and drop nodes and connect them.
