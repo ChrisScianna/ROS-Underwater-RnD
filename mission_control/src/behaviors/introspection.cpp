@@ -45,14 +45,8 @@ static constexpr char ACTIVE_PATH_KEY[] = "introspection/active_path";
 std::string extendActivePath(BT::Blackboard* bb, const std::string& node)
 {
   std::string parent_path;
-  if (bb->get(ACTIVE_PATH_KEY, parent_path))
-    {
-      bb->set(ACTIVE_PATH_KEY, parent_path + "/" + node);
-    }
-  else
-    {
-      bb->set(ACTIVE_PATH_KEY, node);
-    }
+  bb->get(ACTIVE_PATH_KEY, parent_path);
+  bb->set(ACTIVE_PATH_KEY, parent_path + "/" + node);
   return parent_path;
 }
 
@@ -69,10 +63,7 @@ bool getActivePath(const BT::Blackboard* bb, std::string& path)
 std::string getActivePath(const BT::Blackboard* bb)
 {
   std::string path;
-  if (!getActivePath(bb, path))
-  {
-    path = "?";
-  }
+  getActivePath(bb, path);
   return path;
 }
 

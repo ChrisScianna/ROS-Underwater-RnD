@@ -32,8 +32,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
-#define MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
+#ifndef MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_NODE_H
+#define MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_NODE_H
 
 #include <behaviortree_cpp_v3/behavior_tree.h>
 #include <behaviortree_cpp_v3/bt_factory.h>
@@ -47,36 +47,74 @@
 namespace mission_control
 {
 
-template<class BaseActionT>
-class IntrospectableActionNode : public BaseActionT
+// NOTE(hidmic): this is insane, but BT library support for
+// various constructor forms left little margin.
+template<class BaseNodeT, bool default_constructible_only =
+         BT::has_default_constructor<BaseNodeT>::value &&
+         !BT::has_params_constructor<BaseNodeT>::value>
+class IntrospectableNode;
+
+template<class BaseNodeT>
+class IntrospectableNode<BaseNodeT, false> : public BaseNodeT
 {
 public:
-  using BaseActionT::BaseActionT;
+  using BaseNodeT::BaseNodeT;
 
-  BT::NodeStatus tick() override
+  BT::NodeStatus executeTick() override
   {
     if (BT::NodeStatus::IDLE == this->status())
     {
-      // TODO(hidmic): find a better way to access the blackboard
       parent_path_ = introspection::extendActivePath(
           this->config().blackboard.get(), this->name());
     }
 
-    BT::NodeStatus current_status = BaseActionT::tick();
+    // NOTE(hidmic): this will not work for async and coroutine-based action types.
+    // The BT library does not lend itself well to built-in node types extension.
+    BT::NodeStatus current_status = BaseNodeT::executeTick();
 
     if (BT::NodeStatus::RUNNING != current_status)
     {
-      // TODO(hidmic): find a better way to access the blackboard
-      introspection::setActivePath(
-          this->config().blackboard.get(), parent_path_);
+      introspection::setActivePath(this->config().blackboard.get(), parent_path_);
     }
     return current_status;
   }
 
-private:
+ private:
+  std::string parent_path_{};
+};
+
+template<class BaseNodeT>
+class IntrospectableNode<BaseNodeT, true> : public BaseNodeT
+{
+ public:
+  IntrospectableNode(const std::string& name, const BT::NodeConfiguration& config)
+      : BaseNodeT(name), blackboard_(config.blackboard)
+  {
+  }
+
+  BT::NodeStatus executeTick() override
+  {
+    if (BT::NodeStatus::IDLE == this->status())
+    {
+      parent_path_ =
+          introspection::extendActivePath(blackboard_.get(), this->name());
+    }
+    // NOTE(hidmic): this will not work for async and coroutine-based action types.
+    // The BT library does not lend itself well to built-in node types extension.
+    BT::NodeStatus current_status = BaseNodeT::executeTick();
+
+    if (BT::NodeStatus::RUNNING != current_status)
+    {
+      introspection::setActivePath(blackboard_.get(), parent_path_);
+    }
+    return current_status;
+  }
+
+ private:
+  BT::Blackboard::Ptr blackboard_;
   std::string parent_path_{};
 };
 
 }  // namespace mission_control
 
-#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_ACTION_H
+#endif  // MISSION_CONTROL_BEHAVIORS_INTROSPECTABLE_NODE_H
