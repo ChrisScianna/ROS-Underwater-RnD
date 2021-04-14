@@ -103,6 +103,11 @@ install(DIRECTORY
 if(CATKIN_ENABLE_TESTING)
   roslint_add_test()
 
+  catkin_add_gtest(test_reactive_action test/test_reactive_action.cpp)
+  target_link_libraries(test_reactive_action ${PROJECT_NAME} ${catkin_LIBRARIES})
+  catkin_add_gtest(test_introspectable_node test/test_introspectable_node.cpp)
+  target_link_libraries(test_introspectable_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+
   find_package(rostest REQUIRED)
   add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
   add_rostest(test/test_jaus_ros_bridge_interface_mission_control.test)
