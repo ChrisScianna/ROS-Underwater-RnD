@@ -46,7 +46,7 @@
 #include "mission_control/behaviors/set_altitude_heading.h"
 #include "mission_control/behaviors/set_depth_heading.h"
 
-#include "mission_control/behaviors/introspectable_action.h"
+#include "mission_control/behaviors/introspectable_node.h"
 
 #include <string>
 
@@ -69,13 +69,13 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
   MissionBehaviorTreeFactory()
   {
     // TODO(hidmic): load behavior classes from ROS plugins
-    this->registerNodeType<IntrospectableActionNode<AbortNode>>("Abort");
-    this->registerNodeType<IntrospectableActionNode<AttitudeServoNode>>("AttitudeServo");
-    this->registerNodeType<IntrospectableActionNode<FixRudderNode>>("FixRudder");
-    this->registerNodeType<IntrospectableActionNode<GoToWaypointNode>>("GoToWaypoint");
-    this->registerNodeType<IntrospectableActionNode<PayloadCommandNode>>("PayloadCommand");
-    this->registerNodeType<IntrospectableActionNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
-    this->registerNodeType<IntrospectableActionNode<SetDepthHeadingNode>>("SetDepthHeading");
+    this->registerNodeType<IntrospectableNode<AbortNode>>("Abort");
+    this->registerNodeType<IntrospectableNode<AttitudeServoNode>>("AttitudeServo");
+    this->registerNodeType<IntrospectableNode<FixRudderNode>>("FixRudder");
+    this->registerNodeType<IntrospectableNode<GoToWaypointNode>>("GoToWaypoint");
+    this->registerNodeType<IntrospectableNode<PayloadCommandNode>>("PayloadCommand");
+    this->registerNodeType<IntrospectableNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
+    this->registerNodeType<IntrospectableNode<SetDepthHeadingNode>>("SetDepthHeading");
   }
 };
 

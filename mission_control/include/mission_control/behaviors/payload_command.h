@@ -44,7 +44,6 @@
 
 #include <string>
 
-#include "mission_control/behaviors/introspectable_action.h"
 
 namespace mission_control
 {

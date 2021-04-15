@@ -68,12 +68,18 @@ public:
 
   void halt() override
   {
-    tearDown();
+    if (!isHalted())
+    {
+      tearDown();
+    }
     setStatus(BT::NodeStatus::IDLE);
   }
 
 private:
-  virtual BT::NodeStatus setUp() {}
+  virtual BT::NodeStatus setUp()
+  {
+    return BT::NodeStatus::RUNNING;
+  }
   virtual BT::NodeStatus doWork() = 0;
   virtual void tearDown() {}
 };
