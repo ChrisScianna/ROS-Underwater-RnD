@@ -90,28 +90,29 @@ private:
     bool test(const Ts &... args)
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      if (test_function_)
+      diagnostic_ = test_function_(args...);
+      if (diagnostic_.description().empty())
       {
-        diagnostic_ = test_function_(args...);
-        if (diagnostic_.description().empty())
-        {
-          diagnostic_.description(description_for(diagnostic_.status()));
-        }
+        diagnostic_.description(description_for(diagnostic_.status()));
       }
+      has_diagnostic_ = true;
       return diagnostic_.status() == Diagnostic::OK;
     }
 
     void run(diagnostic_updater::DiagnosticStatusWrapper &stat) override
     {
       std::lock_guard<std::mutex> guard(mutex_);
-      stat.summary(diagnostic_.status(), diagnostic_.description());
-      if (diagnostic_.has_code())
+      if (has_diagnostic_)
       {
-        stat.addf("Code", "%" PRIu64, diagnostic_.code());
-      }
-      for (const auto &kv : diagnostic_.data())
-      {
-        stat.add(kv.first, kv.second);
+        stat.summary(diagnostic_.status(), diagnostic_.description());
+        if (diagnostic_.has_code())
+        {
+          stat.addf("Code", "%" PRIu64, diagnostic_.code());
+        }
+        for (const auto &kv : diagnostic_.data())
+        {
+          stat.add(kv.first, kv.second);
+        }
       }
     }
 
@@ -133,6 +134,7 @@ private:
       }
     }
 
+    bool has_diagnostic_{false};
     Diagnostic diagnostic_;
     TestFunctionType test_function_;
     std::mutex mutex_;

@@ -52,6 +52,7 @@ class HealthCheck(diagnostic_updater.DiagnosticTask):
         diagnostic_updater.DiagnosticTask.__init__(self, name)
         self._test_fn = test_fn
         self._lock = threading.Lock()
+        self._diagnostic = None
 
     def test(self, *args, **kwargs):
         with self._lock:
@@ -65,7 +66,8 @@ class HealthCheck(diagnostic_updater.DiagnosticTask):
 
     def run(self, stat):
         with self._lock:
-            stat.summary(self._diagnostic.status, self._diagnostic.description)
-            if self._diagnostic.code is not None:
-                stat.add("Code", self._diagnostic.code)
+            if self._diagnostic:
+                stat.summary(self._diagnostic.status, self._diagnostic.description)
+                if self._diagnostic.code is not None:
+                    stat.add("Code", self._diagnostic.code)
             return stat
