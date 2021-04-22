@@ -3,7 +3,7 @@ import threading
 import rospkg
 import rospy
 
-from mission_contrl.msg import ReportExecuteMissionState
+from mission_control.msg import ReportExecuteMissionState
 
 
 class MissionLogger(object):
