@@ -41,21 +41,15 @@
 #ifndef MISSION_CONTROL_MISSION_CONTROL_H
 #define MISSION_CONTROL_MISSION_CONTROL_H
 
-#include <behaviortree_cpp_v3/action_node.h>
-#include <behaviortree_cpp_v3/bt_factory.h>
 #include <dirent.h>
 #include <ros/ros.h>
 #include <stdint.h>
 
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/thread.hpp>
-#include <map>
 #include <string>
 #include <memory>
+#include <unordered_map>
 
 #include "health_monitor/ReportFault.h"
-#include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_control/AbortMission.h"
 #include "mission_control/ExecuteMission.h"
 #include "mission_control/LoadMission.h"

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   geodesy
   health_monitor
   message_generation
+  payload_manager
   roscpp
   roslint
   rospy
@@ -38,13 +39,12 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
-  payload_manager
   std_msgs
 )
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS auv_interfaces payload_manager health_monitor roscpp rospy std_msgs
+ CATKIN_DEPENDS auv_interfaces health_monitor roscpp rospy std_msgs
 )
 
 ###########

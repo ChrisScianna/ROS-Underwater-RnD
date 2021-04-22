@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   mission_control
+  payload_manager
   thruster_control
   health_monitor
   fin_control
