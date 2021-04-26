@@ -47,7 +47,7 @@ SetAltitudeHeadingNode::SetAltitudeHeadingNode(
   : ReactiveActionNode(name, config)
 {
   altitude_heading_pub_ =
-      nh_.advertise<mission_control::AltitudeHeading>("/mngr/altitude_heading", 1);
+    nh_.advertise<mission_control::AltitudeHeading>("/mngr/altitude_heading", 1, true);
 }
 
 BT::NodeStatus SetAltitudeHeadingNode::setUp()

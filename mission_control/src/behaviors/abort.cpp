@@ -46,7 +46,7 @@ AbortNode::AbortNode(const std::string& name, const BT::NodeConfiguration& confi
   : ReactiveActionNode(name, config)
 {
   attitude_servo_pub_ =
-      nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+    nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1, true);
 
   nh_.param<double>("/fin_control/max_ctrl_fin_angle", pitch_, 0.3490658503988659);
 }
