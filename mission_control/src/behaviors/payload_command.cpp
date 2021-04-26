@@ -46,7 +46,7 @@ PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeCo
   : BT::SyncActionNode(name, config)
 {
   payloadCommandPub_ =
-      nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1);
+    nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1, true);
 }
 
 BT::NodeStatus PayloadCommandNode::tick()

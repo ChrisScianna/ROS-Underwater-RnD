@@ -45,7 +45,7 @@ namespace mission_control
 GoToWaypointNode::GoToWaypointNode(const std::string& name, const BT::NodeConfiguration& config)
   : ReactiveActionNode(name, config)
 {
-  waypoint_pub_ = nh_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1);
+  waypoint_pub_ = nh_.advertise<mission_control::Waypoint>("/mngr/waypoint", 1, true);
 }
 
 BT::NodeStatus GoToWaypointNode::setUp()

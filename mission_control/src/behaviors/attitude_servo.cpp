@@ -47,7 +47,7 @@ AttitudeServoNode::AttitudeServoNode(const std::string& name,
   : ReactiveActionNode(name, config)
 {
   attitude_servo_pub_ =
-      nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1);
+    nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1, true);
 }
 
 BT::NodeStatus AttitudeServoNode::setUp()

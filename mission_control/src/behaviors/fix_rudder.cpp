@@ -46,7 +46,7 @@ FixRudderNode::FixRudderNode(const std::string& name, const BT::NodeConfiguratio
   : BT::SyncActionNode(name, config)
 {
   fixedRudderBehaviorPub_ =
-      nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1);
+    nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1, true);
 }
 
 BT::NodeStatus FixRudderNode::tick()

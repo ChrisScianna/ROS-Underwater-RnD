@@ -47,7 +47,7 @@ SetDepthHeadingNode::SetDepthHeadingNode(const std::string &name,
   : ReactiveActionNode(name, config)
 {
   depth_heading_pub_ =
-      nh_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 100);
+    nh_.advertise<mission_control::DepthHeading>("/mngr/depth_heading", 1, true);
 }
 
 BT::NodeStatus SetDepthHeadingNode::setUp()
