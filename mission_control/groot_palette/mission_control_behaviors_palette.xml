@@ -1,42 +1,48 @@
 <root>
     <TreeNodesModel>
         <Action ID="AttitudeServo">
-            <input_port name="pitch">Pitch angle to reach, in radians</input_port>
-            <input_port name="pitch_tol" default="0.0">Tolerance for pitch angle goal, in radians</input_port>
-            <input_port name="roll">Roll angle to reach, in radians</input_port>
-            <input_port name="roll_tol" default="0.0">Tolerance for roll angle goal, in radians</input_port>
-            <input_port name="speed_knots">Cruise speed to command, in knots</input_port>
-            <input_port name="yaw">Yaw angle to reach, in radians</input_port>
-            <input_port name="yaw_tol" default="0.0">Tolerance for yaw angle goal, in radians</input_port>
+            <input_port name="pitch" default="NaN">Pitch angle to reach</input_port>
+            <input_port name="pitch-tolerance" default="0.0">Tolerance for pitch</input_port>
+            <input_port name="pitch-units" default="radians">Units for pitch (supported units are: radians, degrees)</input_port>
+            <input_port name="roll" default="NaN">Roll angle to reach</input_port>
+            <input_port name="roll-tolerance" default="0.0">Tolerance for roll</input_port>
+            <input_port name="roll-units" default="radians">Units for roll (supported units are: radians, degrees)</input_port>
+            <input_port name="yaw" default="NaN">Yaw angle to reach</input_port>
+            <input_port name="yaw-tolerance" default="0.0">Tolerance for yaw</input_port>
+            <input_port name="yaw-units" default="radians">Units for yaw (supported units are: radians, degrees)</input_port>
+            <input_port name="speed_knots" default="NaN">Cruise speed to command, in knots</input_port>
         </Action>
         <Action ID="FixRudder">
-            <input_port name="depth">Rudder angle, in radians</input_port>
-            <input_port name="rudder">Depth to reach (positive down), in meters</input_port>
-            <input_port name="speed_knots">Cruise speed to command, in knots</input_port>
+            <input_port name="rudder" default="NaN">Rudder angle to fix</input_port>
+            <input_port name="rudder-units" default="radians">Units for rudder (supported units are: radians, degrees)</input_port>
+            <input_port name="depth" default="NaN">Depth to reach (positive down), in meters</input_port>
+            <input_port name="speed_knots" default="NaN">Cruise speed to command, in knots</input_port>
         </Action>
         <Action ID="GoToWaypoint">
-            <input_port name="altitude">Waypoint altitude (positive up), in meters</input_port>
-            <input_port name="depth">Waypoint depth (positive down), in meters</input_port>
+            <input_port name="altitude" default="NaN">Waypoint altitude (positive up), in meters</input_port>
+            <input_port name="depth" default="NaN">Waypoint depth (positive down), in meters</input_port>
             <input_port name="latitude">Waypoint latitude, in degrees</input_port>
             <input_port name="longitude">Waypoint longitude, in degrees</input_port>
-            <input_port name="speed_knots">Cruise speed to command, in knots</input_port>
+            <input_port name="speed_knots" default="NaN">Cruise speed to command, in knots</input_port>
             <input_port name="tolerance_radius" default="0.0">Radius of the tolerance sphere</input_port>
         </Action>
         <Action ID="PayloadCommand">
             <input_port name="command">Command to be sent to payload</input_port>
         </Action>
         <Action ID="SetAltitudeHeading">
-            <input_port name="altitude">Altitude to reach (positive up), in meters</input_port>
-            <input_port name="altitude_tol" default="0.0">Tolerance for altitude goal, in meters</input_port>
-            <input_port name="heading">Heading (or yaw) to reach, in radians</input_port>
-            <input_port name="heading_tol" default="0.0">Tolerance for heading goal, in radians</input_port>
+            <input_port name="altitude" default="NaN">Altitude to reach (positive up), in meters</input_port>
+            <input_port name="altitude-tolerance" default="0.0">Tolerance for altitude goal, in meters</input_port>
+            <input_port name="heading" default="NaN">Heading (or yaw) to reach</input_port>
+            <input_port name="heading-units" default="radians">Units for heading (supported units are: radians, degrees)</input_port>
+            <input_port name="heading-tolerance" default="0.0">Tolerance for heading</input_port>
             <input_port name="speed_knots">Cruise speed to command, in knots</input_port>
         </Action>
         <Action ID="SetDepthHeading">
-            <input_port name="depth">Depth to reach (positive down), in meters</input_port>
-            <input_port name="depth_tol" default="0.0">Tolerance for depth goal, in meters</input_port>
-            <input_port name="heading">Heading (or yaw) to reach, in radians</input_port>
-            <input_port name="heading_tol" default="0.0">Tolerance for heading goal, in radians</input_port>
+            <input_port name="depth" default="NaN">Depth to reach (positive down), in meters</input_port>
+            <input_port name="depth-tolerance" default="0.0">Tolerance for depth goal, in meters</input_port>
+            <input_port name="heading" default="NaN">Heading (or yaw) to reach</input_port>
+            <input_port name="heading-units" default="radians">Units for heading (supported units are: radians, degrees)</input_port>
+            <input_port name="heading-tolerance" default="0.0">Tolerance for heading</input_port>
             <input_port name="speed_knots">Cruise speed to command, in knots</input_port>
         </Action>
     </TreeNodesModel>
