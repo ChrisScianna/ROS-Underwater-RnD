@@ -44,6 +44,7 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/helpers.h"
 
 
 namespace mission_control
@@ -56,9 +57,10 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<double>("rudder", "Rudder angle, in radians"),  // NOLINT
-            BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),
-            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots")};
+    return MakePortsList(
+      InputPort<double, HasAngleUnits>("rudder", NAN, "Rudder angle"),
+      BT::InputPort<double>("depth", NAN, "Depth to reach (positive down), in meters"),
+      BT::InputPort<double>("speed_knots", NAN, "Cruise speed to command, in knots"));
   }
 
 protected:

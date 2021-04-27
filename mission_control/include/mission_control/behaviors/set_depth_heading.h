@@ -44,7 +44,9 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/helpers.h"
 #include "mission_control/behaviors/reactive_action.h"
+
 
 namespace mission_control
 {
@@ -55,11 +57,12 @@ class SetDepthHeadingNode : public ReactiveActionNode
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<double>("depth", "Depth to reach (positive down), in meters"),  //  NOLINT
-            BT::InputPort<double>("heading", "Heading (or yaw) to reach, in radians"),
-            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
-            BT::InputPort<double>("depth_tol", 0.0, "Tolerance for depth goal, in meters"),
-            BT::InputPort<double>("heading_tol", 0.0, "Tolerance for heading goal, in radians")};
+    return MakePortsList(
+      InputPort<double, HasTolerance>(
+        "depth", NAN, "Depth to reach (positive down), in meters"),
+      InputPort<double, HasTolerance, HasAngleUnits>(
+        "heading", NAN, "Heading (or yaw) to reach"),
+      BT::InputPort<double>("speed_knots", NAN, "Cruise speed to command, in knots"));
   }
 
  private:

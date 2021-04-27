@@ -36,6 +36,7 @@
 #include "mission_control/behaviors/attitude_servo.h"
 
 #include "mission_control/AttitudeServo.h"
+#include "mission_control/behaviors/helpers.h"
 
 #include <string>
 
@@ -55,49 +56,72 @@ BT::NodeStatus AttitudeServoNode::setUp()
   // Update action parameters
   enable_mask_ = 0u;
 
-  if (getInput<double>("roll", target_roll_))
+  auto result = getInputValue<double, HasAngleUnits>(this, "roll", target_roll_);
+  if (!result)
   {
-    getInput<double>("roll_tol", roll_tolerance_);
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(target_roll_))
+  {
+    result = getInputTolerance<double, HasAngleUnits>(this, "roll", roll_tolerance_);
+    if (!result)
+    {
+      ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+      return BT::NodeStatus::FAILURE;
+    }
     enable_mask_ |= mission_control::AttitudeServo::ROLL_ENA;
   }
-  else
-  {
-    target_roll_ = 0.0;
-  }
 
-  if (getInput<double>("pitch", target_pitch_))
+  result = getInputValue<double, HasAngleUnits>(this, "pitch", target_pitch_);
+  if (!result)
   {
-    getInput<double>("pitch_tol", pitch_tolerance_);
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(target_pitch_))
+  {
+    result = getInputTolerance<double, HasAngleUnits>(this, "pitch", pitch_tolerance_);
+    if (!result)
+    {
+      ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+      return BT::NodeStatus::FAILURE;
+    }
     enable_mask_ |= mission_control::AttitudeServo::PITCH_ENA;
   }
-  else
-  {
-    target_pitch_ = 0.0;
-  }
 
-  if (getInput<double>("yaw", target_yaw_))
+  result = getInputValue<double, HasAngleUnits>(this, "yaw", target_yaw_);
+  if (!result)
   {
-    getInput<double>("yaw_tol", yaw_tolerance_);
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(target_yaw_))
+  {
+    result = getInputTolerance<double, HasAngleUnits>(this, "yaw", yaw_tolerance_);
+    if (!result)
+    {
+      ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+      return BT::NodeStatus::FAILURE;
+    }
     enable_mask_ |= mission_control::AttitudeServo::YAW_ENA;
   }
-  else
-  {
-    target_yaw_ = 0.0;
-  }
 
-  if (getInput<double>("speed_knots", speed_knots_))
+  result = getInput<double>("speed_knots", speed_knots_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(speed_knots_))
   {
     enable_mask_ |= mission_control::AttitudeServo::SPEED_KNOTS_ENA;
-  }
-  else
-  {
-    speed_knots_ = 0.0;
   }
 
   // Setup state subscriber
   state_.reset();
   state_sub_ = nh_.subscribe(
-      "/state", 1, &AttitudeServoNode::stateDataCallback, this);
+    "/state", 1, &AttitudeServoNode::stateDataCallback, this);
 
   // Publish attitude setpoint
   mission_control::AttitudeServo msg;

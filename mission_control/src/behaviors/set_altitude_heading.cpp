@@ -36,6 +36,7 @@
 #include "mission_control/behaviors/set_altitude_heading.h"
 
 #include "mission_control/AltitudeHeading.h"
+#include "mission_control/behaviors/helpers.h"
 
 #include <string>
 
@@ -55,33 +56,55 @@ BT::NodeStatus SetAltitudeHeadingNode::setUp()
   // Update action parameters
   enable_mask_ = 0u;
 
-  if (getInput<double>("altitude", target_altitude_))
+  auto result =
+    getInputValue<double, HasAngleUnits>(
+      this, "altitude", target_altitude_);
+  if (!result)
   {
-    getInput<double>("altitude_tol", altitude_tolerance_);
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(target_altitude_))
+  {
+    result = getInputTolerance<double, HasAngleUnits>(
+        this, "altitude", altitude_tolerance_);
+    if (!result)
+    {
+      ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+      return BT::NodeStatus::FAILURE;
+    }
     enable_mask_ |= mission_control::AltitudeHeading::ALTITUDE_ENA;
   }
-  else
-  {
-    target_altitude_ = 0.0;
-  }
 
-  if (getInput<double>("heading", target_heading_))
+  result =
+    getInputValue<double, HasAngleUnits>(
+      this, "heading", target_heading_);
+  if (!result)
   {
-    getInput<double>("heading_tol", heading_tolerance_);
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(target_heading_))
+  {
+    result = getInputTolerance<double, HasAngleUnits>(
+      this, "heading", heading_tolerance_);
+    if (!result)
+    {
+      ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+      return BT::NodeStatus::FAILURE;
+    }
     enable_mask_ |= mission_control::AltitudeHeading::HEADING_ENA;
   }
-  else
-  {
-    target_heading_ = 0.0;
-  }
 
-  if (getInput<double>("speed_knots", speed_knots_))
+  result = getInput<double>("speed_knots", speed_knots_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(speed_knots_))
   {
     enable_mask_ |= mission_control::AltitudeHeading::SPEED_KNOTS_ENA;
-  }
-  else
-  {
-    speed_knots_ = 0.0;
   }
 
   // Setup state subscriber

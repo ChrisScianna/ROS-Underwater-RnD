@@ -44,7 +44,9 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/helpers.h"
 #include "mission_control/behaviors/reactive_action.h"
+
 
 namespace mission_control
 {
@@ -56,13 +58,12 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {  //  NOLINT
-      BT::InputPort<double>("altitude", "Altitude to reach (positive up), in meters"),
-      BT::InputPort<double>("heading", "Heading (or yaw) to reach, in radians"),
-      BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
-      BT::InputPort<double>("altitude_tol", 0.0, "Tolerance for altitude goal, in meters"),
-      BT::InputPort<double>("heading_tol", 0.0, "Tolerance for heading goal, in radians")
-    };
+    return MakePortsList(
+      InputPort<double, HasTolerance>(
+        "altitude", NAN, "Altitude to reach (positive up), in meters"),
+      InputPort<double, HasTolerance, HasAngleUnits>(
+        "heading", NAN, "Heading (or yaw) to reach"),
+      BT::InputPort<double>("speed_knots", NAN, "Cruise speed to command, in knots"));
   }
 
 private:

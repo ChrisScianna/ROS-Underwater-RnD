@@ -36,6 +36,7 @@
 #include "mission_control/behaviors/fix_rudder.h"
 
 #include "mission_control/FixedRudder.h"
+#include "mission_control/behaviors/helpers.h"
 
 #include <string>
 
@@ -57,21 +58,39 @@ BT::NodeStatus FixRudderNode::tick()
   msg.ena_mask = 0u;
 
   double depth;
-  if (getInput<double>("depth", depth))
+  auto result = getInputValue<double, HasAngleUnits>(this, "depth", depth);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(depth))
   {
     msg.ena_mask |= mission_control::FixedRudder::DEPTH_ENA;
     msg.depth = depth;
   }
 
   double rudder;
-  if (getInput<double>("rudder", rudder))
+  result = getInputValue<double, HasAngleUnits>(this, "rudder", rudder);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(rudder))
   {
     msg.ena_mask |= mission_control::FixedRudder::RUDDER_ENA;
     msg.rudder = rudder;
   }
 
   double speed_knots;
-  if (getInput<double>("speed_knots", speed_knots))
+  result = getInput<double>("speed_knots", speed_knots);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(speed_knots))
   {
     msg.ena_mask |= mission_control::FixedRudder::SPEED_KNOTS_ENA;
     msg.speed_knots = speed_knots;

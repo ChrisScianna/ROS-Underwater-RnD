@@ -36,6 +36,7 @@
 #include "mission_control/behaviors/go_to_waypoint.h"
 
 #include "mission_control/Waypoint.h"
+#include "mission_control/behaviors/helpers.h"
 
 #include <string>
 
@@ -51,41 +52,67 @@ GoToWaypointNode::GoToWaypointNode(const std::string& name, const BT::NodeConfig
 BT::NodeStatus GoToWaypointNode::setUp()
 {
   // Update action parameters
-  if (!getInput<double>("latitude", latitude_) || !getInput<double>("longitude", longitude_))
+  auto result = getInput<double>("latitude", latitude_);
+  if (!result)
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs latitude and longitude");
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  result = getInput<double>("longitude", longitude_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
     return BT::NodeStatus::FAILURE;
   }
   geodesy::fromMsg(geodesy::toMsg(latitude_, longitude_), target_position_);
   enable_mask_ = mission_control::Waypoint::LAT_ENA | mission_control::Waypoint::LONG_ENA;
 
-  altitude_ = depth_ = 0.0;
-  if (getInput<double>("altitude", altitude_))
+  result = getInput<double>("altitude", altitude_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  result = getInput<double>("depth", depth_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+
+  if (!std::isnan(altitude_))
   {
     enable_mask_ |= mission_control::Waypoint::ALTITUDE_ENA;
     target_position_.altitude = altitude_;
   }
-  else if (getInput<double>("depth", depth_))
+  else if (!std::isnan(depth_))
   {
     enable_mask_ |= mission_control::Waypoint::DEPTH_ENA;
     target_position_.altitude = depth_;
   }
   else
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs altitude or depth");
+    ROS_ERROR_STREAM("Cannot '" << name() << "': action needs altitude or depth");
     return BT::NodeStatus::FAILURE;
   }
 
-  if (getInput<double>("speed_knots", speed_knots_))
+  result = getInput<double>("speed_knots", speed_knots_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
+  if (!std::isnan(speed_knots_))
   {
     enable_mask_ |= mission_control::Waypoint::SPEED_KNOTS_ENA;
   }
-  else
-  {
-    speed_knots_ = 0.0;
-  }
 
-  getInput<double>("tolerance_radius", tolerance_radius_);
+  result = getInput<double>("tolerance_radius", tolerance_radius_);
+  if (!result)
+  {
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+    return BT::NodeStatus::FAILURE;
+  }
 
   // Setup state subscriber
   state_.reset();
