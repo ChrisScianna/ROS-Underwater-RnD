@@ -56,9 +56,7 @@ BT::NodeStatus SetAltitudeHeadingNode::setUp()
   // Update action parameters
   enable_mask_ = 0u;
 
-  auto result =
-    getInputValue<double, HasAngleUnits>(
-      this, "altitude", target_altitude_);
+  auto result = getInput<double>("altitude", target_altitude_);
   if (!result)
   {
     ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
@@ -66,8 +64,7 @@ BT::NodeStatus SetAltitudeHeadingNode::setUp()
   }
   if (!std::isnan(target_altitude_))
   {
-    result = getInputTolerance<double, HasAngleUnits>(
-        this, "altitude", altitude_tolerance_);
+    result = getInputTolerance<double>(this, "altitude", altitude_tolerance_);
     if (!result)
     {
       ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());

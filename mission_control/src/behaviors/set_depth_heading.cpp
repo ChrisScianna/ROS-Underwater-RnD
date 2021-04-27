@@ -56,7 +56,7 @@ BT::NodeStatus SetDepthHeadingNode::setUp()
   // Update action parameters
   enable_mask_ = 0u;
 
-  auto result = getInputValue<double, HasAngleUnits>(this, "depth", target_depth_);
+  auto result = getInput<double>("depth", target_depth_);
   if (!result)
   {
     ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
@@ -64,7 +64,7 @@ BT::NodeStatus SetDepthHeadingNode::setUp()
   }
   if (!std::isnan(target_depth_))
   {
-    result = getInputTolerance<double, HasAngleUnits>(this, "depth", depth_tolerance_);
+    result = getInputTolerance<double>(this, "depth", depth_tolerance_);
     if (!result)
     {
       ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());

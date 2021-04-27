@@ -58,7 +58,7 @@ BT::NodeStatus FixRudderNode::tick()
   msg.ena_mask = 0u;
 
   double depth;
-  auto result = getInputValue<double, HasAngleUnits>(this, "depth", depth);
+  auto result = getInput<double>("depth", depth);
   if (!result)
   {
     ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
