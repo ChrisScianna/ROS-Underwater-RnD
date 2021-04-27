@@ -38,6 +38,7 @@
 #include <behaviortree_cpp_v3/basic_types.h>
 #include <behaviortree_cpp_v3/tree_node.h>
 
+#include <string>
 #include <utility>
 
 
@@ -59,14 +60,14 @@ UpdatePortsList(
 inline
 bool
 UpdatePortsList(
-  BT::PortsList::value_type&& input,
+  BT::PortsList::value_type&& input,  // NOLINT
   BT::PortsList* output)
 {
   output->insert(input).second;
 }
 
 template<typename...Args>
-void expand(Args&&...)
+void expand(Args&&...)  // NOLINT
 {
 }
 
@@ -74,7 +75,7 @@ void expand(Args&&...)
 
 template<typename...Args>
 BT::PortsList
-MakePortsList(Args&&... ports)
+MakePortsList(Args&&... ports)  // NOLINT
 {
   BT::PortsList list;
   internal::expand(internal::UpdatePortsList(
