@@ -6,10 +6,11 @@
       <Timeout msec="2000">
         <SetDepthHeading
             depth="1.0"
-            heading="2.0"
+            heading="5.0"
+            heading-units="degrees"
             speed_knots="3.0"
-            depth_tol="10.0"
-            heading_tol="10.0"/>
+            depth-tolerance="10.0"
+            heading-tolerance="10.0"/>
       </Timeout>
     </Sequence>
   </BehaviorTree>

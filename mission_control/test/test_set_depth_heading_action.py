@@ -84,6 +84,9 @@ class TestSetDepthHeadingAction(unittest.TestCase):
         self.mission.read_behavior_parameters('SetDepthHeading')
         depth = self.mission.get_behavior_parameter('depth')
         heading = self.mission.get_behavior_parameter('heading')
+        heading_units = self.mission.get_behavior_parameter('heading-units')
+        self.assertEqual('degrees', heading_units)
+        heading = math.radians(float(heading))
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
 
         # Calculate the mask

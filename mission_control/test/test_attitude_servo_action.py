@@ -85,6 +85,9 @@ class TestAttitudeServoAction(unittest.TestCase):
         self.mission.read_behavior_parameters('AttitudeServo')
         roll = self.mission.get_behavior_parameter('roll')
         pitch = self.mission.get_behavior_parameter('pitch')
+        pitch_units = self.mission.get_behavior_parameter('pitch-units')
+        self.assertEqual('degrees', pitch_units)
+        pitch = math.radians(float(pitch))
         yaw = self.mission.get_behavior_parameter('yaw')
         speed_knots = self.mission.get_behavior_parameter('speed_knots')
 

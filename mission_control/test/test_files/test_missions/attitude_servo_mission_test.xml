@@ -6,12 +6,13 @@
       <Timeout msec="5000">
         <AttitudeServo
             roll="1.0"
-            pitch="1.0"
+            pitch="10.0"
             yaw="1.0"
+            pitch-units="degrees"
             speed_knots="3.0"
-            roll_tol="1.0"
-            pitch_tol="1.0"
-            yaw_tol="1.0"/>
+            roll-tolerance="1.0"
+            pitch-tolerance="1.0"
+            yaw-tolerance="1.0"/>
       </Timeout>
     </Sequence>
   </BehaviorTree>
