@@ -9,8 +9,8 @@
             heading="5.0"
             heading-units="degrees"
             speed_knots="3.0"
-            depth-tolerance="10.0"
-            heading-tolerance="10.0"/>
+            depth-tolerance="0.1"
+            heading-tolerance="0.1"/>
       </Timeout>
     </Sequence>
   </BehaviorTree>

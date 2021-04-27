@@ -56,7 +56,8 @@ class TestGoToWaypointAction(unittest.TestCase):
         self._waypoint_sub = rospy.Subscriber(
             '/mngr/waypoint', Waypoint,
             self._waypoint_callback)
-        self._state_pub = rospy.Publisher('/state', StateStamped)
+        self._state_pub = rospy.Publisher(
+            '/state', StateStamped, queue_size=1)
         self.mission = MissionInterface()
 
     def _waypoint_callback(self, msg):

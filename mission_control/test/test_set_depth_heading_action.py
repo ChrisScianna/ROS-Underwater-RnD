@@ -45,6 +45,12 @@ from auv_interfaces.msg import StateStamped
 from mission_interface import MissionInterface
 from mission_interface import wait_for
 
+try:
+    from math import isclose
+except ImportError:
+    def isclose(a, b, rel_tol=1e-9):
+        return abs(a - b) < (rel_tol * max(abs(a), abs(b)))
+
 
 class TestSetDepthHeadingAction(unittest.TestCase):
 
@@ -82,26 +88,22 @@ class TestSetDepthHeadingAction(unittest.TestCase):
         self.mission.execute_mission()
 
         self.mission.read_behavior_parameters('SetDepthHeading')
-        depth = self.mission.get_behavior_parameter('depth')
-        heading = self.mission.get_behavior_parameter('heading')
+        depth = float(self.mission.get_behavior_parameter('depth'))
+        heading = float(self.mission.get_behavior_parameter('heading'))
         heading_units = self.mission.get_behavior_parameter('heading-units')
         self.assertEqual('degrees', heading_units)
         heading = math.radians(float(heading))
-        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
 
         # Calculate the mask
-        enable_mask = 0
-        if depth is not None:
-            enable_mask |= DepthHeading.DEPTH_ENA
-        if heading is not None:
-            enable_mask |= DepthHeading.HEADING_ENA
-        if speed_knots is not None:
-            enable_mask |= DepthHeading.SPEED_KNOTS_ENA
+        enable_mask = DepthHeading.DEPTH_ENA
+        enable_mask |= DepthHeading.HEADING_ENA
+        enable_mask |= DepthHeading.SPEED_KNOTS_ENA
 
         def depth_heading_goals_are_set():
-            return ((depth is None or self.depth_heading_goal.depth == float(depth)) and
-                    (heading is None or self.depth_heading_goal.heading == float(heading)) and
-                    (speed_knots is None or self.depth_heading_goal.speed_knots == float(speed_knots)) and
+            return (isclose(self.depth_heading_goal.depth, depth) and
+                    isclose(self.depth_heading_goal.heading, heading, rel_tol=1e-6) and
+                    isclose(self.depth_heading_goal.speed_knots, speed_knots) and
                     self.depth_heading_goal.ena_mask == enable_mask)
 
         self.assertTrue(wait_for(depth_heading_goals_are_set),
@@ -109,9 +111,8 @@ class TestSetDepthHeadingAction(unittest.TestCase):
 
         # send data to finish the mission
         auv_interface_data = StateStamped()
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 2.0
+        auv_interface_data.state.manoeuvring.pose.mean.position.z = depth
+        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = heading
         self.simulated_auv_interface_data_pub.publish(auv_interface_data)
 
         def success_mission_status_is_reported():
