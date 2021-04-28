@@ -96,6 +96,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<double>("/autopilot_node/depth_imax", depthIMax, 0.0);
   nh.param<double>("/autopilot_node/depth_imin", depthIMin, 0.0);
   nh.param<double>("/autopilot_node/depth_d", depthDGain, 0.0);
+  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);
 
   nh.param<double>("/autopilot_node/altitude_p", altitudePGain, 1.0);
   nh.param<double>("/autopilot_node/altitude_i", altitudeIGain, 0.0);
@@ -104,10 +105,8 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle) : nh(node_handle)
   nh.param<double>("/autopilot_node/altitude_d", altitudeDGain, 0.0);
   nh.param<double>("/autopilot_node/max_altitude_command",maxAltitudeCommand, 25.0);
 
-  double maxCtrlFinAngleInRadians = degreesToRadians(10.0);
-  nh.param<double>("/fin_control/max_ctrl_fin_angle", maxCtrlFinAngleInRadians);
-  maxCtrlFinAngle = radiansToDegrees(maxCtrlFinAngle);  // degrees
-  nh.param<double>("/autopilot_node/max_depth_command", maxDepthCommand, 10.0);
+  maxCtrlFinAngle = radiansToDegrees(
+    nh.param<double>("/fin_control/max_ctrl_fin_angle", degreesToRadians(10.0)));
 
   rollPIDController.initPid(rollPGain, rollIGain, rollDGain, rollIMax, rollIMin);
   pitchPIDController.initPid(pitchPGain, rollIGain, pitchDGain, pitchIMax, pitchIMin);
