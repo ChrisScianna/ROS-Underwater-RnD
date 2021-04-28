@@ -1,9 +1,9 @@
 <launch>
 	<arg name="maxDepth" default="100.0"/>
-	<arg name="maxRollAng" default="3.14159265358979323846"/>
-	<arg name="maxPitchAng" default="3.14159265358979323846"/>
-	<arg name="maxYawAng" default="6.283185307"/>
-	
+	<arg name="maxRollAng" default="$(eval pi)"/>
+	<arg name="maxPitchAng" default="$(eval pi/2)"/>
+	<arg name="maxYawAng" default="$(eval pi)"/>
+
 	<!-- pose_estimator -->
 	<node pkg="pose_estimator" type="pose_estimator_node" name="pose_estimator_node" output="screen">
 		<param name="rate" type="double" value="100.0"/>

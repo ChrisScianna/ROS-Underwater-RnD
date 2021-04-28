@@ -46,6 +46,13 @@ from mission_interface import MissionInterface
 from mission_interface import wait_for
 
 
+try:
+    from math import isclose
+except ImportError:
+    def isclose(a, b, rel_tol=1e-9):
+        return abs(a - b) < (rel_tol * max(abs(a), abs(b)))
+
+
 class TestAttitudeServoAction(unittest.TestCase):
 
     @classmethod
@@ -83,10 +90,13 @@ class TestAttitudeServoAction(unittest.TestCase):
         self.mission.execute_mission()
 
         self.mission.read_behavior_parameters('AttitudeServo')
-        roll = self.mission.get_behavior_parameter('roll')
-        pitch = self.mission.get_behavior_parameter('pitch')
-        yaw = self.mission.get_behavior_parameter('yaw')
-        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        roll = float(self.mission.get_behavior_parameter('roll'))
+        pitch = float(self.mission.get_behavior_parameter('pitch'))
+        pitch_units = self.mission.get_behavior_parameter('pitch-units')
+        self.assertEqual('degrees', pitch_units)
+        pitch = math.radians(float(pitch))
+        yaw = float(self.mission.get_behavior_parameter('yaw'))
+        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
 
         # Calculate the mask
         enable_mask = 0
@@ -100,10 +110,10 @@ class TestAttitudeServoAction(unittest.TestCase):
             enable_mask |= AttitudeServo.SPEED_KNOTS_ENA
 
         def attitude_servo_goals_are_set():
-            return ((roll is None or self.attitude_servo_goal.roll == float(roll)) and
-                    (pitch is None or self.attitude_servo_goal.pitch == float(pitch)) and
-                    (yaw is None or self.attitude_servo_goal.yaw == float(yaw)) and
-                    (speed_knots is None or self.attitude_servo_goal.speed_knots == float(speed_knots)) and
+            return (isclose(self.attitude_servo_goal.roll, roll) and
+                    isclose(self.attitude_servo_goal.pitch, pitch, rel_tol=1e-6) and
+                    isclose(self.attitude_servo_goal.yaw, yaw) and
+                    isclose(self.attitude_servo_goal.speed_knots, speed_knots) and
                     self.attitude_servo_goal.ena_mask == enable_mask)
 
         self.assertTrue(wait_for(attitude_servo_goals_are_set),
@@ -111,9 +121,9 @@ class TestAttitudeServoAction(unittest.TestCase):
 
         # send data to finish the mission
         msg = StateStamped()
-        msg.state.manoeuvring.pose.mean.orientation.x = 1.0
-        msg.state.manoeuvring.pose.mean.orientation.y = 1.0
-        msg.state.manoeuvring.pose.mean.orientation.z = 1.0
+        msg.state.manoeuvring.pose.mean.orientation.x = roll
+        msg.state.manoeuvring.pose.mean.orientation.y = pitch
+        msg.state.manoeuvring.pose.mean.orientation.z = yaw
         self.simulated_auv_interface_data_pub.publish(msg)
 
         def success_mission_status_is_reported():

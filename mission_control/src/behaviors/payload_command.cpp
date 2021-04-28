@@ -53,9 +53,10 @@ BT::NodeStatus PayloadCommandNode::tick()
 {
   payload_manager::PayloadCommand msg;
   msg.header.stamp = ros::Time::now();
-  if (!getInput<std::string>("command", msg.command))
+  auto result = getInput<std::string>("command", msg.command);
+  if (!result)
   {
-    ROS_ERROR_STREAM("Cannot '" << name() << "', action needs a command");
+    ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
     return BT::NodeStatus::FAILURE;
   }
   payloadCommandPub_.publish(msg);

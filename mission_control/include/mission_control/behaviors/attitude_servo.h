@@ -45,7 +45,9 @@
 #include <string>
 
 #include "auv_interfaces/StateStamped.h"
+#include "mission_control/behaviors/helpers.h"
 #include "mission_control/behaviors/reactive_action.h"
+
 
 namespace mission_control
 {
@@ -56,13 +58,14 @@ public:
 
   static BT::PortsList providedPorts()
   {
-    return {BT::InputPort<double>("roll", "Roll angle to reach, in radians"),  //  NOLINT
-            BT::InputPort<double>("pitch", "Pitch angle to reach, in radians"),
-            BT::InputPort<double>("yaw", "Yaw angle to reach, in radians"),
-            BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
-            BT::InputPort<double>("roll_tol", 0.0, "Tolerance for roll angle goal, in radians"),
-            BT::InputPort<double>("pitch_tol", 0.0, "Tolerance for pitch angle goal, in radians"),
-            BT::InputPort<double>("yaw_tol", 0.0, "Tolerance for yaw angle goal, in radians")};
+    return MakePortsList(
+      InputPort<double, HasTolerance, HasAngleUnits>(
+        "roll", NAN, "Roll angle to reach"),
+      InputPort<double, HasTolerance, HasAngleUnits>(
+        "pitch", NAN, "Pitch angle to reach"),
+      InputPort<double, HasTolerance, HasAngleUnits>(
+        "yaw", NAN, "Yaw angle to reach"),
+      BT::InputPort<double>("speed_knots", NAN, "Cruise speed to command, in knots"));
   }
 
 private:

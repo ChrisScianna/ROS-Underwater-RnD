@@ -59,11 +59,11 @@ public:
   static BT::PortsList providedPorts()
   {
     return {  // NOLINT
-      BT::InputPort<double>("depth", "Waypoint depth (positive down), in meters"),
-      BT::InputPort<double>("altitude", "Waypoint altitude (positive up), in meters"),
-      BT::InputPort<double>("latitude", "Waypoint latitude, in degrees"),
-      BT::InputPort<double>("longitude", "Waypoint longitude, in degrees"),
-      BT::InputPort<double>("speed_knots", "Cruise speed to command, in knots"),
+      BT::InputPort<double>("depth", NAN, "Waypoint depth (positive down), in meters"),
+      BT::InputPort<double>("altitude", NAN, "Waypoint altitude (positive up), in meters"),
+      BT::InputPort<double>("latitude", NAN, "Waypoint latitude, in degrees"),
+      BT::InputPort<double>("longitude", NAN, "Waypoint longitude, in degrees"),
+      BT::InputPort<double>("speed_knots", NAN, "Cruise speed to command, in knots"),
       BT::InputPort<double>("tolerance_radius", 0.0, "Radius of the tolerance sphere "
                             "for UTM coordinates, in meters")};  // NOLINT
   }

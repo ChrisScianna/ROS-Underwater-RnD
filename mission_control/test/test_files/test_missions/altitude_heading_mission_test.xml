@@ -4,12 +4,12 @@
   <BehaviorTree ID="MainTree">
     <Sequence name="mission test">
       <Timeout msec="2000">
-        <SetAltitudeHeading 
+        <SetAltitudeHeading
             altitude="1.0"
             heading="2.0"
             speed_knots="3.0"
-            altitude_tol="10.0"
-            heading_tol="10.0"/>
+            altitude-tolerance="10.0"
+            heading-tolerance="10.0"/>
       </Timeout>
     </Sequence>
   </BehaviorTree>

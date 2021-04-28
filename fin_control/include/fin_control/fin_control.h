@@ -84,7 +84,6 @@ class FinControl
 
   void reportAngles();
 
-  float radiansToDegrees(float radians);
   float degreesToRadians(float degrees);
 
   void reportAngleSendTimeout(const ros::TimerEvent& ev);
