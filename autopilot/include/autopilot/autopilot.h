@@ -54,6 +54,7 @@
 #include <sstream>
 
 #include "autopilot/pid.h"
+#include "autopilot/value_set.h"
 #include "auv_interfaces/StateStamped.h"
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
@@ -74,129 +75,91 @@
 
 class AutoPilotNode
 {
- public:
+public:
   explicit AutoPilotNode(ros::NodeHandle& node_handle);
-  void Start();
-  void Stop();
 
- private:
-  ros::NodeHandle nh;
-  ros::Publisher autoPilotInControlPub;
-  ros::Publisher thrusterPub;
-  ros::Publisher finsControlPub;
+  void spin();
 
-  ros::Subscriber jausRosSub;
-
-  ros::Subscriber stateSub;
-  ros::Subscriber missionStatusSub;
-  ros::Timer missionMgrHeartbeatTimer;
-
-  ros::Subscriber missionMgrHeartBeatSub;
-  ros::Subscriber setAttitudeBehaviorSub;
-  ros::Subscriber setDepthHeadingBehaviorSub;
-  ros::Subscriber setAltitudeHeadingBehaviorSub;
-  ros::Subscriber setFixedRudderBehaviorSub;
-  ros::Subscriber setWaypointBehaviorSub;
-
-  control_toolbox::Pid rollPIDController;
-  control_toolbox::Pid pitchPIDController;
-  control_toolbox::Pid yawPidController;
-  control_toolbox::Pid depthPIDController;
-  control_toolbox::Pid altitudePIDController;
-
-  bool autoPilotInControl;
-  bool missionMode;
-
-  double rollPGain;
-  double rollIGain;
-  double rollDGain;
-  double rollIMax;
-  double rollIMin;
-
-  double pitchPGain;
-  double pitchIGain;
-  double pitchDGain;
-  double pitchIMax;
-  double pitchIMin;
-
-  double yawPGain;
-  double yawIGain;
-  double yawDGain;
-  double yawIMax;
-  double yawIMin;
-
-  double depthPGain;
-  double depthIGain;
-  double depthDGain;
-  double depthIMax;
-  double depthIMin;
-  
-  double altitudePGain;
-  double altitudeIGain;
-  double altitudeDGain;
-  double altitudeIMax;
-  double altitudeIMin;
-  
-  void stateCallback(const auv_interfaces::StateStamped& msg);
-  void missionStatusCallback(const mission_control::ReportExecuteMissionState& data);
-
-  void HandleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
-
-  void mixActuators(double roll, double pitch, double yaw);
-  void missionMgrHeartbeatTimeout(const ros::TimerEvent& timer);
-
-  void workerFunc();
-
-  boost::mutex m_mutex;
-
-  double currentRoll;
-  double currentPitch;
-  double currentYaw;
-  double currentDepth;
-  geodesy::UTMPoint currentPosition;
-
-  double desiredRoll;
-  double desiredPitch;
-  double desiredYaw;
-  double desiredDepth;
-  double desiredRudder;
-  double desiredSpeed;
-  geodesy::UTMPoint desiredPosition;
-
-  double minimalSpeed;       // knots
-  double rpmPerKnot;
-  int controlLoopRate;       // Hz
-
-  bool thrusterEnabled;      // Thruster can't spin if false
-  bool speedControlEnabled;  // Autopilot controls acceleration if true
-  bool fixedRudder;          // Robot cordinate system for yaw if true
-  bool depthControl;         // Depth if true, pitch if false
-  bool altitudeControl;
-  bool waypointfollowing;
-  bool autopilotEnabled;     // Autopilot if true, OCU if false
-  bool waypointControl{false};
-
-  bool allowReverseThrusterAutopilot;  // allow negative RPM if true
-
-  double maxCtrlFinAngle;  // Max fin angle (degrees)
-  double maxDepthCommand;    // Max amount the depth affects the fin angle (degrees)
-  double maxAltitudeCommand;
-
-  boost::shared_ptr<boost::thread> m_thread;
-
-  // Behavior callbacks
-  void missionMgrHbCallback(const mission_control::ReportHeartbeat& msg);
+private:
   void attitudeServoCallback(const mission_control::AttitudeServo& msg);
   void depthHeadingCallback(const mission_control::DepthHeading& msg);
   void fixedRudderCallback(const mission_control::FixedRudder& msg);
   void altitudeHeadingCallback(const mission_control::AltitudeHeading& msg);
   void waypointCallback(const mission_control::Waypoint& msg);
+  void stateCallback(const auv_interfaces::StateStamped& msg);
 
-  // Mask that keeps tracks of active behaviors
-  boost::mutex behaviorMutex;
-  boost::mutex missonManagerHeartbeatMutex;  // misson manager heartbeat lock
+  void missionHeartbeatTimeout(const ros::TimerEvent& ev);
+  void missionHeartbeatCallback(const mission_control::ReportHeartbeat& msg);
+  void missionStatusCallback(const mission_control::ReportExecuteMissionState& data);
 
-  double mmTimeout;
-  bool mmIsAlive;
+  void handleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
+
+  void mixActuators(double roll, double pitch, double yaw, double thrust);
+
+  ros::NodeHandle nh_;
+  ros::Publisher thruster_control_pub_;
+  ros::Publisher fin_control_pub_;
+  ros::Subscriber state_sub_;
+
+  ros::Subscriber manual_control_sub_;
+
+  ros::Subscriber mission_status_sub_;
+  ros::Timer mission_heartbeat_timer_;
+  ros::Subscriber mission_heartbeat_sub_;
+  ros::Time last_heartbeat_stamp_;
+
+  ros::Subscriber attitude_servo_sub_;
+  ros::Subscriber depth_heading_sub_;
+  ros::Subscriber altitude_heading_sub_;
+  ros::Subscriber fixed_rudder_sub_;
+  ros::Subscriber waypoint_sub_;
+
+  control_toolbox::Pid roll_pid_controller_;
+  control_toolbox::Pid pitch_pid_controller_;
+  control_toolbox::Pid yaw_pid_controller_;
+  control_toolbox::Pid depth_pid_controller_;
+  control_toolbox::Pid altitude_pid_controller_;
+
+  ros::Publisher auto_pilot_in_control_pub_;
+  bool auto_pilot_in_control_;
+
+  double current_roll_;
+  double current_pitch_;
+  double current_yaw_;
+  double current_depth_;
+  geodesy::UTMPoint current_position_;
+
+  double desired_roll_;
+  double desired_pitch_;
+  double desired_yaw_;
+  double desired_depth_;
+  double desired_rudder_;
+  double desired_speed_;
+  geodesy::UTMPoint desired_position_;
+
+  double control_loop_rate_;  // Hz
+
+  double minimal_speed_;  // knots
+  double max_depth_command_;  // m
+  double max_altitude_command_;  // m
+  double rpms_per_knot_;  // RPMs
+  double max_ctrl_fin_angle_;  // degrees
+
+  enum class Setpoint
+  {
+    Rudder,
+    Speed,
+    Roll,
+    Pitch,
+    Yaw,
+    Depth,
+    Altitude,
+    Position
+  };
+  ValueSet<Setpoint> active_setpoints_;
+
+  bool thrust_enabled_;      // Thruster can't spin if false
+  bool allow_reverse_thrust_;  // allow negative RPM if true
 };
+
 #endif  // AUTOPILOT_AUTOPILOT_H

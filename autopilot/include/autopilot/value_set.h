@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,22 +32,60 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#include <type_traits>
 
-/*
- * autopilot_main.cpp
- */
+/// Set of enum of values, useful as a type-safe "bitmask"
+// Inspired by https://gpfault.net/posts/typesafe-bitmasks.txt.html
+template<typename EnumT>
+class ValueSet {
+public:
+  constexpr ValueSet() : mask_(0) {}
 
-#include "autopilot/autopilot.h"
+  constexpr ValueSet(EnumT value) : mask_(mask_for(value)) {}
 
-int main(int argc, char** argv)
+  constexpr ValueSet operator|(ValueSet other) const
+  {
+    return ValueSet(mask_ | other.mask_);
+  }
+
+  ValueSet& operator|=(ValueSet other)
+  {
+    mask_ |= other.mask_;
+    return *this;
+  }
+
+  constexpr ValueSet operator&(ValueSet other) const
+  {
+    return ValueSet(mask_ & other.mask_);
+  }
+
+  ValueSet& operator&=(ValueSet other)
+  {
+    mask_ &= other.mask_;
+    return *this;
+  }
+
+  explicit constexpr operator bool() const
+  {
+    return mask_ == 0;
+  }
+
+private:
+  static_assert(std::is_enum<EnumT>::value, "EnumT must be an enum type");
+  using underlying_type = typename std::underlying_type<EnumT>::type;
+
+  explicit constexpr ValueSet(underlying_type mask) : mask_(mask) {}
+
+  static constexpr underlying_type mask_for(EnumT value)
+  {
+    return 1 << static_cast<underlying_type>(value);
+  }
+
+  underlying_type mask_;
+};
+
+template<typename EnumT, typename = typename std::enable_if<std::is_enum<EnumT>::value>::type>
+constexpr ValueSet<EnumT> operator|(EnumT lhs, EnumT rhs)
 {
-  ros::init(argc, argv, "autopilot node");
-  ros::NodeHandle nh;
-  ROS_INFO("Starting autopilot node version: [%s]", NODE_VERSION);
-  nh.setParam("/version_numbers/autopilot", NODE_VERSION);
-
-  AutoPilotNode node(nh);
-  node.spin();
-  return 0;
+  return ValueSet<EnumT>{lhs} | rhs;
 }
