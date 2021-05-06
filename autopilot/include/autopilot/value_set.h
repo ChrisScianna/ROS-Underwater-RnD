@@ -67,7 +67,7 @@ public:
 
   explicit constexpr operator bool() const
   {
-    return mask_ == 0;
+    return mask_ != 0;
   }
 
 private:
