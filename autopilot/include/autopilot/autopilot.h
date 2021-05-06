@@ -123,6 +123,8 @@ private:
   ros::Publisher auto_pilot_in_control_pub_;
   bool auto_pilot_in_control_;
 
+  bool state_up_to_date_;
+
   double current_roll_;
   double current_pitch_;
   double current_yaw_;

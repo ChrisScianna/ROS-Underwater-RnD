@@ -206,6 +206,7 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle)
       "/jaus_ros_bridge/activate_manual_control", 1,
       &AutoPilotNode::handleActivateManualControl, this);
 
+  state_up_to_date_ = false;
   state_sub_ = nh_.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
 
   mission_heartbeat_sub_ = nh_.subscribe(
@@ -291,6 +292,7 @@ void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
   current_pitch_ = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.y);
   current_yaw_ = radiansToDegrees(msg.state.manoeuvring.pose.mean.orientation.z);
   geodesy::fromMsg(msg.state.geolocation.position, current_position_);
+  state_up_to_date_ = true;
 }
 
 void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double thrust_rpms)
@@ -504,82 +506,86 @@ void AutoPilotNode::spin()
     if (auto_pilot_in_control_)
     {
       double roll_command = 0.;  // straight
-      if (active_setpoints_ & Setpoint::Roll)
-      {
-        roll_command = roll_pid_controller_.updatePid(
-            wrapAngleTo180(current_roll_ - desired_roll_),
-            r.expectedCycleTime());
-      }
-
       double pitch_command = 0.;  // straight
-      if (active_setpoints_ & (Setpoint::Pitch | Setpoint::Depth | Setpoint::Altitude))
+      double yaw_command = 0.;  // straight
+      double thrust_command = 0.;  // coast
+
+      if (state_up_to_date_)
       {
-        if (active_setpoints_ & Setpoint::Depth)
+        if (active_setpoints_ & Setpoint::Roll)
         {
-          if (fabs(desired_depth_) > max_depth_command_)
-          {
-            ROS_WARN("Autopilot cannot command to a depth |d| > %f m", max_depth_command_);
-            desired_depth_ = copysign(max_depth_command_, desired_depth_);
-            ROS_INFO("Capping depth to %f m", desired_depth_);
-          }
-          // output of depth pid will be input to pitch pid
-          desired_pitch_ = depth_pid_controller_.updatePid(
-              current_depth_ - desired_depth_, r.expectedCycleTime());
-        }
-        else if (active_setpoints_ & Setpoint::Altitude)
-        {
-          if (fabs(desired_position_.altitude) > max_altitude_command_)
-          {
-            ROS_WARN("Autopilot cannot command to an altitude |a| > %f m", max_altitude_command_);
-            desired_position_.altitude = copysign(max_altitude_command_, desired_position_.altitude);
-            ROS_INFO("Capping altitude to %f m", desired_position_.altitude);
-          }
-          // output of altitude pid will be input to pitch pid
-          desired_pitch_ = altitude_pid_controller_.updatePid(
-              current_position_.altitude - desired_position_.altitude,
+          roll_command = roll_pid_controller_.updatePid(
+              wrapAngleTo180(current_roll_ - desired_roll_),
               r.expectedCycleTime());
         }
 
-        pitch_command = pitch_pid_controller_.updatePid(
-          wrapAngleTo180(current_pitch_ - desired_pitch_),
-          r.expectedCycleTime());
-      }
-
-      double yaw_command = 0.;  // straight
-      if (active_setpoints_ & Setpoint::Rudder)  // has precedence
-      {
-        yaw_command = desired_rudder_;
-      }
-      else if (active_setpoints_ & (Setpoint::Yaw | Setpoint::Position))
-      {
-        if (active_setpoints_ & Setpoint::Position)
+        if (active_setpoints_ & (Setpoint::Pitch | Setpoint::Depth | Setpoint::Altitude))
         {
-          desired_yaw_ = relativeAngle(
-              desired_position_.easting, desired_position_.northing,
-              current_position_.easting, current_position_.northing);
-        }
+          if (active_setpoints_ & Setpoint::Depth)
+          {
+            if (fabs(desired_depth_) > max_depth_command_)
+            {
+              ROS_WARN("Autopilot cannot command to a depth |d| > %f m", max_depth_command_);
+              desired_depth_ = copysign(max_depth_command_, desired_depth_);
+              ROS_INFO("Capping depth to %f m", desired_depth_);
+            }
+            // output of depth pid will be input to pitch pid
+            desired_pitch_ = depth_pid_controller_.updatePid(
+                current_depth_ - desired_depth_, r.expectedCycleTime());
+          }
+          else if (active_setpoints_ & Setpoint::Altitude)
+          {
+            if (fabs(desired_position_.altitude) > max_altitude_command_)
+            {
+              ROS_WARN("Autopilot cannot command to an altitude |a| > %f m", max_altitude_command_);
+              desired_position_.altitude = copysign(max_altitude_command_, desired_position_.altitude);
+              ROS_INFO("Capping altitude to %f m", desired_position_.altitude);
+            }
+            // output of altitude pid will be input to pitch pid
+            desired_pitch_ = altitude_pid_controller_.updatePid(
+                current_position_.altitude - desired_position_.altitude,
+                r.expectedCycleTime());
+          }
 
-        yaw_command = yaw_pid_controller_.updatePid(
-            wrapAngleTo180(current_yaw_ - desired_yaw_),
+          pitch_command = pitch_pid_controller_.updatePid(
+            wrapAngleTo180(current_pitch_ - desired_pitch_),
             r.expectedCycleTime());
-      }
+        }
 
-      double thrust_command = 0.;  // coast
-      if (active_setpoints_ & Setpoint::Speed)
-      {
-        if (desired_speed_ < 0. && !allow_reverse_thrust_)
+        if (active_setpoints_ & Setpoint::Rudder)  // has precedence
         {
-          ROS_WARN("Autopilot cannot command a reverse thrust!");
-          ROS_INFO("Forcing speed to 0 knots");
-          desired_speed_ = 0.;
+          yaw_command = desired_rudder_;
         }
-        if (desired_speed_ != 0. && fabs(desired_speed_) < minimal_speed_)
+        else if (active_setpoints_ & (Setpoint::Yaw | Setpoint::Position))
         {
-          ROS_WARN("Autopilot cannot command a speed |s| < %f", minimal_speed_);
-          desired_speed_ = copysign(minimal_speed_, desired_speed_);
-          ROS_INFO("Bumping speed to %f knots", desired_speed_);
+          if (active_setpoints_ & Setpoint::Position)
+          {
+            desired_yaw_ = relativeAngle(
+                desired_position_.easting, desired_position_.northing,
+                current_position_.easting, current_position_.northing);
+          }
+
+          yaw_command = yaw_pid_controller_.updatePid(
+              wrapAngleTo180(current_yaw_ - desired_yaw_),
+              r.expectedCycleTime());
         }
-        thrust_command = desired_speed_ * rpms_per_knot_;
+
+        if (active_setpoints_ & Setpoint::Speed)
+        {
+          if (desired_speed_ < 0. && !allow_reverse_thrust_)
+          {
+            ROS_WARN("Autopilot cannot command a reverse thrust!");
+            ROS_INFO("Forcing speed to 0 knots");
+            desired_speed_ = 0.;
+          }
+          if (desired_speed_ != 0. && fabs(desired_speed_) < minimal_speed_)
+          {
+            ROS_WARN("Autopilot cannot command a speed |s| < %f", minimal_speed_);
+            desired_speed_ = copysign(minimal_speed_, desired_speed_);
+            ROS_INFO("Bumping speed to %f knots", desired_speed_);
+          }
+          thrust_command = desired_speed_ * rpms_per_knot_;
+        }
       }
 
       mixActuators(roll_command, pitch_command, yaw_command, thrust_command);
