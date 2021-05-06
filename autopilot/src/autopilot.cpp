@@ -274,15 +274,20 @@ void AutoPilotNode::handleActivateManualControl(const jaus_ros_bridge::ActivateM
 {
   if (msg.activate_manual_control)
   {
-    ROS_INFO("Manual control activated!");
-    // clear the following so we do not take off after manual control is released.
-    active_setpoints_ = {};
+    if (auto_pilot_in_control_) {
+      ROS_INFO("Manual control activated!");
+      // clear the following so we do not take off after manual control is released.
+      active_setpoints_ = {};
+      auto_pilot_in_control_ = false;
+    }
   }
   else
   {
-    ROS_INFO("Manual control deactivated!");
+    if (!auto_pilot_in_control_) {
+      ROS_INFO("Manual control deactivated!");
+      auto_pilot_in_control_ = true;
+    }
   }
-  auto_pilot_in_control_ = !msg.activate_manual_control;
 }
 
 void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
