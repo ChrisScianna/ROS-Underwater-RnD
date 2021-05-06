@@ -573,7 +573,7 @@ void AutoPilotNode::spin()
           ROS_INFO("Forcing speed to 0 knots");
           desired_speed_ = 0.;
         }
-        if (desired_speed != 0. && fabs(desired_speed_) < minimal_speed_)
+        if (desired_speed_ != 0. && fabs(desired_speed_) < minimal_speed_)
         {
           ROS_WARN("Autopilot cannot command a speed |s| < %f", minimal_speed_);
           desired_speed_ = copysign(minimal_speed_, desired_speed_);
