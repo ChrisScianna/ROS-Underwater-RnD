@@ -124,8 +124,7 @@ double relativeAngle(double xb, double yb, double xa, double ya)
 
 }  // namespace
 
-AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle)
-  : nh_(node_handle)
+AutoPilotNode::AutoPilotNode() : pnh_("~")
 {
   thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
   fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
@@ -133,74 +132,74 @@ AutoPilotNode::AutoPilotNode(ros::NodeHandle& node_handle)
       nh_.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
   auto_pilot_in_control_ = true;
 
-  control_loop_rate_ = nh_.param<double>("control_loop_rate", 25.);  // Hz
-  minimal_speed_ = nh_.param<double>("minimal_vehicle_speed", 2.0);  // knots
-  rpms_per_knot_ = nh_.param<double>("rpm_per_knot", 100.0);  // rpm
+  control_loop_rate_ = pnh_.param<double>("control_loop_rate", 25.);  // Hz
+  minimal_speed_ = pnh_.param<double>("minimal_vehicle_speed", 2.0);  // knots
+  rpms_per_knot_ = pnh_.param<double>("rpm_per_knot", 100.0);  // rpm
 
-  const double roll_pgain = nh_.param<double>("roll_p", 1.0);
-  const double roll_igain = nh_.param<double>("roll_i", 0.0);
-  const double roll_dgain = nh_.param<double>("roll_d", 0.0);
-  const double roll_imax =  nh_.param<double>("roll_imax", 0.0);
-  const double roll_imin = nh_.param<double>("roll_imin", 0.0);
+  const double roll_pgain = pnh_.param<double>("roll_p", 1.0);
+  const double roll_igain = pnh_.param<double>("roll_i", 0.0);
+  const double roll_dgain = pnh_.param<double>("roll_d", 0.0);
+  const double roll_imax =  pnh_.param<double>("roll_imax", 0.0);
+  const double roll_imin = pnh_.param<double>("roll_imin", 0.0);
   roll_pid_controller_.initPid(roll_pgain, roll_igain, roll_dgain, roll_imax, roll_imin);
 
-  const double pitch_pgain = nh_.param<double>("pitch_p", 1.0);
-  const double pitch_igain = nh_.param<double>("pitch_i", 0.0);
-  const double pitch_dgain = nh_.param<double>("pitch_d", 0.0);
-  const double pitch_imax = nh_.param<double>("pitch_imax", 0.0);
-  const double pitch_imin = nh_.param<double>("pitch_imin", 0.0);
+  const double pitch_pgain = pnh_.param<double>("pitch_p", 1.0);
+  const double pitch_igain = pnh_.param<double>("pitch_i", 0.0);
+  const double pitch_dgain = pnh_.param<double>("pitch_d", 0.0);
+  const double pitch_imax = pnh_.param<double>("pitch_imax", 0.0);
+  const double pitch_imin = pnh_.param<double>("pitch_imin", 0.0);
   pitch_pid_controller_.initPid(pitch_pgain, pitch_igain, pitch_dgain, pitch_imax, pitch_imin);
 
-  const double yaw_pgain = nh_.param<double>("yaw_p", 1.0);
-  const double yaw_igain = nh_.param<double>("yaw_i", 0.0);
-  const double yaw_dgain = nh_.param<double>("yaw_d", 0.0);
-  const double yaw_imax = nh_.param<double>("yaw_imax", 0.0);
-  const double yaw_imin = nh_.param<double>("yaw_imin", 0.0);
+  const double yaw_pgain = pnh_.param<double>("yaw_p", 1.0);
+  const double yaw_igain = pnh_.param<double>("yaw_i", 0.0);
+  const double yaw_dgain = pnh_.param<double>("yaw_d", 0.0);
+  const double yaw_imax = pnh_.param<double>("yaw_imax", 0.0);
+  const double yaw_imin = pnh_.param<double>("yaw_imin", 0.0);
   yaw_pid_controller_.initPid(yaw_pgain, yaw_igain, yaw_dgain, yaw_imax, yaw_imin);
 
-  const double depth_pgain = nh_.param<double>("depth_p", 1.0);
-  const double depth_igain = nh_.param<double>("depth_i", 0.0);
-  const double depth_dgain = nh_.param<double>("depth_d", 0.0);
-  const double depth_imax = nh_.param<double>("depth_imax", 0.0);
-  const double depth_imin = nh_.param<double>("depth_imin", 0.0);
+  const double depth_pgain = pnh_.param<double>("depth_p", 1.0);
+  const double depth_igain = pnh_.param<double>("depth_i", 0.0);
+  const double depth_dgain = pnh_.param<double>("depth_d", 0.0);
+  const double depth_imax = pnh_.param<double>("depth_imax", 0.0);
+  const double depth_imin = pnh_.param<double>("depth_imin", 0.0);
   depth_pid_controller_.initPid(depth_pgain, depth_igain, depth_dgain, depth_imax, depth_imin);
-  max_depth_command_ = nh_.param<double>("max_depth_command", 10.0);
+  max_depth_command_ = pnh_.param<double>("max_depth_command", 10.0);
 
-  const double altitude_pgain = nh_.param<double>("altitude_p", 1.0);
-  const double altitude_igain = nh_.param<double>("altitude_i", 0.0);
-  const double altitude_dgain = nh_.param<double>("altitude_d", 0.0);
-  const double altitude_imax = nh_.param<double>("altitude_imax", 0.0);
-  const double altitude_imin = nh_.param<double>("altitude_imin", 0.0);
+  const double altitude_pgain = pnh_.param<double>("altitude_p", 1.0);
+  const double altitude_igain = pnh_.param<double>("altitude_i", 0.0);
+  const double altitude_dgain = pnh_.param<double>("altitude_d", 0.0);
+  const double altitude_imax = pnh_.param<double>("altitude_imax", 0.0);
+  const double altitude_imin = pnh_.param<double>("altitude_imin", 0.0);
   altitude_pid_controller_.initPid(altitude_pgain, altitude_igain, altitude_dgain, altitude_imax, altitude_imin);
-  max_altitude_command_ = nh_.param<double>("max_altitude_command", 25.0);
+  max_altitude_command_ = pnh_.param<double>("max_altitude_command", 25.0);
 
   max_ctrl_fin_angle_ = radiansToDegrees(
       nh_.param<double>("/fin_control/max_ctrl_fin_angle", degreesToRadians(10.0)));
 
   active_setpoints_ = Setpoint::Roll | Setpoint::Pitch | Setpoint::Yaw;
-  desired_roll_ = nh_.param<double>("desired_roll", 0.0);
-  desired_pitch_ = nh_.param<double>("desired_pitch", 0.0);
-  desired_yaw_ = nh_.param<double>("desired_yaw", 0.0);
-  if (nh_.param<bool>("depth_control_enabled", false))
+  desired_roll_ = pnh_.param<double>("desired_roll", 0.0);
+  desired_pitch_ = pnh_.param<double>("desired_pitch", 0.0);
+  desired_yaw_ = pnh_.param<double>("desired_yaw", 0.0);
+  if (pnh_.param<bool>("depth_control_enabled", false))
   {
     active_setpoints_ |= Setpoint::Depth;
   }
-  desired_depth_ = nh_.param<double>("desired_depth", 0.0);
+  desired_depth_ = pnh_.param<double>("desired_depth", 0.0);
 
-  if (nh_.param<bool>("speed_control_enabled", false))
+  if (pnh_.param<bool>("speed_control_enabled", false))
   {
     active_setpoints_ |= Setpoint::Speed;
   }
-  desired_speed_ = nh_.param<double>("desired_speed", 0.0);
-  if (nh_.param<bool>("fixed_rudder", true))
+  desired_speed_ = pnh_.param<double>("desired_speed", 0.0);
+  if (pnh_.param<bool>("fixed_rudder", true))
   {
     active_setpoints_ |= Setpoint::Rudder;
   }
-  desired_rudder_ = nh_.param<double>("desired_rudder", 0.0);
+  desired_rudder_ = pnh_.param<double>("desired_rudder", 0.0);
 
   allow_reverse_thrust_ =
-      nh_.param<bool>("allow_reverse_thruster_autopilot", false);
-  thrust_enabled_ = nh_.param<bool>("thruster_enabled", false);
+      pnh_.param<bool>("allow_reverse_thruster_autopilot", false);
+  thruster_enabled_ = pnh_.param<bool>("thruster_enabled", false);
 
   manual_control_sub_ = nh_.subscribe(
       "/jaus_ros_bridge/activate_manual_control", 1,
@@ -326,7 +325,7 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
   fin_control_message.f4_angle_in_radians = degreesToRadians(d4);
   fin_control_pub_.publish(fin_control_message);
 
-  if (thrust_enabled_)
+  if (thruster_enabled_)
   {
     thruster_control::SetRPM thruster_control_message;
     thruster_control_message.commanded_rpms = thrust_rpms;

@@ -42,12 +42,12 @@
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "autopilot node");
+  ros::init(argc, argv, "autopilot_node");
   ros::NodeHandle nh;
   ROS_INFO("Starting autopilot node version: [%s]", NODE_VERSION);
   nh.setParam("/version_numbers/autopilot", NODE_VERSION);
 
-  AutoPilotNode node(nh);
+  AutoPilotNode node;
   node.spin();
   return 0;
 }

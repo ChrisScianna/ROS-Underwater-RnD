@@ -76,7 +76,7 @@
 class AutoPilotNode
 {
 public:
-  explicit AutoPilotNode(ros::NodeHandle& node_handle);
+  AutoPilotNode();
 
   void spin();
 
@@ -97,6 +97,7 @@ private:
   void mixActuators(double roll, double pitch, double yaw, double thrust);
 
   ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
   ros::Publisher thruster_control_pub_;
   ros::Publisher fin_control_pub_;
   ros::Subscriber state_sub_;
@@ -160,7 +161,7 @@ private:
   };
   ValueSet<Setpoint> active_setpoints_;
 
-  bool thrust_enabled_;      // Thruster can't spin if false
+  bool thruster_enabled_;      // Thruster can't spin if false
   bool allow_reverse_thrust_;  // allow negative RPM if true
 };
 
