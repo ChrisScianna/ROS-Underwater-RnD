@@ -357,7 +357,7 @@ void AutoPilotNode::attitudeServoCallback(const mission_control::AttitudeServo& 
     // Yaw setpoint in attitude servo is really a fixed rudder
     // NOTE(hidmic): this is strange, but I'll keep it as-is
     desired_rudder_ = radiansToDegrees(msg.yaw);
-    active_setpoints_ |= Setpoint::Yaw;
+    active_setpoints_ |= Setpoint::Rudder;
     ROS_INFO("Yaw angle: %f deg", desired_rudder_);
   }
 
