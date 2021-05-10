@@ -313,8 +313,7 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
   double d3 = degreesToRadians(-rotated_pitch - rotated_yaw + roll);  // Fin 3 bottom port
   double d4 = degreesToRadians(-rotated_pitch + rotated_yaw + roll);  // Fin 4 top port
 
-  const double angles[] = {
-    fabs(d1), fabs(d2), fabs(d3), fabs(d4), max_ctrl_fin_angle_in_radians_};
+  const double angles[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), max_ctrl_fin_angle_in_radians_};
   const double max_angle_in_radians = *std::max_element(std::begin(angles), std::end(angles));
   d1 = d1 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
   d2 = d2 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
