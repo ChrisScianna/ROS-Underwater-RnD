@@ -50,6 +50,7 @@ AbortNode::AbortNode(const std::string& name, const BT::NodeConfiguration& confi
     nh_.advertise<mission_control::AttitudeServo>("/mngr/attitude_servo", 1, true);
 
   nh_.param<double>("/fin_control/max_ctrl_fin_angle", pitch_, 20 * M_PI / 180.);
+  pitch_ = -pitch_;  // Pitch nose upwards
 }
 
 BT::NodeStatus AbortNode::setUp()
@@ -60,14 +61,10 @@ BT::NodeStatus AbortNode::setUp()
 
   mission_control::AttitudeServo msg;
   msg.header.stamp = ros::Time::now();
-  msg.roll = roll_;
   msg.pitch = pitch_;
-  msg.yaw = yaw_;
   msg.speed_knots = speed_knots_;
   msg.ena_mask =
-    mission_control::AttitudeServo::ROLL_ENA |
     mission_control::AttitudeServo::PITCH_ENA |
-    mission_control::AttitudeServo::YAW_ENA |
     mission_control::AttitudeServo::SPEED_KNOTS_ENA;
   attitude_servo_pub_.publish(msg);
 
@@ -88,10 +85,7 @@ BT::NodeStatus AbortNode::doWork()
 
     // NOTE(aschapiro): This ignores angle wraparound and the fact that
     // you can represent the same rotation with different RPY triplets
-    if ((std::abs(roll_ - roll) < roll_tolerance_) &&
-        (std::abs(pitch_ - pitch) < pitch_tolerance_) &&
-        (std::abs(yaw_ - yaw) < yaw_tolerance_) &&
-        (speed < speed_tolerance_))
+    if ((std::abs(pitch_ - pitch) < pitch_tolerance_) && (speed < speed_tolerance_))
     {
       return BT::NodeStatus::SUCCESS;
     }
