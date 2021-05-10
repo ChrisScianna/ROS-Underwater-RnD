@@ -146,7 +146,7 @@ private:
   double max_depth_command_;  // m
   double max_altitude_command_;  // m
   double rpms_per_knot_;  // RPMs
-  double max_ctrl_fin_angle_;  // degrees
+  double max_ctrl_fin_angle_in_radians_;
 
   enum class Setpoint
   {
