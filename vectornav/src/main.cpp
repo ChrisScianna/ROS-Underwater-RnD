@@ -318,16 +318,6 @@ int run(int argc, char *argv[])
     ros::NodeHandle n;
     ros::NodeHandle pn("~");
 
-    pubIMU = diagnostic_tools::create_publisher<sensor_msgs::Imu>(
-        n, "vectornav/IMU", 1000);
-    pubMag = n.advertise<sensor_msgs::MagneticField>("vectornav/Mag", 1000);
-    pubGPS = n.advertise<sensor_msgs::NavSatFix>("vectornav/GPS", 1000);
-    pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
-    pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
-    pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
-
-    resetOdomSrv = n.advertiseService("reset_odom", resetOdom);
-
     // Serial Port Settings
     string SensorPort;
     int SensorBaudrate;
@@ -354,33 +344,6 @@ int run(int argc, char *argv[])
     pn.param<double>("max_async_output_rate", max_async_output_rate,
                      static_cast<double>(async_output_rate) * 2);
     pn.param<double>("orientation_steady_band", orientationSteadyBand);
-    diagnostic_updater::Updater diagnosticsUpdater;
-    diagnosticsUpdater.setHardwareID("imu");
-    diagnostic_tools::PeriodicMessageStatusParams imu_data_rate_check_params;
-    imu_data_rate_check_params.min_acceptable_period(1.0 / max_async_output_rate);
-    imu_data_rate_check_params.max_acceptable_period(1.0 / min_async_output_rate);
-    imu_data_rate_check_params.abnormal_diagnostic(
-        diagnostic_tools::Diagnostic::WARN);
-    imu_data_rate_check_params.stale_diagnostic({  // NOLINT
-        diagnostic_tools::Diagnostic::STALE,
-        health_monitor::ReportFault::AHRS_DATA_STALE
-    });  // NOLINT
-    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
-        "rate check", imu_data_rate_check_params));
-
-    diagnostic_tools::MessageStagnationCheckParams imu_data_stagnation_check_params;
-    imu_data_stagnation_check_params.stagnation_diagnostic({  // NOLINT
-        diagnostic_tools::Diagnostic::ERROR,
-        health_monitor::ReportFault::AHRS_DATA_STAGNATED
-    });  // NOLINT
-    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
-        "stagnation check",
-        [orientationSteadyBand](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
-          return ((std::fabs(a.orientation.x - b.orientation.x) < orientationSteadyBand) &&
-                  (std::fabs(a.orientation.y - b.orientation.y) < orientationSteadyBand) &&
-                  (std::fabs(a.orientation.z - b.orientation.z) < orientationSteadyBand) &&
-                  (std::fabs(a.orientation.w - b.orientation.w) < orientationSteadyBand));
-        }, imu_data_stagnation_check_params));  // NOLINT
 
     //Call to set covariances
     if(pn.getParam("linear_accel_covariance",rpc_temp))
@@ -457,7 +420,9 @@ int run(int argc, char *argv[])
         ROS_WARN("Please input a valid baud rate. Valid are:");
         ROS_WARN("9600, 19200, 38400, 57600, 115200, 128000, 230400, 460800, 921600");
         ROS_WARN("With the test IMU 128000 did not work, all others worked fine.");
+        return -1;
     }
+
     // Query the sensor's model number.
     string mn = vs.readModelNumber();
     ROS_INFO("Model Number: %s", mn.c_str());
@@ -493,6 +458,45 @@ int run(int argc, char *argv[])
     // Set Data output Freq [Hz]
     vs.writeAsyncDataOutputFrequency(async_output_rate);
     vs.registerAsyncPacketReceivedHandler(&user_data, BinaryAsyncMessageReceived);
+
+    pubIMU = diagnostic_tools::create_publisher<sensor_msgs::Imu>(
+        n, "vectornav/IMU", 1000);
+    pubMag = n.advertise<sensor_msgs::MagneticField>("vectornav/Mag", 1000);
+    pubGPS = n.advertise<sensor_msgs::NavSatFix>("vectornav/GPS", 1000);
+    pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
+    pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
+    pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
+
+    resetOdomSrv = n.advertiseService("reset_odom", resetOdom);
+
+    diagnostic_updater::Updater diagnosticsUpdater;
+    diagnosticsUpdater.setHardwareID("imu");
+    diagnostic_tools::PeriodicMessageStatusParams imu_data_rate_check_params;
+    imu_data_rate_check_params.min_acceptable_period(1.0 / max_async_output_rate);
+    imu_data_rate_check_params.max_acceptable_period(1.0 / min_async_output_rate);
+    imu_data_rate_check_params.abnormal_diagnostic(
+        diagnostic_tools::Diagnostic::WARN);
+    imu_data_rate_check_params.stale_diagnostic({  // NOLINT
+        diagnostic_tools::Diagnostic::STALE,
+        health_monitor::ReportFault::AHRS_DATA_STALE
+    });  // NOLINT
+    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::PeriodicMessageStatus>(
+        "rate check", imu_data_rate_check_params));
+
+    diagnostic_tools::MessageStagnationCheckParams imu_data_stagnation_check_params;
+    imu_data_stagnation_check_params.stagnation_diagnostic({  // NOLINT
+        diagnostic_tools::Diagnostic::ERROR,
+        health_monitor::ReportFault::AHRS_DATA_STAGNATED
+    });  // NOLINT
+    diagnosticsUpdater.add(pubIMU.add_check<diagnostic_tools::MessageStagnationCheck>(
+        "stagnation check",
+        [orientationSteadyBand](const sensor_msgs::Imu &a, const sensor_msgs::Imu &b) {
+          return ((std::fabs(a.orientation.x - b.orientation.x) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.y - b.orientation.y) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.z - b.orientation.z) < orientationSteadyBand) &&
+                  (std::fabs(a.orientation.w - b.orientation.w) < orientationSteadyBand));
+        }, imu_data_stagnation_check_params));  // NOLINT
+
 
     // You spin me right round, baby
     // Right round like a record, baby
