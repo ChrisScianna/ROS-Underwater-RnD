@@ -36,6 +36,8 @@
 
 #include "autopilot/autopilot.h"
 
+#include <algorithm>
+
 namespace
 {
 
