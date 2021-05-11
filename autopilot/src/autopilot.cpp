@@ -301,6 +301,16 @@ void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
   state_up_to_date_ = true;
 }
 
+namespace
+{
+
+double saturate(double value, double limit)
+{
+  return std::copysign(std::min(std::abs(value), limit), value);
+}
+
+}  // namespace
+
 void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double thrust_rpms)
 {
   const double current_roll_in_radians = degreesToRadians(current_roll_);
@@ -313,18 +323,16 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
   double d3 = degreesToRadians(-rotated_pitch - rotated_yaw + roll);  // Fin 3 bottom port
   double d4 = degreesToRadians(-rotated_pitch + rotated_yaw + roll);  // Fin 4 top port
 
+  // Scale down and saturate fin angles if necessary
   const double angles[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), max_ctrl_fin_angle_in_radians_};
   const double max_angle_in_radians = *std::max_element(std::begin(angles), std::end(angles));
-  d1 = d1 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
-  d2 = d2 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
-  d3 = d3 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
-  d4 = d4 * max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
+  const double scale = max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
 
   fin_control::SetAngles fin_control_message;
-  fin_control_message.f1_angle_in_radians = d1;
-  fin_control_message.f2_angle_in_radians = d2;
-  fin_control_message.f3_angle_in_radians = d3;
-  fin_control_message.f4_angle_in_radians = d4;
+  fin_control_message.f1_angle_in_radians = saturate(scale * d1, max_ctrl_fin_angle_in_radians_);
+  fin_control_message.f2_angle_in_radians = saturate(scale * d2, max_ctrl_fin_angle_in_radians_);
+  fin_control_message.f3_angle_in_radians = saturate(scale * d3, max_ctrl_fin_angle_in_radians_);
+  fin_control_message.f4_angle_in_radians = saturate(scale * d4, max_ctrl_fin_angle_in_radians_);
   fin_control_pub_.publish(fin_control_message);
 
   if (thruster_enabled_)
