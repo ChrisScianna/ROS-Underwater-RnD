@@ -361,6 +361,14 @@ int run(int argc, char *argv[])
 
     ROS_INFO("Connecting to : %s @ %d Baud", SensorPort.c_str(), SensorBaudrate);
 
+    pubIMU = diagnostic_tools::create_publisher<sensor_msgs::Imu>(
+        n, "vectornav/IMU", 1000);
+    pubMag = n.advertise<sensor_msgs::MagneticField>("vectornav/Mag", 1000);
+    pubGPS = n.advertise<sensor_msgs::NavSatFix>("vectornav/GPS", 1000);
+    pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
+    pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
+    pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
+
     // Create a VnSensor object and connect to sensor
     VnSensor vs;
 
@@ -458,14 +466,6 @@ int run(int argc, char *argv[])
     // Set Data output Freq [Hz]
     vs.writeAsyncDataOutputFrequency(async_output_rate);
     vs.registerAsyncPacketReceivedHandler(&user_data, BinaryAsyncMessageReceived);
-
-    pubIMU = diagnostic_tools::create_publisher<sensor_msgs::Imu>(
-        n, "vectornav/IMU", 1000);
-    pubMag = n.advertise<sensor_msgs::MagneticField>("vectornav/Mag", 1000);
-    pubGPS = n.advertise<sensor_msgs::NavSatFix>("vectornav/GPS", 1000);
-    pubOdom = n.advertise<nav_msgs::Odometry>("vectornav/Odom", 1000);
-    pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
-    pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
 
     resetOdomSrv = n.advertiseService("reset_odom", resetOdom);
 
