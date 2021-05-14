@@ -88,7 +88,7 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
       "/jaus_ros_bridge/enable_logging", 1, true);
 
   _publisher_ClearFault = _nodeHandle.advertise<health_monitor::ClearFault>(
-              "/health_monitor/clear_fault", 1, true);
+              "/health_monitor/ClearFault", 1, true);
 
   _udp = udp;
 
@@ -102,6 +102,7 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
   ActivateManualControl_timer = _nodeHandle.createTimer(
       ros::Duration(2), &JausDataManager::ActivateManualControlTimeout, this);
   _activateManualControlEnabled = false;
+  _deactivateFromOCU = true;
   //_needTimerUpdate = false;
 }
 
@@ -160,22 +161,25 @@ void JausDataManager::ProcessReceivedData(char* buffer)
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = true;
     _publisher_ActivateManualControl.publish(msg);
-    if(!_activateManualControlEnabled)
-      ROS_WARN("ActivateManualControl is on!");
+
+    if(!_activateManualControlEnabled&&_deactivateFromOCU){
+      ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
+      _deactivateFromOCU = false;
+    }
     
     _activateManualControlEnabled = true;
     //_needTimerUpdate = true;
-    ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
   }
   else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = false;
     _publisher_ActivateManualControl.publish(msg);
     if(_activateManualControlEnabled)
-      ROS_WARN("ActivateManualControl is off!");
+      ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
     _activateManualControlEnabled = false;
+    _deactivateFromOCU = true;
     //_needTimerUpdate = false;
-    ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
+
     ResetAll();
   }
   else if (strcmp(buffer, ENABLE_LOGGING) == 0) {
