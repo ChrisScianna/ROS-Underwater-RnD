@@ -123,16 +123,13 @@ void JausDataManager::ResetAll() {
 void JausDataManager::ActivateManualControlTimeout(const ros::TimerEvent& timer) {
   if (_activateManualControlEnabled) {
     _activateManualControlEnabled = false;
-    // if(debug_mode)
-    ROS_WARN("ActivateManualControl is on!");
+
   } else {
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = false;
     _publisher_ActivateManualControl.publish(msg);
     _activateManualControlEnabled = false;
     //_needTimerUpdate = false;
-    // if(debug_mode)
-    ROS_WARN("ActivateManualControl is off!");
     // Tell thruster to stop if running
     _thrusterControl.StopThruster();
     //_udp->TimeoutDisconnect();
@@ -163,8 +160,10 @@ void JausDataManager::ProcessReceivedData(char* buffer)
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = true;
     _publisher_ActivateManualControl.publish(msg);
+    if(!_activateManualControlEnabled)
+      ROS_WARN("ActivateManualControl is on!");
+    
     _activateManualControlEnabled = true;
-
     //_needTimerUpdate = true;
     ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
   }
@@ -172,6 +171,8 @@ void JausDataManager::ProcessReceivedData(char* buffer)
     jaus_ros_bridge::ActivateManualControl msg;
     msg.activate_manual_control = false;
     _publisher_ActivateManualControl.publish(msg);
+    if(_activateManualControlEnabled)
+      ROS_WARN("ActivateManualControl is off!");
     _activateManualControlEnabled = false;
     //_needTimerUpdate = false;
     ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
