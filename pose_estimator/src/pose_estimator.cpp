@@ -98,7 +98,6 @@ PoseEstimator::PoseEstimator()
   // Setup diagnostics
   diagnostic_tools::PeriodicMessageStatusParams state_rate_check_params;
   state_rate_check_params.min_acceptable_period(1.0 / max_rate);
-  state_rate_check_params.max_acceptable_period(1.0 / min_rate);
   state_rate_check_params.abnormal_diagnostic(diagnostic_tools::Diagnostic::WARN);
   state_rate_check_params.stale_diagnostic({  // NOLINT(whitespace/braces)
       diagnostic_tools::Diagnostic::STALE,
