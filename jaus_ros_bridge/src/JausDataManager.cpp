@@ -88,7 +88,7 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
       "/jaus_ros_bridge/enable_logging", 1, true);
 
   _publisher_ClearFault = _nodeHandle.advertise<health_monitor::ClearFault>(
-              "/health_monitor/ClearFault", 1, true);
+              "/health_monitor/clear_fault", 1, true);
 
   _udp = udp;
 
