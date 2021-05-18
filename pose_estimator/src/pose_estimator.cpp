@@ -60,7 +60,7 @@ PoseEstimator::PoseEstimator()
   double min_rate, max_rate;
   pnh_.param("min_rate", min_rate, 1.);  // Hz
   pnh_.param("max_rate", max_rate, 50.);  // Hz
-  
+
   double absolute_steady_band;
   double relative_steady_band;
   pnh_.param("absolute_steady_band", absolute_steady_band, 0.);
@@ -188,7 +188,6 @@ PoseEstimator::PoseEstimator()
       });  // NOLINT(whitespace/braces)
   diagnostics_updater_.add(orientation_yaw_check_);
 
-  ROS_ERROR_STREAM(diagnostics_updater_.getPeriod());
   // Start diagnostics publishing timer
   diagnostics_timer_ = nh_.createTimer(
       ros::Duration(diagnostics_updater_.getPeriod()),
