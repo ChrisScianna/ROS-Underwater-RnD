@@ -119,6 +119,7 @@ class JausDataManager {
   ros::Publisher _publisher_ClearFault;
 
   bool _activateManualControlEnabled;
+  bool _deactivateFromOCU;
 
   ros::Timer ActivateManualControl_timer;
 
