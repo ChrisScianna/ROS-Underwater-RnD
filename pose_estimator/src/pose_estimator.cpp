@@ -245,7 +245,7 @@ void PoseEstimator::ahrsCallback(const sensor_msgs::Imu::ConstPtr& ahrs_msg)
     msg.state.geolocation.covariance = last_fix_msg_->position_covariance;
   }
 
-  // Use orientation from AHRS
+  // Use orientation from AHRS in NED frame
   tf::Quaternion orientation(
       ahrs_msg->orientation.x, ahrs_msg->orientation.y,
       ahrs_msg->orientation.z, ahrs_msg->orientation.w);
@@ -253,8 +253,8 @@ void PoseEstimator::ahrsCallback(const sensor_msgs::Imu::ConstPtr& ahrs_msg)
   tf::Matrix3x3 m(orientation);
   double roll, pitch, yaw;
   m.getRPY(roll, pitch, yaw);
-  msg.state.manoeuvring.pose.mean.orientation.x = roll;
-  msg.state.manoeuvring.pose.mean.orientation.y = pitch;
+  msg.state.manoeuvring.pose.mean.orientation.x = -roll;  // flip x-axis
+  msg.state.manoeuvring.pose.mean.orientation.y = -pitch;  // flip y-axis
   msg.state.manoeuvring.pose.mean.orientation.z = yaw;
   msg.state.manoeuvring.pose.covariance[21] = ahrs_msg->orientation_covariance[0];
   msg.state.manoeuvring.pose.covariance[22] = ahrs_msg->orientation_covariance[1];
