@@ -69,17 +69,17 @@ public:
 
 private:
   const std::unordered_map<std::string, uint64_t> monitored_nodes_{  // NOLINT
-    {"/payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
-    {"/vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
-    {"/ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
-    {"/pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
-    {"/mngr", health_monitor::ReportFault::MISSION_NODE_DIED},
-    {"/pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},
-    {"/thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
-    {"/autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
-    {"/battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
-    {"/jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED},
-    {"/fin_control", health_monitor::ReportFault::FIN_NODE_DIED}
+    {"payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
+    {"vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
+    {"ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
+    {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
+    {"mngr", health_monitor::ReportFault::MISSION_NODE_DIED},
+    {"pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},
+    {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
+    {"autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
+    {"battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
+    {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED},
+    {"fin_control", health_monitor::ReportFault::FIN_NODE_DIED}
   };
   uint64_t faults_{0u};
 
