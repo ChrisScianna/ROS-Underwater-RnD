@@ -47,6 +47,7 @@ include_directories(
 add_executable(${NODE_APP_NAME} 
   src/health_monitor_main.cpp
   src/health_monitor.cpp
+  src/helpers.cpp
 )
 
 add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

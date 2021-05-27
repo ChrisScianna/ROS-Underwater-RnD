@@ -40,6 +40,7 @@
  */
 
 #include "health_monitor/health_monitor.h"
+#include "health_monitor/helpers.h"
 
 #include <string>
 #include <utility>
@@ -55,18 +56,13 @@ HealthMonitor::HealthMonitor() :
 {
   diagnostics_updater_.setHardwareID("health_monitor");
 
-  clear_faults_request_sub_ = nh_.subscribe(
-    "/health_monitor/clear_fault", 1, &HealthMonitor::handleClearFaultRequest, this);
-  diagnostics_sub_ = nh_.subscribe("/diagnostics", 1, &HealthMonitor::monitorDiagnostics, this);
-  node_states_sub_ = nh_.subscribe("/rosmon/state", 1, &HealthMonitor::monitorNodeStates, this);
-
-  faults_pub_ = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
-    nh_, "/health_monitor/report_fault", 1);
-
   const double report_rate = pnh_.param("report_faults_rate", 1.0);
   const double min_report_rate = pnh_.param("min_report_faults_rate", report_rate / 2.);
   const double max_report_rate = pnh_.param("max_report_faults_rate", report_rate * 2.);
-  ROS_INFO("Report rate for faults: %lf Hz", report_rate);
+  ROS_INFO_STREAM("Report rate for faults: " << report_rate << " Hz");
+
+  faults_pub_ = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
+      nh_, "/health_monitor/report_fault", 1);
 
   diagnostics_updater_.add(
     faults_pub_.add_check<diagnostic_tools::PeriodicMessageStatus>(
@@ -76,14 +72,31 @@ HealthMonitor::HealthMonitor() :
 
   report_faults_timer_ = nh_.createTimer(
     ros::Duration(1. / report_rate), &HealthMonitor::reportFaults, this);
+
+  clear_faults_request_sub_ = nh_.subscribe(
+      "/health_monitor/clear_fault", 1, &HealthMonitor::handleClearFaultRequest, this);
+  diagnostics_sub_ = nh_.subscribe("/diagnostics", 1, &HealthMonitor::monitorDiagnostics, this);
+
+  XmlRpc::XmlRpcValue watchlist;
+  if (pnh_.getParam("node_watchlist", watchlist))
+  {
+    for (int i = 0; i < watchlist.size(); ++i)
+    {
+      XmlRpc::XmlRpcValue & entry = watchlist[i];
+      ROS_INFO_STREAM("Monitoring " << entry["fqn"] << " node");
+      node_watchlist_[entry["fqn"]] =
+        health_monitor::fault_code(entry["fault"]);
+    }
+  }
+  node_states_sub_ = nh_.subscribe("/rosmon/state", 1, &HealthMonitor::monitorNodeStates, this);
 }
 
-void HealthMonitor::handleClearFaultRequest(const health_monitor::ClearFault::ConstPtr &msg)
+void HealthMonitor::handleClearFaultRequest(const health_monitor::ClearFault::ConstPtr & msg)
 {
   faults_ &= msg->fault_id != health_monitor::ClearFault::ALL_FAULTS ? ~msg->fault_id : 0u;
 }
 
-void HealthMonitor::monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg)
+void HealthMonitor::monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr & msg)
 {
   for (int i = 0; i < msg->status.size(); ++i)
   {
@@ -96,36 +109,29 @@ void HealthMonitor::monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr
   }
 }
 
-void HealthMonitor::monitorNodeStates(const rosmon_msgs::State &msg)
+void HealthMonitor::monitorNodeStates(const rosmon_msgs::State & msg)
 {
-  std::unordered_map<std::string, uint64_t> monitored_nodes{monitored_nodes_};
+  auto node_watchlist{node_watchlist_};
 
   for (const rosmon_msgs::NodeState & node : msg.nodes)
   {
     const std::string fqn = node.ns + node.name;
-    auto it = monitored_nodes.find(fqn);
-    if (it != monitored_nodes.end())
+    auto it = node_watchlist.find(fqn);
+    if (it != node_watchlist.end())
     {
       if (node.state == rosmon_msgs::NodeState::CRASHED)
       {
         faults_ |= it->second;
       }
-      monitored_nodes.erase(it);
-    }
-    else
-    {
-      if (node.state == rosmon_msgs::NodeState::CRASHED)
-      {
-        ROS_WARN_STREAM("Not monitored node " << fqn << " crashed.");
-      }
+      node_watchlist.erase(it);
     }
   }
 
-  if (!monitored_nodes.empty())
+  if (!node_watchlist.empty())
   {
-    for (const std::pair<std::string, uint64_t> & kv : monitored_nodes)
+    for (const std::pair<std::string, uint64_t> & kv : node_watchlist)
     {
-      ROS_ERROR_STREAM("Monitored node " << kv.first << " state not reported.");
+      ROS_ERROR_STREAM(kv.first << " node state not reported.");
     }
   }
 }
