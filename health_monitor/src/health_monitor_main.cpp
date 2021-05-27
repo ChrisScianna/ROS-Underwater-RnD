@@ -54,11 +54,10 @@ int main(int argc, char **argv)
     ros::Time::init();
 
     ros::NodeHandle nodeHandle;
-
     ROS_INFO("Starting Health Monitor node Version: [%s]", NODE_VERSION);
     nodeHandle.setParam("/version_numbers/health_monitor_node", NODE_VERSION);
 
-    qna::robot::HealthMonitor healthMonitor(nodeHandle);
+    qna::robot::HealthMonitor healthMonitor;
 
     ros::spin();
 

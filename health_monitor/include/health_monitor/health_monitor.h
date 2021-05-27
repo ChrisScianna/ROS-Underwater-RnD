@@ -65,43 +65,39 @@ namespace robot
 class HealthMonitor
 {
 public:
-    explicit HealthMonitor(ros::NodeHandle &nodeHandle);
-    virtual ~HealthMonitor();
-
-    ros::Timer reportFaultsTimer;
-    void reportFaultsTimeout(const ros::TimerEvent &timer);
-
-    void sendFaults();
-    void setFault(uint64_t fault_id);
+  HealthMonitor();
 
 private:
-    uint64_t faults;
-    std::unordered_map<std::string, uint64_t> uErrorMap
-        {
-        {"payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
-        {"vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
-        {"ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
-        {"pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
-        {"mission_control_node", health_monitor::ReportFault::MISSION_NODE_DIED},
-        {"pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},
-        {"thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
-        {"autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
-        {"battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
-        {"jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED},
-        {"fin_control", health_monitor::ReportFault::FIN_NODE_DIED}
-        };
+  const std::unordered_map<std::string, uint64_t> monitored_nodes_{  // NOLINT
+    {"/payload_manager", health_monitor::ReportFault::PAYLOAD_NODE_DIED},
+    {"/vectornav", health_monitor::ReportFault::AHRS_NODE_DIED},
+    {"/ixblue_c3_ins_node", health_monitor::ReportFault::AHRS_NODE_DIED},
+    {"/pressure_sensor", health_monitor::ReportFault::PRESSURE_NODE_DIED},
+    {"/mngr", health_monitor::ReportFault::MISSION_NODE_DIED},
+    {"/pose_estimator_node", health_monitor::ReportFault::POSE_NODE_DIED},
+    {"/thruster_control_node", health_monitor::ReportFault::THRUSTER_NODE_DIED},
+    {"/autopilot_node", health_monitor::ReportFault::AUTOPILOT_NODE_DIED},
+    {"/battery_monitor_node", health_monitor::ReportFault::BATTERY_NODE_DIED},
+    {"/jaus_ros_bridge", health_monitor::ReportFault::JAUS_NODE_DIED},
+    {"/fin_control", health_monitor::ReportFault::FIN_NODE_DIED}
+  };
+  uint64_t faults_{0u};
 
-    void handle_ClearFault(const health_monitor::ClearFault::ConstPtr &msg);
-    void handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg);
-    void handle_rosmonFaults(const rosmon_msgs::State &msg);
+  void reportFaults(const ros::TimerEvent &);
+  void handleClearFaultRequest(const health_monitor::ClearFault::ConstPtr &msg);
+  void monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg);
+  void monitorNodeStates(const rosmon_msgs::State &msg);
 
-    ros::NodeHandle &nodeHandle;
-    ros::Subscriber subscriber_clearFault;
-    ros::Subscriber subscriber_diagnostics;
-    ros::Subscriber subscriber_rosmonFaults;
+  ros::NodeHandle nh_;
+  ros::NodeHandle pnh_;
+  ros::Subscriber diagnostics_sub_;
+  ros::Subscriber node_states_sub_;
 
-    diagnostic_tools::DiagnosedPublisher<health_monitor::ReportFault> publisher_reportFault;
-    diagnostic_updater::Updater diagnosticsUpdater;
+  ros::Timer report_faults_timer_;
+  ros::Subscriber clear_faults_request_sub_;
+  diagnostic_tools::DiagnosedPublisher<health_monitor::ReportFault> faults_pub_;
+
+  diagnostic_updater::Updater diagnostics_updater_;
 };
 
 }   // namespace robot

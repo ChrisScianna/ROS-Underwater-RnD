@@ -41,124 +41,103 @@
 
 #include "health_monitor/health_monitor.h"
 
+#include <pair>
+#include <string>
+#include <utility>
+
+
 namespace qna
 {
 namespace robot
 {
 
-HealthMonitor::HealthMonitor(ros::NodeHandle &nodeHandle) : nodeHandle(nodeHandle),
-                                                            faults(0),
-                                                            diagnosticsUpdater(nodeHandle)
+HealthMonitor::HealthMonitor() :
+  pnh_("~"), diagnostics_updater_(nh_)
 {
-    diagnosticsUpdater.setHardwareID("health_monitor");
+  diagnostics_updater_.setHardwareID("health_monitor");
 
-    subscriber_clearFault = nodeHandle.subscribe("/health_monitor/clear_fault", 1,
-                                                 &HealthMonitor::handle_ClearFault, this);
-    subscriber_diagnostics = nodeHandle.subscribe("/diagnostics", 1,
-                                                  &HealthMonitor::handle_diagnostics, this);
-    subscriber_rosmonFaults = nodeHandle.subscribe("/rosmon/state", 1,
-                                                   &HealthMonitor::handle_rosmonFaults, this);
+  clear_faults_request_sub_ = nh_.subscribe(
+    "/health_monitor/clear_fault", 1, &HealthMonitor::handleClearFaultRequest, this);
+  diagnostics_sub_ = nh_.subscribe("/diagnostics", 1, &HealthMonitor::monitorDiagnostics, this);
+  node_states_sub_ = nh_.subscribe("/rosmon/state", 1, &HealthMonitor::monitorNodeStates, this);
 
-    publisher_reportFault = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
-        nodeHandle, "/health_monitor/report_fault", 1);
+  faults_pub_ = diagnostic_tools::create_publisher<health_monitor::ReportFault>(
+    nh_, "/health_monitor/report_fault", 1);
 
-    double reportFaultsRate = 1.0;
-    double minReportFaultRate = minReportFaultRate / 2.0;
-    double maxReportFaultRate = minReportFaultRate * 2.0;
-    nodeHandle.getParam("/health_monitor_node/report_faults_rate", reportFaultsRate);
-    nodeHandle.getParam("/health_monitor_node/min_report_faults_rate", minReportFaultRate);
-    nodeHandle.getParam("/health_monitor_node/max_report_faults_rate", maxReportFaultRate);
+  const double report_rate = pnh_.param("report_faults_rate", 1.0);
+  const double min_report_rate = pnh_.param("min_report_faults_rate", report_rate / 2.);
+  const double max_report_rate = pnh_.param("max_report_faults_rate", report_rate * 2.);
+  ROS_INFO("Report rate for faults: %lf Hz", report_rate);
 
-    ROS_INFO("Report Faults Rate:[%lf]", reportFaultsRate);
-    reportFaultsTimer = nodeHandle.createTimer(ros::Duration(1. / reportFaultsRate),
-                                               &HealthMonitor::reportFaultsTimeout, this);
+  diagnostics_updater_.add(
+    faults_pub_.add_check<diagnostic_tools::PeriodicMessageStatus>(
+        "rate check", diagnostic_tools::PeriodicMessageStatusParams{}
+        .min_acceptable_period(1. / max_report_rate)
+        .max_acceptable_period(1. / min_report_rate)));
 
-    diagnostic_tools::PeriodicMessageStatusParams paramsReportsHealthMonitorCheckPeriod{};
-    paramsReportsHealthMonitorCheckPeriod.min_acceptable_period(1. / maxReportFaultRate);
-    paramsReportsHealthMonitorCheckPeriod.max_acceptable_period(1. / minReportFaultRate);
-    diagnosticsUpdater.add(publisher_reportFault.add_check<diagnostic_tools::PeriodicMessageStatus>(
-        "rate check", paramsReportsHealthMonitorCheckPeriod));
+  report_faults_timer_ = nh_.createTimer(
+    ros::Duration(1. / report_rate), &HealthMonitor::reportFaults, this);
 }
 
-HealthMonitor::~HealthMonitor()
+void HealthMonitor::handleClearFaultRequest(const health_monitor::ClearFault::ConstPtr &msg)
 {
+  faults_ &= msg->fault_id != health_monitor::ClearFault::ALL_FAULTS ? ~msg->fault_id : 0u;
 }
 
-void HealthMonitor::handle_ClearFault(const health_monitor::ClearFault::ConstPtr &msg)
+void HealthMonitor::monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg)
 {
-    if (msg->fault_id == health_monitor::ClearFault::ALL_FAULTS)
+  for (int i = 0; i < msg->status.size(); ++i)
+  {
+    if ((msg->status[i].level != diagnostic_msgs::DiagnosticStatus::OK) &&
+        (msg->status[i].values.size() > 0) &&
+        (msg->status[i].values[0].key == "Code"))
     {
-        faults = 0;
+      faults_ |= stoll(msg->status[i].values[0].value);
+    }
+  }
+}
+
+void HealthMonitor::monitorNodeStates(const rosmon_msgs::State &msg)
+{
+  std::unordered_map<std::string, uint64_t> monitored_nodes{monitored_nodes_};
+
+  for (const rosmon_msgs::NodeState & node : msg.nodes)
+  {
+    const std::string fqn = node.ns + node.name;
+    auto it = monitored_nodes.find(fqn);
+    if (it != monitored_nodes.end())
+    {
+      if (node.state == rosmon_msgs::NodeState::CRASHED)
+      {
+        faults_ |= it->second;
+      }
+      monitored_nodes.erase(it);
     }
     else
     {
-        faults &= ~msg->fault_id;
+      if (node.state == rosmon_msgs::NodeState::CRASHED)
+      {
+        ROS_WARN_STREAM("Not monitored node " << fqn << " crashed.");
+      }
     }
-}
+  }
 
-void HealthMonitor::handle_diagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg)
-{
-    uint64_t errorValues = 0;
-    for (int i = 0; i < msg->status.size(); i++)
+  if (!monitored_nodes.empty())
+  {
+    for (const std::pair<std::string, uint64_t> & kv : monitored_nodes)
     {
-        if ((msg->status[i].level != diagnostic_msgs::DiagnosticStatus::OK) &&
-            (msg->status[i].values.size() > 0) &&
-            (msg->status[i].values[0].key == "Code"))
-        {
-            errorValues |= stoll(msg->status[i].values[0].value);
-        }
+      ROS_ERROR_STREAM("Monitored node " << kv.first << " state not reported.");
     }
-    if (errorValues != 0)
-    {
-        setFault(errorValues);
-    }
+  }
 }
 
-void HealthMonitor::handle_rosmonFaults(const rosmon_msgs::State &msg)
+void HealthMonitor::reportFaults(const ros::TimerEvent &)
 {
-    uint64_t errorValues = 0;
-    for (int i = 0; i < msg.nodes.size(); i++)
-    {
-        if (msg.nodes[i].state == rosmon_msgs::NodeState::CRASHED)
-        {
-            if (uErrorMap.find(msg.nodes[i].name) == uErrorMap.end())
-            {
-                ROS_DEBUG_STREAM("Rosmon - Node " << msg.nodes[i].name
-                                                  << " crashed but no fault is defined for it."
-                                                  << "Ignoring.");
-            }
-            else
-            {
-                errorValues |= uErrorMap[msg.nodes[i].name];
-            }
-        }
-    }
-    if (errorValues != 0)
-    {
-        setFault(errorValues);
-    }
-}
-
-void HealthMonitor::setFault(uint64_t fault_id)
-{
-    faults |= fault_id;
-}
-
-void HealthMonitor::sendFaults()
-{
-    health_monitor::ReportFault message;
-
-    ROS_DEBUG_STREAM("Error Code: " << faults);
-    message.header.stamp = ros::Time::now();
-    message.fault_id = faults;
-
-    publisher_reportFault.publish(message);
-    diagnosticsUpdater.update();
-}
-
-void HealthMonitor::reportFaultsTimeout(const ros::TimerEvent &timer)
-{
-    sendFaults();
+  health_monitor::ReportFault message;
+  message.header.stamp = ros::Time::now();
+  message.fault_id = faults_;
+  faults_pub_.publish(message);
+  diagnostics_updater_.update();
 }
 
 }   // namespace robot
