@@ -122,15 +122,17 @@ to_ros_message(const c3_protocol::nav_long::nav_long_data_t& data)
   {
     msg.manoeuvring.pose.mean.position.z = -data.altitude;  // flip z-axis
   }
-  msg.manoeuvring.pose.mean.orientation.x = data.roll;
-  msg.manoeuvring.pose.mean.orientation.y = -data.pitch;  // flip y-axis
+  // Use orientation from INS in NWD frame
+  msg.manoeuvring.pose.mean.orientation.x = -data.roll;  // flip x-axis
+  msg.manoeuvring.pose.mean.orientation.y = data.pitch;
   msg.manoeuvring.pose.mean.orientation.z = wrap_to_pi(data.heading);
   msg.manoeuvring.pose.covariance[21] = std::pow(data.roll_err_sd, 2);
   msg.manoeuvring.pose.covariance[28] = std::pow(data.pitch_err_sd, 2);
   msg.manoeuvring.pose.covariance[35] = std::pow(data.heading_err_sd, 2);
 
-  msg.manoeuvring.velocity.mean.linear.x = data.north_speed;
-  msg.manoeuvring.velocity.mean.linear.y = data.east_speed;
+  // Use speed from INS in NEU frame
+  msg.manoeuvring.velocity.mean.linear.x = -data.north_speed;  // flip x-axis
+  msg.manoeuvring.velocity.mean.linear.y = -data.east_speed;  // flip y-axis
   msg.manoeuvring.velocity.mean.linear.z = -data.vertical_speed;  // flip z-axis
   msg.manoeuvring.velocity.covariance[0] = std::pow(data.north_speed_err_sd, 2);
   msg.manoeuvring.velocity.covariance[7] = std::pow(data.east_speed_err_sd, 2);

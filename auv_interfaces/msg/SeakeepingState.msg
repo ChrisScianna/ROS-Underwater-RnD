@@ -1,6 +1,6 @@
 # A representation of the vehicle's short-term position and attitude variations with
 # respect to some reference coordinate frame co-located with the vehicle's body
-# coordinate frame (typicall) following NED conventions but not subject to rapid
+# coordinate frame (typically) following SWD conventions but not subject to rapid
 # orientation changes.
 #
 # Seakeeping state is mostly concerned with high-frequency, external stimuli.
