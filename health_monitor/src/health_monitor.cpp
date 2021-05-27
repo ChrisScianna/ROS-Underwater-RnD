@@ -78,14 +78,14 @@ HealthMonitor::HealthMonitor() :
   diagnostics_sub_ = nh_.subscribe("/diagnostics", 1, &HealthMonitor::monitorDiagnostics, this);
 
   XmlRpc::XmlRpcValue watchlist;
-  if (pnh_.getParam("node_watchlist", watchlist))
+  if (pnh_.getParam("watchlist", watchlist))
   {
-    for (int i = 0; i < watchlist.size(); ++i)
+    for (auto & entry : watchlist)
     {
-      XmlRpc::XmlRpcValue & entry = watchlist[i];
-      ROS_INFO_STREAM("Monitoring " << entry["fqn"] << " node");
-      node_watchlist_[entry["fqn"]] =
-        health_monitor::fault_code(entry["fault"]);
+      ROS_INFO_STREAM("Monitoring " << entry.first << " nodes");
+      XmlRpc::XmlRpcValue & config = entry.second;
+      node_watchlist_[config["node_name"]] =
+        health_monitor::fault_code(config["crash_fault"]);
     }
   }
   node_states_sub_ = nh_.subscribe("/rosmon/state", 1, &HealthMonitor::monitorNodeStates, this);
@@ -131,7 +131,7 @@ void HealthMonitor::monitorNodeStates(const rosmon_msgs::State & msg)
   {
     for (const std::pair<std::string, uint64_t> & kv : node_watchlist)
     {
-      ROS_ERROR_STREAM(kv.first << " node state not reported.");
+      ROS_ERROR_STREAM(kv.first << " node state not reported. Node missing?");
     }
   }
 }
