@@ -44,10 +44,12 @@
 
 #include <string>
 
+#include "mission_control/behaviors/reactive_action.h"
+
 
 namespace mission_control
 {
-class PayloadCommandNode : public BT::SyncActionNode
+class PayloadCommandNode : public ReactiveActionNode
 {
 public:
   PayloadCommandNode(const std::string& name, const BT::NodeConfiguration& config);
@@ -58,7 +60,7 @@ public:
   }
 
 protected:
-  BT::NodeStatus tick() override;
+  BT::NodeStatus doWork() override;
 
 private:
   ros::NodeHandle nodeHandle_;

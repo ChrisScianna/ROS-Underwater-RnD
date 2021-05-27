@@ -45,12 +45,13 @@
 
 #include "auv_interfaces/StateStamped.h"
 #include "mission_control/behaviors/helpers.h"
+#include "mission_control/behaviors/reactive_action.h"
 
 
 namespace mission_control
 {
 
-class FixRudderNode : public BT::SyncActionNode
+class FixRudderNode : public ReactiveActionNode
 {
 public:
   FixRudderNode(const std::string& name, const BT::NodeConfiguration& config);
@@ -64,7 +65,7 @@ public:
   }
 
 protected:
-  BT::NodeStatus tick() override;
+  BT::NodeStatus doWork() override;
 
 private:
   ros::NodeHandle nodeHandle_;
