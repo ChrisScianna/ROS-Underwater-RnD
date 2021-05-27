@@ -41,7 +41,6 @@
 
 #include "health_monitor/health_monitor.h"
 
-#include <pair>
 #include <string>
 #include <utility>
 
