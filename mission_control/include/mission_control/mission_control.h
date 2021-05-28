@@ -112,7 +112,7 @@ private:
 
   std::shared_ptr<Mission> current_mission_;
   std::unordered_map<int, std::shared_ptr<Mission>> mission_map_;
-  ReportExecuteMissionState last_mission_state_report_;
+  ReportExecuteMissionState last_mission_state_report_logged_;
 };
 
 }  // namespace mission_control

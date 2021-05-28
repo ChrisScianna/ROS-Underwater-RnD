@@ -44,13 +44,13 @@ namespace mission_control
 {
 
 FixRudderNode::FixRudderNode(const std::string& name, const BT::NodeConfiguration& config)
-  : BT::SyncActionNode(name, config)
+  : ReactiveActionNode(name, config)
 {
   fixedRudderBehaviorPub_ =
     nodeHandle_.advertise<mission_control::FixedRudder>("/mngr/fixed_rudder", 1, true);
 }
 
-BT::NodeStatus FixRudderNode::tick()
+BT::NodeStatus FixRudderNode::doWork()
 {
   mission_control::FixedRudder msg;
   msg.header.stamp = ros::Time::now();

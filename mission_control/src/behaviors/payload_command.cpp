@@ -43,13 +43,13 @@ namespace mission_control
 {
 
 PayloadCommandNode::PayloadCommandNode(const std::string &name, const BT::NodeConfiguration &config)
-  : BT::SyncActionNode(name, config)
+  : ReactiveActionNode(name, config)
 {
   payloadCommandPub_ =
     nodeHandle_.advertise<payload_manager::PayloadCommand>("/payload_manager/command", 1, true);
 }
 
-BT::NodeStatus PayloadCommandNode::tick()
+BT::NodeStatus PayloadCommandNode::doWork()
 {
   payload_manager::PayloadCommand msg;
   msg.header.stamp = ros::Time::now();

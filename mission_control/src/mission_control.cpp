@@ -85,7 +85,7 @@ MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
       ros::Duration(1.0 / update_rate),
       &MissionControlNode::update, this);
 
-  last_mission_state_report_.mission_id = 0;
+  last_mission_state_report_logged_.mission_id = 0;
 }
 
 void MissionControlNode::reportHeartbeat(const ros::TimerEvent&)
@@ -107,7 +107,7 @@ const char *to_string(ReportExecuteMissionStateType state)
   switch (state)
   {
     case ReportExecuteMissionState::ERROR:
-      return "ERROR";
+      return "FAILED";
     case ReportExecuteMissionState::ABORTING:
       return "ABORTING";
     case ReportExecuteMissionState::COMPLETE:
@@ -148,14 +148,16 @@ void MissionControlNode::reportOn(const Mission& mission)
       break;
   }
 
-  if (last_mission_state_report_.mission_id != msg.mission_id ||
-      last_mission_state_report_.execute_mission_state != msg.execute_mission_state)
+  if (last_mission_state_report_logged_.mission_id != msg.mission_id ||
+      last_mission_state_report_logged_.execute_mission_state != msg.execute_mission_state)
   {
-    ROS_INFO_STREAM("Mission [" << mission.id() << "] " <<
-                    to_string(msg.execute_mission_state));
-    report_mission_execute_state_pub_.publish(msg);
-    last_mission_state_report_ = msg;
+    ROS_INFO_STREAM(
+      "Mission [" << mission.id() << "] "
+      << to_string(msg.execute_mission_state));
+    last_mission_state_report_logged_ = msg;
   }
+
+  report_mission_execute_state_pub_.publish(msg);
 }
 
 void MissionControlNode::spin()

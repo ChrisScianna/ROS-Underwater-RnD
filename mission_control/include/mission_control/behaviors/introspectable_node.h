@@ -79,6 +79,13 @@ public:
     return current_status;
   }
 
+  void halt() override
+  {
+    introspection::setActivePath(this->config().blackboard.get(), parent_path_);
+
+    BaseNodeT::halt();
+  }
+
  private:
   std::string parent_path_{};
 };
@@ -108,6 +115,13 @@ class IntrospectableNode<BaseNodeT, true> : public BaseNodeT
       introspection::setActivePath(blackboard_.get(), parent_path_);
     }
     return current_status;
+  }
+
+  void halt() override
+  {
+    introspection::setActivePath(blackboard_.get(), parent_path_);
+
+    BaseNodeT::halt();
   }
 
  private:
