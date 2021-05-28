@@ -4,6 +4,7 @@
   <arg name="maxReportFaultsRate" default="2.0"/>
 
   <node name="health_monitor_node" pkg="health_monitor" type="health_monitor_node" output="screen" required="true">
+    <rosparam param="watchlist">{payload: {node_name: payload_node, crash_fault: PAYLOAD_NODE_DIED}}</rosparam>
     <param name="report_faults_rate" type="double" value="$(arg reportFaultsRate)"/>
     <param name="min_report_faults_rate" type="double" value="$(arg minReportFaultsRate)"/>
     <param name="max_report_faults_rate" type="double" value="$(arg maxReportFaultsRate)"/>

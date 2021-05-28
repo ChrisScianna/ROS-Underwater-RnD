@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,63 +32,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Christopher Scianna Christopher.Scianna@us.QinetiQ.com
+#ifndef HEALTH_MONITOR_HELPERS_H
+#define HEALTH_MONITOR_HELPERS_H
 
-
-/*
- * health_monitor.h
- */
-
-#ifndef HEALTH_MONITOR_HEALTH_MONITOR_H
-#define HEALTH_MONITOR_HEALTH_MONITOR_H
-
-#include <ros/ros.h>
-
-#include <unordered_map>
+#include <cstdint>
 #include <string>
 
-#include <health_monitor/ReportFault.h>
-#include <health_monitor/ClearFault.h>
-#include <rosmon_msgs/State.h>
 
-#include <diagnostic_tools/diagnosed_publisher.h>
-#include <diagnostic_tools/health_check.h>
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_tools/message_stagnation_check.h>
-#include <diagnostic_tools/periodic_message_status.h>
-
-namespace qna
-{
-namespace robot
+namespace health_monitor
 {
 
-class HealthMonitor
-{
-public:
-  HealthMonitor();
+/// Get 64 bit code for `fault`.
+uint64_t fault_code(const std::string & fault);
 
-private:
-  std::unordered_map<std::string, uint64_t> node_watchlist_;
-  uint64_t faults_{0u};
+};  // namespace health_monitor
 
-  void reportFaults(const ros::TimerEvent &);
-  void handleClearFaultRequest(const health_monitor::ClearFault::ConstPtr &msg);
-  void monitorDiagnostics(const diagnostic_msgs::DiagnosticArrayPtr &msg);
-  void monitorNodeStates(const rosmon_msgs::State &msg);
-
-  ros::NodeHandle nh_;
-  ros::NodeHandle pnh_;
-  ros::Subscriber diagnostics_sub_;
-  ros::Subscriber node_states_sub_;
-
-  ros::Timer report_faults_timer_;
-  ros::Subscriber clear_faults_request_sub_;
-  diagnostic_tools::DiagnosedPublisher<health_monitor::ReportFault> faults_pub_;
-
-  diagnostic_updater::Updater diagnostics_updater_;
-};
-
-}   // namespace robot
-}   // namespace qna
-
-#endif  // HEALTH_MONITOR_HEALTH_MONITOR_H
+#endif  // HEALTH_MONITOR_HELPERS_H
