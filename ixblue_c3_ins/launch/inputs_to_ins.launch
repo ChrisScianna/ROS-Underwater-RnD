@@ -1,0 +1,11 @@
+<launch>
+  <arg name="ip" default="192.168.36.185"/>
+  <arg name="port" default="8117"/>
+  <arg name="logging" default="true"/>
+
+  <node pkg="ixblue_c3_ins" type="inputs_to_ins_node" name="inputs_to_ins" output="screen">
+    <param name="ipAddress" value="$(arg ip)"/>
+    <param name="port" value="$(arg port)"/>
+    <param name="logging" value="$(arg logging)"/>
+  </node>
+</launch>

@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+'''
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2021, QinetiQ, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of QinetiQ nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+'''
+
+import rospy
+from sensor_msgs.msg import FluidPressure
+from valeport_svs.msg import SVS
+import socket
+import time
+import sys
+NODE_VERSION = 1.04
+rospy.init_node('inputsINS', anonymous=True)
+rospy.set_param('/version_numbers/inputs_to_ins', NODE_VERSION)
+versionInfo="Starting inputs to INS node Version: %s" % NODE_VERSION
+rospy.loginfo(versionInfo)
+pressureTopicName = rospy.get_param("/pressure/topic",'/pressureData')
+svsTopicName = rospy.get_param("/svs/topic",'/svsData')
+ipAddressINS = rospy.get_param("/inputs_to_ins/ipAddress",'192.168.36.185')
+portINS = int(rospy.get_param("/inputs_to_ins/port",8117))
+rate = float(rospy.get_param("/svs/rate",'1'))
+logFlag = bool(rospy.get_param("/inputs_to_ins/logging",True))
+
+while not rospy.is_shutdown():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        host =ipAddressINS
+        port = portINS
+        s.connect((host,port))
+        print("Input to INS Connected to INS")
+        break
+    except:
+        if logFlag:
+            print("Input to INS failed to connect to INS. Will try again.")
+        rospy.sleep(1)
+
+svsData=None
+pressureData=None
+
+def sendMessage():
+    message="$SVP70,000000,"+str(svsData)+",00.0,"+str(pressureData)+",000,0,0,1\r\n"
+    if logFlag:
+        print(message)
+    s.send(message.encode())
+
+def callbackPressure(data):
+    global svsData, pressureData
+    fluid_pressure = data.fluid_pressure / 10e3  # Pa to dBar
+    fluid_pressure = fluid_pressure - 10.1325  # dBar (i.e. 1 atm)
+    pressureData= '%05.1f' % (fluid_pressure)
+    if svsData is not None:
+        sendMessage()
+
+def callbackSVS(data):
+    global pressureData, svsData
+    svsData='%08.3f'%data.svs
+    if pressureData is not None:
+        sendMessage()
+
+def listener():
+    rospy.Subscriber(pressureTopicName, FluidPressure, callbackPressure)
+    rospy.Subscriber(svsTopicName, SVS, callbackSVS)
+    rospy.spin()
+
+if __name__ == '__main__':
+    listener()
+
+#Code to send pressure and sound velocity data to the INS
+#Message type: SVP 70 (page 313 of INS-Interface Library)
+#$SVP70,000000,SSSS.SSS,00.0,PPP.P,000,0,0,1<CR><LF>
+#where SSSS.SSS is Speed of sound in m/s
+#and   PPP.P is Pressure in tenth of bar (zeroed at 1 atm)

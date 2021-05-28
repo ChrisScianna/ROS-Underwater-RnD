@@ -27,6 +27,8 @@
   <exec_depend>health_monitor</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>roscpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>valeport_svs</exec_depend>
   <test_depend>roslint</test_depend>
 </package>
