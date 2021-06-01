@@ -34,7 +34,6 @@ add_message_files(
   ReportMissions.msg
   MissionData.msg
   RemoveMissions.msg
-  ReportHeartbeat.msg
 )
 
 generate_messages(
