@@ -47,6 +47,10 @@ double degreesToRadians(double degrees) { return ((degrees / 180.0) * M_PI); }
 
 double wrapAngleTo180(double a)
 {
+  while (a < -180.0)
+  {
+    a += 360.0;
+  }
   return fmod((a + 180.0), 360.0) - 180.0;
 }
 
