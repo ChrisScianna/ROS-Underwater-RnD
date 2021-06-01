@@ -1,11 +1,9 @@
 <launch>
     <!-- mission control -->
-    <arg name="heartbeat_rate" default="1.0"/>
     <arg name="update_rate" default="10.0"/>
 
     <node pkg="mission_control" type="mission_control_node" name="mission_control_node" output="screen">
         <remap from="faults" to="/health_monitor/report_fault"/>
         <param name="update_rate" type="double" value="$(arg update_rate)"/>
-        <param name="heartbeat_rate" type="double" value="$(arg heartbeat_rate)"/>
     </node>
 </launch>
