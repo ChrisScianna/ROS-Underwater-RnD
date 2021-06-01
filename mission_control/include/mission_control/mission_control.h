@@ -56,7 +56,6 @@
 #include "mission_control/QueryMissions.h"
 #include "mission_control/RemoveMissions.h"
 #include "mission_control/ReportExecuteMissionState.h"
-#include "mission_control/ReportHeartbeat.h"
 #include "mission_control/ReportLoadMissionState.h"
 #include "mission_control/ReportMissions.h"
 #include "mission_control/mission.h"
@@ -77,8 +76,6 @@ public:
 private:
   void reportOn(const Mission& mission);
   void update(const ros::TimerEvent& ev);
-
-  void reportHeartbeat(const ros::TimerEvent& ev);
 
   void loadMissionCallback(const LoadMission& msg);
   void executeMissionCallback(const ExecuteMission& msg);
@@ -102,13 +99,10 @@ private:
   ros::Publisher report_mission_load_state_pub_;
   ros::Publisher report_mission_execute_state_pub_;
   ros::Publisher report_missions_pub_;
-  ros::Publisher report_heartbeat_pub_;
 
-  ros::Timer heartbeat_timer_;
   ros::Timer update_timer_;
 
   uint64_t system_fault_ids_{0};
-  uint64_t heartbeat_sequence_id_{0};
 
   std::shared_ptr<Mission> current_mission_;
   std::unordered_map<int, std::shared_ptr<Mission>> mission_map_;

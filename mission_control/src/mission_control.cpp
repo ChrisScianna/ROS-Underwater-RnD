@@ -44,10 +44,6 @@ namespace mission_control
 MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
 {
   // Get runtime parameters
-  double heartbeat_rate;
-  pnh_.param("heartbeat_rate", heartbeat_rate, 1.0);  // Hz
-  ROS_DEBUG_STREAM("heartbeat rate: " << heartbeat_rate);
-
   double update_rate;
   pnh_.param("update_rate", update_rate, 10.0);  // Hz
   ROS_DEBUG_STREAM("update rate: " << update_rate);
@@ -75,25 +71,12 @@ MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
   report_mission_execute_state_pub_ =
       pnh_.advertise<ReportExecuteMissionState>("report_mission_execute_state", 100);
   report_missions_pub_ = pnh_.advertise<ReportMissions>("report_missions", 100);
-  report_heartbeat_pub_ = pnh_.advertise<ReportHeartbeat>("report_heartbeat", 100);
-
-  heartbeat_timer_ = pnh_.createTimer(
-      ros::Duration(1.0 / heartbeat_rate),
-      &MissionControlNode::reportHeartbeat, this);
 
   update_timer_ = pnh_.createTimer(
       ros::Duration(1.0 / update_rate),
       &MissionControlNode::update, this);
 
   last_mission_state_report_logged_.mission_id = 0;
-}
-
-void MissionControlNode::reportHeartbeat(const ros::TimerEvent&)
-{
-  ReportHeartbeat msg;
-  msg.header.stamp = ros::Time::now();
-  msg.seq_id = heartbeat_sequence_id_++;
-  report_heartbeat_pub_.publish(msg);
 }
 
 namespace

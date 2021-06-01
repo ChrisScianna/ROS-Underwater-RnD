@@ -210,10 +210,6 @@ AutoPilotNode::AutoPilotNode() : pnh_("~")
   state_up_to_date_ = false;
   state_sub_ = nh_.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
 
-  mission_heartbeat_sub_ = nh_.subscribe(
-      "/mngr/report_heartbeat", 10,
-      &AutoPilotNode::missionHeartbeatCallback, this);
-
   mission_status_sub_ = nh_.subscribe(
       "/mngr/report_mission_execute_state", 1,
       &AutoPilotNode::missionStatusCallback, this);
@@ -238,28 +234,6 @@ AutoPilotNode::AutoPilotNode() : pnh_("~")
       "/mngr/waypoint", 10,
       &AutoPilotNode::waypointCallback, this);
 
-  const double heartbeat_rate = nh_.param<double>("/mngr/heartbeat_rate", 2.0);
-  const double hearbeat_timeout = 3.0 * heartbeat_rate;
-  last_heartbeat_stamp_ = ros::Time::now();
-  mission_heartbeat_timer_ = nh_.createTimer(
-      ros::Duration(hearbeat_timeout),
-      &AutoPilotNode::missionHeartbeatTimeout, this);
-}
-
-void AutoPilotNode::missionHeartbeatTimeout(const ros::TimerEvent& ev)
-{
-  if (last_heartbeat_stamp_ < ev.last_real)  // no heartbeat received in the past period
-  {
-    active_setpoints_ = Setpoint::Pitch;
-    desired_pitch_ = -radiansToDegrees(max_ctrl_fin_angle_in_radians_);
-    ROS_INFO_THROTTLE(5.0, "Mission control is down");
-  }
-}
-
-void AutoPilotNode::missionHeartbeatCallback(const mission_control::ReportHeartbeat& msg)
-{
-  last_heartbeat_stamp_ = msg.header.stamp;
-  ROS_DEBUG_THROTTLE(5.0, "Mission control is up");
 }
 
 void AutoPilotNode::missionStatusCallback(const mission_control::ReportExecuteMissionState& msg)
