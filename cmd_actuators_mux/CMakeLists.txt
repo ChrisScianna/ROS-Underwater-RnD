@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(cmd_actuator_mux)
+
+set(NODE_APP_NAME ${PROJECT_NAME}_node)
+
+add_compile_options(-std=c++11)
+
+find_package(catkin REQUIRED COMPONENTS
+  fin_control
+  jaus_ros_bridge
+  message_generation
+  mission_control
+  roscpp
+  roslint
+  std_msgs
+  thruster_control
+)
+
+ catkin_package(
+  INCLUDE_DIRS include
+  CATKIN_DEPENDS fin_control roscpp std_msgs thruster_control jaus_ros_bridge mission_control
+ )
+
+ ###########
+## Build ##
+###########
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
+add_executable(${NODE_APP_NAME}
+  src/cmd_actuator_subscribers.cpp
+  src/cmd_actuator_main.cpp
+)
+
+add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${NODE_APP_NAME}
+  ${catkin_LIBRARIES}
+  yaml-cpp
+)
+
+#############
+## Install ##
+#############
+
+install(TARGETS ${NODE_APP_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
