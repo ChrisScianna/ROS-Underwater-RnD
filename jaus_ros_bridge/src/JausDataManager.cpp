@@ -91,6 +91,9 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
 
   _subscriber_reportRPM = _nodeHandle.subscribe("/thruster_control/report_rpm", 1,
                                                 &JausDataManager::handleReportRPM, this);
+  _publisher_setRPM =
+      _nodeHandle.advertise<thruster_control::SetRPM>("input/jaus_ros_bridge/set_rpm", 1, true);
+
   _currentRpm = 0;
 }
 
