@@ -1,24 +1,61 @@
-#include <fstream>
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2012 Yujin Robot, Daniel Stonier, Jorge Santos
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of QinetiQ nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
 #include "cmd_actuators_mux/cmd_actuator_subscribers.h"
+
+#include <fstream>
+
 #include "cmd_actuators_mux/exceptions.h"
 
-
-namespace cmd_actuator_mux {
-
-void CmdActuatorSubscribers::CmdActuatorSubs::operator << (const YAML::Node& node)
+namespace cmd_actuator_mux
+{
+void CmdActuatorSubscribers::CmdActuatorSubs::operator<<(const YAML::Node& node)
 {
   // Fill attributes with a YAML node content
   double new_timeout;
   std::string new_topic;
-  node["name"]     >> name;
-  node["topic"]    >> new_topic;
-  node["timeout"]  >> new_timeout;
+  node["name"] >> name;
+  node["topic"] >> new_topic;
+  node["timeout"] >> new_timeout;
   node["priority"] >> priority;
 #ifdef HAVE_NEW_YAMLCPP
-  if (node["short_desc"]) {
+  if (node["short_desc"])
+  {
 #else
-  if (node.FindValue("short_desc") != NULL) {
+  if (node.FindValue("short_desc") != NULL)
+  {
 #endif
     node["short_desc"] >> short_desc;
   }
@@ -54,11 +91,13 @@ void CmdActuatorSubscribers::configure(const YAML::Node& node)
       // Parse entries on YAML
       std::string new_subs_name = node[i]["name"].Scalar();
       auto old_subs = std::find_if(list.begin(), list.end(),
-                                   [&new_subs_name](const std::shared_ptr<CmdActuatorSubs>& subs)
-                                                    {return subs->name == new_subs_name;});
+                                   [&new_subs_name](const std::shared_ptr<CmdActuatorSubs>& subs) {
+                                     return subs->name == new_subs_name;
+                                   });
       if (old_subs != list.end())
       {
-        // For names already in the subscribers list, retain current object so we don't re-subscribe to the topic
+        // For names already in the subscribers list, retain current object so we don't re-subscribe
+        // to the topic
         new_list[i] = *old_subs;
       }
       else
@@ -71,17 +110,18 @@ void CmdActuatorSubscribers::configure(const YAML::Node& node)
 
     list = new_list;
   }
-  catch(EmptyCfgException& e) {
+  catch (EmptyCfgException& e)
+  {
     throw e;
   }
-  catch(YAML::ParserException& e)
+  catch (YAML::ParserException& e)
   {
     throw YamlException(e.what());
   }
-  catch(YAML::RepresentationException& e)
+  catch (YAML::RepresentationException& e)
   {
     throw YamlException(e.what());
   }
 }
 
-}  //  namespace namespace cmd_actuator_mux
+}  // namespace cmd_actuator_mux

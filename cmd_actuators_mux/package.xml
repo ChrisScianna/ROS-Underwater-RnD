@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>cmd_actuator_mux</name>
+  <name>cmd_actuators_mux</name>
   <version>0.0.0</version>
   <description>The command actuator mux package</description>
 
@@ -19,6 +19,9 @@
   <build_depend>std_msgs</build_depend>
   <build_depend>thruster_control</build_depend>
   <build_depend>yaml-cpp</build_depend>
+  <build_depend>nodelet</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>pluginlib</build_depend>
   <build_export_depend>fin_control</build_export_depend>
   <build_export_depend>jaus_ros_bridge</build_export_depend>
   <build_export_depend>mission_control</build_export_depend>
@@ -34,4 +37,11 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>thruster_control</exec_depend>
   <exec_depend>yaml-cpp</exec_depend>
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>nodelet</exec_depend>
+  <exec_depend>dynamic_reconfigure</exec_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/plugins/nodelets.xml" />
+  </export>
 </package>

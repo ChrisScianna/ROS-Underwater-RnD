@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(cmd_actuator_mux)
+project(cmd_actuators_mux)
 
 set(NODE_APP_NAME ${PROJECT_NAME}_node)
 
@@ -14,11 +14,25 @@ find_package(catkin REQUIRED COMPONENTS
   roslint
   std_msgs
   thruster_control
+  pluginlib 
+  nodelet 
+  dynamic_reconfigure
 )
+find_package(PkgConfig)
+pkg_search_module(yaml-cpp REQUIRED yaml-cpp)
 
- catkin_package(
+if(NOT ${yaml-cpp_VERSION} VERSION_LESS "0.5")
+add_definitions(-DHAVE_NEW_YAMLCPP)
+endif()
+
+# Dynamic reconfigure support
+generate_dynamic_reconfigure_options(cfg/reload.cfg)
+
+catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS fin_control roscpp std_msgs thruster_control jaus_ros_bridge mission_control
+  LIBRARIES ${PROJECT_NAME}_nodelet
+  CATKIN_DEPENDS fin_control roscpp std_msgs pluginlib nodelet dynamic_reconfigure thruster_control jaus_ros_bridge mission_control
+  DEPENDS yaml-cpp
  )
 
  ###########
@@ -28,30 +42,31 @@ find_package(catkin REQUIRED COMPONENTS
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${yaml-cpp_INCLUDE_DIRS}
 )
 
-add_executable(${NODE_APP_NAME}
-  src/cmd_actuator_subscribers.cpp
-  src/cmd_actuator_main.cpp
-)
+# Nodelet library
+add_library(${PROJECT_NAME}_nodelet src/cmd_actuator_subscribers.cpp src/cmd_actuator_mux_nodelet.cpp)
+add_dependencies(${PROJECT_NAME}_nodelet ${PROJECT_NAME}_gencfg)
 
-add_dependencies(${NODE_APP_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-target_link_libraries(${NODE_APP_NAME}
-  ${catkin_LIBRARIES}
-  yaml-cpp
-)
+target_link_libraries(${PROJECT_NAME}_nodelet ${catkin_LIBRARIES} ${yaml-cpp_LIBRARIES})
 
 #############
 ## Install ##
 #############
 
-install(TARGETS ${NODE_APP_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(TARGETS ${PROJECT_NAME}_nodelet
+        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
-
+install(DIRECTORY include/${PROJECT_NAME}/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+install(DIRECTORY plugins
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
 install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+install(DIRECTORY param
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

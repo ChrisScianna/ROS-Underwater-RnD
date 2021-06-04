@@ -1,0 +1,13 @@
+<!--
+  YOCS Velocity Multiplexer launcher
+  -->
+
+<launch>
+  <arg name="nodelet_manager_name"  default="nodelet_manager"/>
+  <arg name="config_file"           default="$(find cmd_actuators_mux)/param/fin_angles.yaml"/>
+
+  <node pkg="nodelet" type="nodelet" name="CmdActuatorMuxNodelet"
+        args="load cmd_actuators_mux/CmdActuatorMuxNodelet $(arg nodelet_manager_name)">
+    <param name="yaml_cfg_file" value="$(arg config_file)"/>
+  </node>
+</launch>

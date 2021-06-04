@@ -1,0 +1,19 @@
+# Individual subscriber configuration:
+#   name:           Source name
+#   topic:          The topic that provides  messages
+#   timeout:        Time in seconds without incoming messages to consider this topic inactive
+#   priority:       Priority: an UNIQUE unsigned integer from 0 (lowest) to MAX_INT 
+#   short_desc:     Short description (optional)
+
+subscribers:
+  - name:        "Autopilot"
+    topic:       "input/autopilot/set_angles"
+    timeout:     0.1
+    priority:    0
+    short_desc:  ""
+  - name:        "Jaus Ros Bridge"
+    topic:       "input/jausRosBridge/set_angles"
+    timeout:     0.5
+    priority:    1
+    short_desc:  ""
+publisher:       "fin_control/set_angles"
