@@ -13,7 +13,7 @@ if __name__ == '__main__':
     rospy.init_node('test_jrb_publisher')
     msg = SetAngles()
     simulated_autopilot = rospy.Publisher(
-        '/CmdActuatorMuxNodelet/input/jausRosBridge/set_angles',
+        '/input/jausRosBridge/set_angles',
         SetAngles,
         queue_size=1)
     rate = rospy.Rate(5) # 10hz

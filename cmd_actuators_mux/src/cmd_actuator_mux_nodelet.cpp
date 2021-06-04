@@ -112,16 +112,17 @@ void CmdActuatorMuxNodelet::timerCallback(const ros::TimerEvent& event, unsigned
 
 void CmdActuatorMuxNodelet::onInit()
 {
-  ros::NodeHandle& nh = this->getPrivateNodeHandle();
+  nh = this->getNodeHandle();
+  pnh = this->getPrivateNodeHandle();
 
   /*********************
   ** Dynamic Reconfigure
   **********************/
   dynamic_reconfigure_cb = boost::bind(&CmdActuatorMuxNodelet::reloadConfiguration, this, _1, _2);
-  dynamic_reconfigure_server = new dynamic_reconfigure::Server<cmd_actuators_mux::reloadConfig>(nh);
+  dynamic_reconfigure_server = new dynamic_reconfigure::Server<cmd_actuators_mux::reloadConfig>(pnh);
   dynamic_reconfigure_server->setCallback(dynamic_reconfigure_cb);
 
-  active_subscriber = nh.advertise<std_msgs::String>("active", 1, true);  // latched topic
+  active_subscriber = pnh.advertise<std_msgs::String>("active", 1, true);  // latched topic
 
   // Notify the world that by now nobody is publishing on yet
   std_msgs::StringPtr active_msg(new std_msgs::String);
@@ -136,7 +137,6 @@ void CmdActuatorMuxNodelet::onInit()
 void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig& config,
                                                 uint32_t unused_level)
 {
-  ros::NodeHandle& pnh = this->getPrivateNodeHandle();
 
   std::unique_ptr<std::istream> is;
 
@@ -200,7 +200,7 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
   if (output_topic_name != output_name)
   {
     output_topic_name = output_name;
-    output_topic_pub = pnh.advertise<fin_control::SetAngles>(output_topic_name, 10);
+    output_topic_pub = nh.advertise<fin_control::SetAngles>(output_topic_name, 10);
     NODELET_DEBUG_STREAM("CmdActuatorMux : subscribe to output topic '" << output_name << "'");
   }
   else
@@ -231,7 +231,7 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
   {
     if (!cmd_actuator_subs[i]->subs)
     {
-      cmd_actuator_subs[i]->subs = pnh.subscribe<fin_control::SetAngles>(
+      cmd_actuator_subs[i]->subs = nh.subscribe<fin_control::SetAngles>(
           cmd_actuator_subs[i]->topic, 10, CmdActuatorFunctor(i, this));
       NODELET_DEBUG("CmdActuatorMux : subscribed to '%s' on topic '%s'. pr: %d, to: %.2f",
                     cmd_actuator_subs[i]->name.c_str(), cmd_actuator_subs[i]->topic.c_str(),

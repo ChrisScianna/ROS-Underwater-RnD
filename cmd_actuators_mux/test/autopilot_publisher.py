@@ -13,7 +13,7 @@ if __name__ == '__main__':
     rospy.init_node('test_autopilot_publisher')
     msg = SetAngles()
     simulated_autopilot = rospy.Publisher(
-        '/CmdActuatorMuxNodelet/input/autopilot/set_angles',
+        '/input/autopilot/set_angles',
         SetAngles,
         queue_size=1)
     rate = rospy.Rate(2) # 10hz

@@ -69,6 +69,9 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   static const unsigned int GLOBAL_TIMER =
       888888; /**< ID for the global timer functor; anything big is ok */
 
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh;
+
   CmdActuatorSubscribers cmd_actuator_subs; /**< Pool of topics subscribers */
   ros::Publisher output_topic_pub;          /**< Multiplexed command velocity topic */
   std::string output_topic_name;            /**< Multiplexed command velocity topic name */
