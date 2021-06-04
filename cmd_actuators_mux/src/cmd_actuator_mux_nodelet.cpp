@@ -40,6 +40,8 @@
 #include <std_msgs/String.h>
 
 #include <fstream>
+#include <string>
+
 #include "cmd_actuators_mux/exceptions.h"
 
 namespace cmd_actuator_mux

@@ -35,6 +35,16 @@ catkin_package(
   DEPENDS yaml-cpp
  )
 
+roslint_cpp(
+        src/cmd_actuator_mux_nodelet.cpp
+        src/cmd_actuator_subscribers.cpp
+        include/cmd_actuators_mux/cmd_actuator_mux_nodelet.cpp
+        include/cmd_actuators_mux/cmd_actuator_subscribers.cpp
+        include/cmd_actuators_mux/exceptions.h
+)
+
+roslint_add_test()
+
  ###########
 ## Build ##
 ###########

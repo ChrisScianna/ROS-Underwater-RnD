@@ -33,12 +33,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-
-#ifndef CMD_ACTUATORS_MUX_CMD_ACTUATORS_SUBSCRIBER_H_
-#define CMD_ACTUATORS_MUX_CMD_ACTUATORS_SUBSCRIBER_H_
+#ifndef CMD_ACTUATORS_MUX_CMD_ACTUATOR_SUBSCRIBERS_H
+#define CMD_ACTUATORS_MUX_CMD_ACTUATOR_SUBSCRIBERS_H
 
 #include <ros/ros.h>
 #include <yaml-cpp/yaml.h>
+#include <string>
+#include <vector>
 
 #ifdef HAVE_NEW_YAMLCPP
 // The >> operator disappeared in yaml-cpp 0.5, so this function is
@@ -68,7 +69,7 @@ class CmdActuatorSubscribers
     std::string short_desc; /**< Short description (optional) */
     bool active;            /**< Whether this source is active */
 
-    CmdActuatorSubs(unsigned int idx) : idx(idx), active(false){};
+    explicit CmdActuatorSubs(unsigned int idx) : idx(idx), active(false) {}
     ~CmdActuatorSubs() {}
 
     /** Fill attributes with a YAML node content */
@@ -78,8 +79,8 @@ class CmdActuatorSubscribers
   CmdActuatorSubscribers() {}
   ~CmdActuatorSubscribers() {}
 
-  std::vector<std::shared_ptr<CmdActuatorSubs>>::size_type size() { return list.size(); };
-  std::shared_ptr<CmdActuatorSubs>& operator[](unsigned int idx) { return list[idx]; };
+  std::vector<std::shared_ptr<CmdActuatorSubs>>::size_type size() { return list.size(); }
+  std::shared_ptr<CmdActuatorSubs>& operator[](unsigned int idx) { return list[idx]; }
 
   /**
    * @brief Configures the subscribers from a yaml file.
@@ -99,4 +100,4 @@ class CmdActuatorSubscribers
 
 }  // namespace cmd_actuator_mux
 
-#endif /* CMD_ACTUATORS_MUX_CMD_ACTUATORS_SUBSCRIBER_H_ */
+#endif  //  CMD_ACTUATORS_MUX_CMD_ACTUATOR_SUBSCRIBERS_H

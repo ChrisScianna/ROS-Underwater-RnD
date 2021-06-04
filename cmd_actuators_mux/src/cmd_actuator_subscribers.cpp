@@ -36,6 +36,8 @@
 #include "cmd_actuators_mux/cmd_actuator_subscribers.h"
 
 #include <fstream>
+#include <vector>
+#include <string>
 
 #include "cmd_actuators_mux/exceptions.h"
 
@@ -91,9 +93,9 @@ void CmdActuatorSubscribers::configure(const YAML::Node& node)
       // Parse entries on YAML
       std::string new_subs_name = node[i]["name"].Scalar();
       auto old_subs = std::find_if(list.begin(), list.end(),
-                                   [&new_subs_name](const std::shared_ptr<CmdActuatorSubs>& subs) {
+                                   [&new_subs_name](const std::shared_ptr<CmdActuatorSubs>& subs) {   //NOLINT
                                      return subs->name == new_subs_name;
-                                   });
+                                   });  //NOLINT
       if (old_subs != list.end())
       {
         // For names already in the subscribers list, retain current object so we don't re-subscribe

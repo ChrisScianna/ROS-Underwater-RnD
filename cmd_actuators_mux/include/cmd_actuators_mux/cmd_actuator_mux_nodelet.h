@@ -33,12 +33,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#ifndef CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H_
-#define CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H_
+#ifndef CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H
+#define CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H
 
 #include <dynamic_reconfigure/server.h>
 #include <nodelet/nodelet.h>
 #include <ros/ros.h>
+#include <string>
 
 #include "cmd_actuators_mux/cmd_actuator_subscribers.h"
 #include "cmd_actuators_mux/reloadConfig.h"
@@ -120,4 +121,4 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
 
 }  // namespace cmd_actuator_mux
 
-#endif /* CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H_ */
+#endif  //  CMD_ACTUATORS_MUX_CMD_ACTUATOR_MUX_NODELET_H
