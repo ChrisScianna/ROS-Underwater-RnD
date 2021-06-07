@@ -33,7 +33,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-
 #include "cmd_actuators_mux/cmd_actuator_mux_nodelet.h"
 
 #include <pluginlib/class_list_macros.h>
@@ -50,41 +49,76 @@ namespace cmd_actuator_mux
  ** Implementation
  *****************************************************************************/
 
-void CmdActuatorMuxNodelet::cmdActuatorCallback(const fin_control::SetAngles::ConstPtr& msg,
+void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::ConstPtr& msg,
                                                 unsigned int idx)
 {
   // Reset general timer
-  common_timer.stop();
-  common_timer.start();
+  fin_angles_common_timer.stop();
+  fin_angles_common_timer.start();
 
   // Reset timer for this source
-  cmd_actuator_subs[idx]->timer.stop();
-  cmd_actuator_subs[idx]->timer.start();
-
-  cmd_actuator_subs[idx]->active = true;  // obviously his source is sending commands, so active
+  cmd_fin_angles_subs[idx]->timer.stop();
+  cmd_fin_angles_subs[idx]->timer.start();
+  cmd_fin_angles_subs[idx]->active = true;  // obviously his source is sending commands, so active
 
   // Give permit to publish to this source if it's the only active or is
   // already allowed or has higher priority that the currently allowed
-  if ((cmd_actuator_subs.allowed == VACANT) || (cmd_actuator_subs.allowed == idx) ||
-      (cmd_actuator_subs[idx]->priority > cmd_actuator_subs[cmd_actuator_subs.allowed]->priority))
+  if ((cmd_fin_angles_subs.allowed == VACANT) || (cmd_fin_angles_subs.allowed == idx) ||
+      (cmd_fin_angles_subs[idx]->priority >
+       cmd_fin_angles_subs[cmd_fin_angles_subs.allowed]->priority))
   {
-    if (cmd_actuator_subs.allowed != idx)
+    if (cmd_fin_angles_subs.allowed != idx)
     {
-      cmd_actuator_subs.allowed = idx;
+      cmd_fin_angles_subs.allowed = idx;
 
       // Notify the world that a new cmd_actuator source took the control
       std_msgs::StringPtr acv_msg(new std_msgs::String);
-      acv_msg->data = cmd_actuator_subs[idx]->name;
-      active_subscriber.publish(acv_msg);
+      acv_msg->data = cmd_fin_angles_subs[idx]->name;
+      fin_angles_active_subscriber.publish(acv_msg);
     }
 
-    output_topic_pub.publish(msg);
+    fin_angles_output_topic_pub.publish(msg);
   }
 }
 
-void CmdActuatorMuxNodelet::timerCallback(const ros::TimerEvent& event, unsigned int idx)
+void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg,
+                                              unsigned int idx)
 {
-  if (cmd_actuator_subs.allowed == idx ||
+  thruster_common_timer.stop();
+  thruster_common_timer.start();
+
+  // Reset timer for this source
+  cmd_thruster_subs[idx]->timer.stop();
+  cmd_thruster_subs[idx]->timer.start();
+  cmd_thruster_subs[idx]->active = true;  // obviously his source is sending commands, so active
+
+  // Give permit to publish to this source if it's the only active or is
+  // already allowed or has higher priority that the currently allowed
+  if ((cmd_thruster_subs.allowed == VACANT) || (cmd_thruster_subs.allowed == idx) ||
+      (cmd_thruster_subs[idx]->priority > cmd_thruster_subs[cmd_thruster_subs.allowed]->priority))
+  {
+    if (cmd_thruster_subs.allowed != idx)
+    {
+      cmd_thruster_subs.allowed = idx;
+
+      // Notify the world that a new cmd_actuator source took the control
+      std_msgs::StringPtr acv_msg(new std_msgs::String);
+      acv_msg->data = cmd_thruster_subs[idx]->name;
+      thruster_active_subscriber.publish(acv_msg);
+    }
+
+    thruster_output_topic_pub.publish(msg);
+  }
+}
+
+void CmdActuatorMuxNodelet::finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx)
+{
+  timerCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber);
+  
+}
+
+void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers &cmd_actuator_subs, const unsigned int &idx, const ros::Publisher &active_subscriber){
+    if (cmd_actuator_subs.allowed == idx ||
       (idx == GLOBAL_TIMER && cmd_actuator_subs.allowed != VACANT))
   {
     if (idx == GLOBAL_TIMER)
@@ -92,9 +126,8 @@ void CmdActuatorMuxNodelet::timerCallback(const ros::TimerEvent& event, unsigned
       // No messages timeout happened for ANYONE, so last active source got stuck without further
       // messages; not a big problem, just dislodge it; but possibly reflect a problem in the
       // controller
-      NODELET_WARN("CmdActuatorMux : No messages from ANY input received in the last %fs",
-                   common_timer_period);
-      NODELET_WARN("CmdActuatorMux : %s dislodged due to general timeout",
+      NODELET_WARN("Actuator : No messages from ANY input received");
+      NODELET_WARN("Actuator: %s dislodged due to general timeout",
                    cmd_actuator_subs[cmd_actuator_subs.allowed]->name.c_str());
     }
 
@@ -110,6 +143,11 @@ void CmdActuatorMuxNodelet::timerCallback(const ros::TimerEvent& event, unsigned
   if (idx != GLOBAL_TIMER) cmd_actuator_subs[idx]->active = false;
 }
 
+void CmdActuatorMuxNodelet::setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx)
+{
+  timerCallbackProcess(cmd_thruster_subs, idx, thruster_active_subscriber);
+}
+
 void CmdActuatorMuxNodelet::onInit()
 {
   nh = this->getNodeHandle();
@@ -119,25 +157,27 @@ void CmdActuatorMuxNodelet::onInit()
   ** Dynamic Reconfigure
   **********************/
   dynamic_reconfigure_cb = boost::bind(&CmdActuatorMuxNodelet::reloadConfiguration, this, _1, _2);
-  dynamic_reconfigure_server = new dynamic_reconfigure::Server<cmd_actuators_mux::reloadConfig>(pnh);
+  dynamic_reconfigure_server =
+      new dynamic_reconfigure::Server<cmd_actuators_mux::reloadConfig>(pnh);
   dynamic_reconfigure_server->setCallback(dynamic_reconfigure_cb);
 
-  active_subscriber = pnh.advertise<std_msgs::String>("active", 1, true);  // latched topic
+  fin_angles_active_subscriber = pnh.advertise<std_msgs::String>("fin_angle_active", 1, true);
+  thruster_active_subscriber = pnh.advertise<std_msgs::String>("set_rpm_active", 1, true);
 
   // Notify the world that by now nobody is publishing on yet
   std_msgs::StringPtr active_msg(new std_msgs::String);
   active_msg->data = "idle";
-  active_subscriber.publish(active_msg);
+  fin_angles_active_subscriber.publish(active_msg);
+  thruster_active_subscriber.publish(active_msg);
 
   // could use a call to reloadConfiguration here, but it seems to automatically call it once with
   // defaults anyway.
-  NODELET_DEBUG("CmdActuatorMux : successfully initialized");
+  NODELET_DEBUG("Command Actuator Mux : successfully initialized");
 }
 
 void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig& config,
                                                 uint32_t unused_level)
 {
-
   std::unique_ptr<std::istream> is;
 
   // Configuration can come directly as a yaml-formatted string or as a file path,
@@ -162,8 +202,8 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
     is.reset(new std::ifstream(yaml_cfg_file.c_str(), std::ifstream::in));
     if (is->good() == false)
     {
-      NODELET_ERROR_STREAM("CmdActuatorMux : configuration file not found [" << yaml_cfg_file
-                                                                             << "]");
+      NODELET_ERROR_STREAM("Fin Angle Mux : configuration file not found [" << yaml_cfg_file
+                                                                            << "]");
       return;
     }
   }
@@ -172,7 +212,6 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
   ** Yaml File Parsing
   **********************/
 
-  YAML::Node doc;
 #ifdef HAVE_NEW_YAMLCPP
   doc = YAML::Load(*is);
 #else
@@ -181,95 +220,183 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
 #endif
 
   /*********************
-  ** Output Publisher
+  ** Fin Angles
   **********************/
+
+  /******** Publisher  *******************************/
+  std::string output_name = getOutputTopicName("fin_angles_publisher");
+  if (fin_angles_output_topic_name != output_name)
+  {
+    fin_angles_output_topic_name = output_name;
+    fin_angles_output_topic_pub =
+        nh.advertise<fin_control::SetAngles>(fin_angles_output_topic_name, 10);
+    NODELET_DEBUG_STREAM("Subscribe to output topic '" << output_name << "'");
+  }
+  else
+  {
+    NODELET_DEBUG_STREAM("No need to re-subscribe to output topic '" << output_name << "'");
+  }
+
+  /******** Input Subscribers *******************************/
+
+  try
+  {
+    cmd_fin_angles_subs.configure(doc["fin_angles_subscribers"]);
+  }
+  catch (EmptyCfgException& e)
+  {
+    NODELET_WARN_STREAM(
+        "yaml configured zero subscribers, check yaml content: fin_angles_subscribers");
+  }
+  catch (YamlException& e)
+  {
+    NODELET_ERROR_STREAM("fin_angles_subscribers: yaml parsing problem [" << std::string(e.what())
+                                                                          << "]");
+  }
+
+  // (Re)create subscribers whose topic is invalid: new ones and those with changed names
+  double longest_timeout = 0.0;
+  for (unsigned int i = 0; i < cmd_fin_angles_subs.size(); i++)
+  {
+    if (!cmd_fin_angles_subs[i]->subs)
+    {
+      cmd_fin_angles_subs[i]->subs = nh.subscribe<fin_control::SetAngles>(
+          cmd_fin_angles_subs[i]->topic, 10, CmdFinAngleFunctor(i, this));
+      NODELET_DEBUG("Fin Angle Mux : subscribed to '%s' on topic '%s'. pr: %d, to: %.2f",
+                    cmd_fin_angles_subs[i]->name.c_str(), cmd_fin_angles_subs[i]->topic.c_str(),
+                    cmd_fin_angles_subs[i]->priority, cmd_fin_angles_subs[i]->timeout);
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM("Fin Angle Mux : no need to re-subscribe to input topic '"
+                           << cmd_fin_angles_subs[i]->topic << "'");
+    }
+
+    if (!cmd_fin_angles_subs[i]->timer)
+    {
+      // Create (stopped by now) a one-shot timer for every subscriber, if it doesn't exist yet
+      cmd_fin_angles_subs[i]->timer =
+          pnh.createTimer(ros::Duration(cmd_fin_angles_subs[i]->timeout),
+                          FinAngleTimerFunctor(i, this), true, false);
+    }
+
+    if (cmd_fin_angles_subs[i]->timeout > longest_timeout)
+      longest_timeout = cmd_fin_angles_subs[i]->timeout;
+  }
+
+  if (!fin_angles_common_timer)
+  {
+    // Create another timer for  messages from any source, so we can
+    // dislodge last active source if it gets stuck without further messages
+    fin_angles_common_timer_period = longest_timeout * 2.0;
+    fin_angles_common_timer =
+        pnh.createTimer(ros::Duration(fin_angles_common_timer_period),
+                        FinAngleTimerFunctor(GLOBAL_TIMER, this), true, false);
+  }
+  else if (longest_timeout != (fin_angles_common_timer_period / 2.0))
+  {
+    // Longest timeout changed; just update existing timer period
+    fin_angles_common_timer_period = longest_timeout * 2.0;
+    fin_angles_common_timer.setPeriod(ros::Duration(fin_angles_common_timer_period));
+  }
+
+  NODELET_INFO_STREAM("Fin Angle Mux : (re)configured");
+
+  /*********************
+  ** Thruster / Set RPM
+  **********************/
+
+  /******** Publisher  *******************************/
+  output_name = getOutputTopicName("set_rpm_publisher");
+  if (thruster_output_topic_name != output_name)
+  {
+    thruster_output_topic_name = output_name;
+    thruster_output_topic_pub =
+        nh.advertise<fin_control::SetAngles>(thruster_output_topic_name, 10);
+    NODELET_DEBUG_STREAM("Subscribe to output topic '" << output_name << "'");
+  }
+  else
+  {
+    NODELET_DEBUG_STREAM("No need to re-subscribe to output topic '" << output_name << "'");
+  }
+
+  /******** Input Subscribers *******************************/
+  try
+  {
+    cmd_thruster_subs.configure(doc["set_rpm_subscribers"]);
+  }
+  catch (EmptyCfgException& e)
+  {
+    NODELET_WARN_STREAM(
+        "yaml configured zero subscribers, check yaml content: set_rpm_subscribers");
+  }
+  catch (YamlException& e)
+  {
+    NODELET_ERROR_STREAM("set_rpm_subscribers: yaml parsing problem [" << std::string(e.what())
+                                                                       << "]");
+  }
+
+  double set_rpm_longest_timeout = 0.0;
+  for (unsigned int i = 0; i < cmd_thruster_subs.size(); i++)
+  {
+    if (!cmd_thruster_subs[i]->subs)
+    {
+      cmd_thruster_subs[i]->subs = nh.subscribe<thruster_control::SetRPM>(
+          cmd_thruster_subs[i]->topic, 10, CmdSetRPMFunctor(i, this));
+      NODELET_DEBUG("Thruster Set RPM Mux : subscribed to '%s' on topic '%s'. pr: %d, to: %.2f",
+                    cmd_thruster_subs[i]->name.c_str(), cmd_thruster_subs[i]->topic.c_str(),
+                    cmd_thruster_subs[i]->priority, cmd_thruster_subs[i]->timeout);
+    }
+    else
+    {
+      NODELET_DEBUG_STREAM("Thruster Set RPM Mux : no need to re-subscribe to input topic '"
+                           << cmd_thruster_subs[i]->topic << "'");
+    }
+
+    if (!cmd_thruster_subs[i]->timer)
+    {
+      // Create (stopped by now) a one-shot timer for every subscriber, if it doesn't exist yet
+      cmd_thruster_subs[i]->timer = pnh.createTimer(ros::Duration(cmd_thruster_subs[i]->timeout),
+                                                    SetRPMTimerFunctor(i, this), true, false);
+    }
+
+    if (cmd_thruster_subs[i]->timeout > set_rpm_longest_timeout)
+      set_rpm_longest_timeout = cmd_thruster_subs[i]->timeout;
+  }
+
+  if (!thruster_common_timer)
+  {
+    // Create another timer for  messages from any source, so we can
+    // dislodge last active source if it gets stuck without further messages
+    thruster_common_timer_period = longest_timeout * 2.0;
+    thruster_common_timer = pnh.createTimer(ros::Duration(thruster_common_timer_period),
+                                            SetRPMTimerFunctor(GLOBAL_TIMER, this), true, false);
+  }
+  else if (longest_timeout != (thruster_common_timer_period / 2.0))
+  {
+    // Longest timeout changed; just update existing timer period
+    thruster_common_timer_period = longest_timeout * 2.0;
+    thruster_common_timer.setPeriod(ros::Duration(thruster_common_timer_period));
+  }
+}
+
+std::string CmdActuatorMuxNodelet::getOutputTopicName(const std::string& label)
+{
   std::string output_name("output");
 #ifdef HAVE_NEW_YAMLCPP
-  if (doc["publisher"])
+  if (doc[label])
   {
-    doc["publisher"] >> output_name;
+    doc[label] >> output_name;
   }
 #else
-  const YAML::Node* node = doc.FindValue("publisher");
+  const YAML::Node* node = doc.FindValue(label);
   if (node != NULL)
   {
     *node >> output_name;
   }
 #endif
 
-  if (output_topic_name != output_name)
-  {
-    output_topic_name = output_name;
-    output_topic_pub = nh.advertise<fin_control::SetAngles>(output_topic_name, 10);
-    NODELET_DEBUG_STREAM("CmdActuatorMux : subscribe to output topic '" << output_name << "'");
-  }
-  else
-  {
-    NODELET_DEBUG_STREAM("CmdActuatorMux : no need to re-subscribe to output topic '" << output_name
-                                                                                      << "'");
-  }
-
-  /*********************
-  ** Input Subscribers
-  **********************/
-  try
-  {
-    cmd_actuator_subs.configure(doc["subscribers"]);
-  }
-  catch (EmptyCfgException& e)
-  {
-    NODELET_WARN_STREAM("CmdActuatorMux : yaml configured zero subscribers, check yaml content");
-  }
-  catch (YamlException& e)
-  {
-    NODELET_ERROR_STREAM("CmdActuatorMux : yaml parsing problem [" << std::string(e.what()) << "]");
-  }
-
-  // (Re)create subscribers whose topic is invalid: new ones and those with changed names
-  double longest_timeout = 0.0;
-  for (unsigned int i = 0; i < cmd_actuator_subs.size(); i++)
-  {
-    if (!cmd_actuator_subs[i]->subs)
-    {
-      cmd_actuator_subs[i]->subs = nh.subscribe<fin_control::SetAngles>(
-          cmd_actuator_subs[i]->topic, 10, CmdActuatorFunctor(i, this));
-      NODELET_DEBUG("CmdActuatorMux : subscribed to '%s' on topic '%s'. pr: %d, to: %.2f",
-                    cmd_actuator_subs[i]->name.c_str(), cmd_actuator_subs[i]->topic.c_str(),
-                    cmd_actuator_subs[i]->priority, cmd_actuator_subs[i]->timeout);
-    }
-    else
-    {
-      NODELET_DEBUG_STREAM("CmdActuatorMux : no need to re-subscribe to input topic '"
-                           << cmd_actuator_subs[i]->topic << "'");
-    }
-
-    if (!cmd_actuator_subs[i]->timer)
-    {
-      // Create (stopped by now) a one-shot timer for every subscriber, if it doesn't exist yet
-      cmd_actuator_subs[i]->timer = pnh.createTimer(ros::Duration(cmd_actuator_subs[i]->timeout),
-                                                    TimerFunctor(i, this), true, false);
-    }
-
-    if (cmd_actuator_subs[i]->timeout > longest_timeout)
-      longest_timeout = cmd_actuator_subs[i]->timeout;
-  }
-
-  if (!common_timer)
-  {
-    // Create another timer for  messages from any source, so we can
-    // dislodge last active source if it gets stuck without further messages
-    common_timer_period = longest_timeout * 2.0;
-    common_timer = pnh.createTimer(ros::Duration(common_timer_period),
-                                   TimerFunctor(GLOBAL_TIMER, this), true, false);
-  }
-  else if (longest_timeout != (common_timer_period / 2.0))
-  {
-    // Longest timeout changed; just update existing timer period
-    common_timer_period = longest_timeout * 2.0;
-    common_timer.setPeriod(ros::Duration(common_timer_period));
-  }
-
-  NODELET_INFO_STREAM("CmdActuatorMux : (re)configured");
+  return output_name;
 }
 
 }  // namespace cmd_actuator_mux
