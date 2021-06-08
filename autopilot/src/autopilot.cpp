@@ -128,8 +128,8 @@ double relativeAngle(double xb, double yb, double xa, double ya)
 
 AutoPilotNode::AutoPilotNode() : pnh_("~")
 {
-  thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
-  fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
+  thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("input/autopilot/set_rpm", 1);
+  fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("input/autopilot/set_angles", 1);
   auto_pilot_in_control_pub_ =
       nh_.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
   auto_pilot_in_control_ = true;

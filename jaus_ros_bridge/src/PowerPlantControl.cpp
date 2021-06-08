@@ -49,7 +49,7 @@
 void PowerPlantControl::init(ros::NodeHandle* nodeHandle) {
   _nodeHandle = nodeHandle;
   _publisher_setRPM =
-      _nodeHandle->advertise<thruster_control::SetRPM>("/thruster_control/set_rpm", 1, true);
+      _nodeHandle->advertise<thruster_control::SetRPM>("/input/jausRosBridge/set_rpm", 1, true);
 
   _isSetToZero = true;
 
