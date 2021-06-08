@@ -57,7 +57,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   CmdActuatorMuxNodelet()
   {
     cmd_fin_angles_subs.allowed = VACANT;
-    cmd_thruster_subs.allowed = VACANT;
+    cmd_set_rpm_subs.allowed = VACANT;
 
     dynamic_reconfigure_server = NULL;
   }
@@ -78,38 +78,40 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
 
   /**< Pool of topics subscribers */
   CmdActuatorSubscribers cmd_fin_angles_subs;
-  CmdActuatorSubscribers cmd_thruster_subs;
+  CmdActuatorSubscribers cmd_set_rpm_subs;
 
   /**< Multiplexed command Fin Angle topic */
   ros::Publisher fin_angles_output_topic_pub;
-  ros::Publisher thruster_output_topic_pub;
+  ros::Publisher set_rpm_output_topic_pub;
 
   /**< Multiplexed command Fin Angle topic name */
   std::string fin_angles_output_topic_name;
-  std::string thruster_output_topic_name;
+  std::string set_rpm_output_topic_name;
 
   /**< Currently allowed subscriber */
   ros::Publisher fin_angles_active_subscriber;
-  ros::Publisher thruster_active_subscriber;
+  ros::Publisher set_rpm_active_subscriber;
 
   /**< No messages from any subscriber timeout */
   ros::Timer fin_angles_common_timer;
-  ros::Timer thruster_common_timer;
+  ros::Timer set_rpm_common_timer;
 
   /**< No messages from any subscriber timeout period */
   double fin_angles_common_timer_period;
-  double thruster_common_timer_period;
+  double set_rpm_common_timer_period;
 
   YAML::Node doc;
 
   void finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx);
   void setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx);
+  void timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs, const unsigned int& idx,
+                            const ros::Publisher& active_subscriber);
 
   void cmdFinAngleCallback(const fin_control::SetAngles::ConstPtr& msg, unsigned int idx);
-
   void cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg, unsigned int idx);
+  bool cmdActuatorCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
+                                  const unsigned int& idx, ros::Publisher& active_subscriber);
 
-  void timerCallbackProcess(CmdActuatorSubscribers &cmd_actuator_subs, const unsigned int &idx, const ros::Publisher &active_subscriber);
   std::string getOutputTopicName(const std::string& label);
   /*********************
   ** Dynamic Reconfigure

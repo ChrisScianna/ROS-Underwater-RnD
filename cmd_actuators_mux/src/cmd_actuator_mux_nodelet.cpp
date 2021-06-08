@@ -56,69 +56,63 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
   fin_angles_common_timer.stop();
   fin_angles_common_timer.start();
 
-  // Reset timer for this source
-  cmd_fin_angles_subs[idx]->timer.stop();
-  cmd_fin_angles_subs[idx]->timer.start();
-  cmd_fin_angles_subs[idx]->active = true;  // obviously his source is sending commands, so active
-
-  // Give permit to publish to this source if it's the only active or is
-  // already allowed or has higher priority that the currently allowed
-  if ((cmd_fin_angles_subs.allowed == VACANT) || (cmd_fin_angles_subs.allowed == idx) ||
-      (cmd_fin_angles_subs[idx]->priority >
-       cmd_fin_angles_subs[cmd_fin_angles_subs.allowed]->priority))
-  {
-    if (cmd_fin_angles_subs.allowed != idx)
-    {
-      cmd_fin_angles_subs.allowed = idx;
-
-      // Notify the world that a new cmd_actuator source took the control
-      std_msgs::StringPtr acv_msg(new std_msgs::String);
-      acv_msg->data = cmd_fin_angles_subs[idx]->name;
-      fin_angles_active_subscriber.publish(acv_msg);
-    }
-
+  if (cmdActuatorCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber))
     fin_angles_output_topic_pub.publish(msg);
-  }
 }
 
 void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg,
                                               unsigned int idx)
 {
-  thruster_common_timer.stop();
-  thruster_common_timer.start();
+  set_rpm_common_timer.stop();
+  set_rpm_common_timer.start();
 
+  if (cmdActuatorCallbackProcess(cmd_set_rpm_subs, idx, set_rpm_active_subscriber))
+    set_rpm_output_topic_pub.publish(msg);
+}
+
+bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
+                                                       const unsigned int& idx,
+                                                       ros::Publisher& active_subscriber)
+{
   // Reset timer for this source
-  cmd_thruster_subs[idx]->timer.stop();
-  cmd_thruster_subs[idx]->timer.start();
-  cmd_thruster_subs[idx]->active = true;  // obviously his source is sending commands, so active
+  cmd_actuator_subs[idx]->timer.stop();
+  cmd_actuator_subs[idx]->timer.start();
+  cmd_actuator_subs[idx]->active = true;  // obviously his source is sending commands, so active
 
   // Give permit to publish to this source if it's the only active or is
   // already allowed or has higher priority that the currently allowed
-  if ((cmd_thruster_subs.allowed == VACANT) || (cmd_thruster_subs.allowed == idx) ||
-      (cmd_thruster_subs[idx]->priority > cmd_thruster_subs[cmd_thruster_subs.allowed]->priority))
+  if ((cmd_actuator_subs.allowed == VACANT) || (cmd_actuator_subs.allowed == idx) ||
+      (cmd_actuator_subs[idx]->priority > cmd_actuator_subs[cmd_actuator_subs.allowed]->priority))
   {
-    if (cmd_thruster_subs.allowed != idx)
+    if (cmd_actuator_subs.allowed != idx)
     {
-      cmd_thruster_subs.allowed = idx;
+      cmd_actuator_subs.allowed = idx;
 
       // Notify the world that a new cmd_actuator source took the control
       std_msgs::StringPtr acv_msg(new std_msgs::String);
-      acv_msg->data = cmd_thruster_subs[idx]->name;
-      thruster_active_subscriber.publish(acv_msg);
+      acv_msg->data = cmd_actuator_subs[idx]->name;
+      active_subscriber.publish(acv_msg);
     }
-
-    thruster_output_topic_pub.publish(msg);
+    return true;
   }
+  return false;
 }
 
 void CmdActuatorMuxNodelet::finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx)
 {
   timerCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber);
-  
 }
 
-void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers &cmd_actuator_subs, const unsigned int &idx, const ros::Publisher &active_subscriber){
-    if (cmd_actuator_subs.allowed == idx ||
+void CmdActuatorMuxNodelet::setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx)
+{
+  timerCallbackProcess(cmd_set_rpm_subs, idx, set_rpm_active_subscriber);
+}
+
+void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
+                                                 const unsigned int& idx,
+                                                 const ros::Publisher& active_subscriber)
+{
+  if (cmd_actuator_subs.allowed == idx ||
       (idx == GLOBAL_TIMER && cmd_actuator_subs.allowed != VACANT))
   {
     if (idx == GLOBAL_TIMER)
@@ -143,11 +137,6 @@ void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers &cmd_act
   if (idx != GLOBAL_TIMER) cmd_actuator_subs[idx]->active = false;
 }
 
-void CmdActuatorMuxNodelet::setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx)
-{
-  timerCallbackProcess(cmd_thruster_subs, idx, thruster_active_subscriber);
-}
-
 void CmdActuatorMuxNodelet::onInit()
 {
   nh = this->getNodeHandle();
@@ -162,13 +151,13 @@ void CmdActuatorMuxNodelet::onInit()
   dynamic_reconfigure_server->setCallback(dynamic_reconfigure_cb);
 
   fin_angles_active_subscriber = pnh.advertise<std_msgs::String>("fin_angle_active", 1, true);
-  thruster_active_subscriber = pnh.advertise<std_msgs::String>("set_rpm_active", 1, true);
+  set_rpm_active_subscriber = pnh.advertise<std_msgs::String>("set_rpm_active", 1, true);
 
   // Notify the world that by now nobody is publishing on yet
   std_msgs::StringPtr active_msg(new std_msgs::String);
   active_msg->data = "idle";
   fin_angles_active_subscriber.publish(active_msg);
-  thruster_active_subscriber.publish(active_msg);
+  set_rpm_active_subscriber.publish(active_msg);
 
   // could use a call to reloadConfiguration here, but it seems to automatically call it once with
   // defaults anyway.
@@ -308,11 +297,11 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
 
   /******** Publisher  *******************************/
   output_name = getOutputTopicName("set_rpm_publisher");
-  if (thruster_output_topic_name != output_name)
+  if (set_rpm_output_topic_name != output_name)
   {
-    thruster_output_topic_name = output_name;
-    thruster_output_topic_pub =
-        nh.advertise<fin_control::SetAngles>(thruster_output_topic_name, 10);
+    set_rpm_output_topic_name = output_name;
+    set_rpm_output_topic_pub =
+        nh.advertise<thruster_control::SetRPM>(set_rpm_output_topic_name, 10);
     NODELET_DEBUG_STREAM("Subscribe to output topic '" << output_name << "'");
   }
   else
@@ -323,7 +312,7 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
   /******** Input Subscribers *******************************/
   try
   {
-    cmd_thruster_subs.configure(doc["set_rpm_subscribers"]);
+    cmd_set_rpm_subs.configure(doc["set_rpm_subscribers"]);
   }
   catch (EmptyCfgException& e)
   {
@@ -337,46 +326,46 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
   }
 
   double set_rpm_longest_timeout = 0.0;
-  for (unsigned int i = 0; i < cmd_thruster_subs.size(); i++)
+  for (unsigned int i = 0; i < cmd_set_rpm_subs.size(); i++)
   {
-    if (!cmd_thruster_subs[i]->subs)
+    if (!cmd_set_rpm_subs[i]->subs)
     {
-      cmd_thruster_subs[i]->subs = nh.subscribe<thruster_control::SetRPM>(
-          cmd_thruster_subs[i]->topic, 10, CmdSetRPMFunctor(i, this));
+      cmd_set_rpm_subs[i]->subs = nh.subscribe<thruster_control::SetRPM>(
+          cmd_set_rpm_subs[i]->topic, 10, CmdSetRPMFunctor(i, this));
       NODELET_DEBUG("Thruster Set RPM Mux : subscribed to '%s' on topic '%s'. pr: %d, to: %.2f",
-                    cmd_thruster_subs[i]->name.c_str(), cmd_thruster_subs[i]->topic.c_str(),
-                    cmd_thruster_subs[i]->priority, cmd_thruster_subs[i]->timeout);
+                    cmd_set_rpm_subs[i]->name.c_str(), cmd_set_rpm_subs[i]->topic.c_str(),
+                    cmd_set_rpm_subs[i]->priority, cmd_set_rpm_subs[i]->timeout);
     }
     else
     {
       NODELET_DEBUG_STREAM("Thruster Set RPM Mux : no need to re-subscribe to input topic '"
-                           << cmd_thruster_subs[i]->topic << "'");
+                           << cmd_set_rpm_subs[i]->topic << "'");
     }
 
-    if (!cmd_thruster_subs[i]->timer)
+    if (!cmd_set_rpm_subs[i]->timer)
     {
       // Create (stopped by now) a one-shot timer for every subscriber, if it doesn't exist yet
-      cmd_thruster_subs[i]->timer = pnh.createTimer(ros::Duration(cmd_thruster_subs[i]->timeout),
-                                                    SetRPMTimerFunctor(i, this), true, false);
+      cmd_set_rpm_subs[i]->timer = pnh.createTimer(ros::Duration(cmd_set_rpm_subs[i]->timeout),
+                                                   SetRPMTimerFunctor(i, this), true, false);
     }
 
-    if (cmd_thruster_subs[i]->timeout > set_rpm_longest_timeout)
-      set_rpm_longest_timeout = cmd_thruster_subs[i]->timeout;
+    if (cmd_set_rpm_subs[i]->timeout > set_rpm_longest_timeout)
+      set_rpm_longest_timeout = cmd_set_rpm_subs[i]->timeout;
   }
 
-  if (!thruster_common_timer)
+  if (!set_rpm_common_timer)
   {
     // Create another timer for  messages from any source, so we can
     // dislodge last active source if it gets stuck without further messages
-    thruster_common_timer_period = longest_timeout * 2.0;
-    thruster_common_timer = pnh.createTimer(ros::Duration(thruster_common_timer_period),
-                                            SetRPMTimerFunctor(GLOBAL_TIMER, this), true, false);
+    set_rpm_common_timer_period = longest_timeout * 2.0;
+    set_rpm_common_timer = pnh.createTimer(ros::Duration(set_rpm_common_timer_period),
+                                           SetRPMTimerFunctor(GLOBAL_TIMER, this), true, false);
   }
-  else if (longest_timeout != (thruster_common_timer_period / 2.0))
+  else if (longest_timeout != (set_rpm_common_timer_period / 2.0))
   {
     // Longest timeout changed; just update existing timer period
-    thruster_common_timer_period = longest_timeout * 2.0;
-    thruster_common_timer.setPeriod(ros::Duration(thruster_common_timer_period));
+    set_rpm_common_timer_period = longest_timeout * 2.0;
+    set_rpm_common_timer.setPeriod(ros::Duration(set_rpm_common_timer_period));
   }
 }
 
