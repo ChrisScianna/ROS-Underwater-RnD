@@ -74,9 +74,9 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
 
     def setUp(self):
         self.mission = MissionInterface()
-        self.attitude_servo_aborting_goal = AttitudeServo()
+        self.attitude_servo_goal = AttitudeServo()
 
-        self.attitude_servo_msg = rospy.Subscriber(
+        self.attitude_servo_sub = rospy.Subscriber(
             '/mngr/attitude_servo',
             AttitudeServo,
             self.attitude_servo_callback)
@@ -87,7 +87,7 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
             queue_size=1)
 
     def attitude_servo_callback(self, msg):
-        self.attitude_servo_aborting_goal = msg
+        self.attitude_servo_goal = msg
 
     def test_mission_control_aborts_if_action_times_out(self):
         self.mission.load_mission(sys.argv[1])
@@ -104,18 +104,16 @@ class TestMissionControlAbortsWhenBehaviorReturnsTimeOutFailure(unittest.TestCas
         maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
         def attitude_servo_aborting_goals_are_set():
             tol = 1e-3
-            return (isclose(self.attitude_servo_aborting_goal.roll, 0.0, tol) and
-                    isclose(self.attitude_servo_aborting_goal.pitch, maxCtrlFinAngle, tol) and
-                    isclose(self.attitude_servo_aborting_goal.yaw, 0.0, tol) and
-                    isclose(self.attitude_servo_aborting_goal.speed_knots, 0.0, tol) and
-                    self.attitude_servo_aborting_goal.ena_mask == 0xF)
+            ena_mask = AttitudeServo.PITCH_ENA | AttitudeServo.SPEED_KNOTS_ENA
+            return (isclose(self.attitude_servo_goal.pitch, -maxCtrlFinAngle, tol) and
+                    isclose(self.attitude_servo_goal.speed_knots, 0.0, tol) and
+                    self.attitude_servo_goal.ena_mask == ena_mask)
         self.assertTrue(wait_for(attitude_servo_aborting_goals_are_set),
                         msg='Mission control must publish goals')
-
         # Publishes values sent to the actuators
         msg = StateStamped()
         msg.state.manoeuvring.pose.mean.orientation.x = 0.0
-        msg.state.manoeuvring.pose.mean.orientation.y = maxCtrlFinAngle
+        msg.state.manoeuvring.pose.mean.orientation.y = -maxCtrlFinAngle
         msg.state.manoeuvring.pose.mean.orientation.z = 0.0
         msg.state.manoeuvring.velocity.mean.linear.x = 0.0
         msg.state.manoeuvring.velocity.mean.linear.y = 0.0

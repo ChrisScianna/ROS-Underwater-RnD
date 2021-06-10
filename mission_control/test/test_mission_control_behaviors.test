@@ -39,5 +39,4 @@
   <test test-name="test_if_mission_control_aborts_when_go_to_waypoint_behavior_returns_time_out_failure"
         pkg="mission_control" type="test_if_mission_control_aborts_when_behavior_returns_time_out_failure.py"
         time-limit="10.0" args="waypoint_mission_test.xml"/>
-
 </launch>

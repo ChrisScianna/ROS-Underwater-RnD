@@ -1,8 +1,8 @@
 <!-- This file is used for testing  -->
 
-<root main_tree_to_execute = "MainTree" >
-  <BehaviorTree ID="MainTree">
-    <Sequence name="mission test">
+<root main_tree_to_execute="main">
+  <BehaviorTree ID="main">
+    <Sequence name="Test Mission">
       <Timeout msec="2000">
         <SetDepthHeading
             depth="1.0"
