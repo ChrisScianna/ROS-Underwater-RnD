@@ -98,7 +98,7 @@ TEST(TestIntrospectableActionNode, nominal)
         }
         std::cout << "hi" << std::endl;
         return BT::NodeStatus::RUNNING;
-      }, config);  // NOLINT
+      }, config);
   chat->addChild(say_hi.get());
   tree.nodes.push_back(say_hi);
   auto say_bye =
@@ -112,7 +112,7 @@ TEST(TestIntrospectableActionNode, nominal)
         }
         std::cout << "bye" << std::endl;
         return BT::NodeStatus::RUNNING;
-      }, config);  // NOLINT
+      }, config);
   chat->addChild(say_bye.get());
   tree.nodes.push_back(say_bye);
 

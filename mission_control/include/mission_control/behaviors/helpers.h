@@ -67,7 +67,7 @@ UpdatePortsList(
 }
 
 template<typename...Args>
-void expand(Args&&...)  // NOLINT
+void expand(Args&&...)
 {
 }
 

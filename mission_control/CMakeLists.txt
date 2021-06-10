@@ -79,6 +79,9 @@ add_executable(${NODE_APP_NAME}
 
 target_link_libraries(${NODE_APP_NAME} ${PROJECT_NAME} ${catkin_LIBRARIES})
 
+set(ROSLINT_CPP_OPTS
+  --filter=-whitespace/braces,-build/c++11,-runtime/references
+)
 roslint_cpp()
 
 #############
