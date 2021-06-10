@@ -74,7 +74,7 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         self.mission = MissionInterface()
         self.simulate_error_code = ReportFault()
         self.simulate_error_code.fault_id = ReportFault.AUTOPILOT_NODE_DIED
-        self.attitude_servo_aborting_goal = AttitudeServo()
+        self.attitude_servo_goal = AttitudeServo()
 
         self.attitude_servo_msg = rospy.Subscriber(
             '/mngr/attitude_servo',
@@ -91,7 +91,7 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             queue_size=1)
 
     def attitude_servo_callback(self, msg):
-        self.attitude_servo_aborting_goal = msg
+        self.attitude_servo_goal = msg
 
     def test_mission_control_aborts_if_health_monitor_reports_fault(self):
         self.mission.load_mission('attitude_servo_mission_test.xml')
@@ -101,7 +101,6 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
             return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
         self.assertTrue(wait_for(executing_mission_status_is_reported),
                         msg='Mission control must report EXECUTING')
-
 
         # Simulate the health monitor publishing the fault code
         self.simulated_health_monitor_pub.publish(self.simulate_error_code)
@@ -117,18 +116,17 @@ class TestMissionControlAbortsWhenHealthMonitorReportsFault(unittest.TestCase):
         maxCtrlFinAngle = rospy.get_param('/fin_control/max_ctrl_fin_angle')
         def attitude_servo_aborting_goals_are_set():
             tol = 1e-3
-            return (isclose(self.attitude_servo_aborting_goal.roll, 0.0, tol) and
-                    isclose(self.attitude_servo_aborting_goal.pitch, maxCtrlFinAngle, tol) and
-                    isclose(self.attitude_servo_aborting_goal.yaw, 0.0, tol) and
-                    isclose(self.attitude_servo_aborting_goal.speed_knots, 0.0, tol) and
-                    self.attitude_servo_aborting_goal.ena_mask == 0xF)
+            ena_mask = AttitudeServo.PITCH_ENA | AttitudeServo.SPEED_KNOTS_ENA
+            return (isclose(self.attitude_servo_goal.pitch, -maxCtrlFinAngle, tol) and
+                    isclose(self.attitude_servo_goal.speed_knots, 0.0, tol) and
+                    self.attitude_servo_goal.ena_mask == ena_mask)
         self.assertTrue(wait_for(attitude_servo_aborting_goals_are_set),
                         msg='Mission control must publish goals')
 
         # Publishes values sent to the actuators
         msg = StateStamped()
         msg.state.manoeuvring.pose.mean.orientation.x = 0.0
-        msg.state.manoeuvring.pose.mean.orientation.y = maxCtrlFinAngle
+        msg.state.manoeuvring.pose.mean.orientation.y = -maxCtrlFinAngle
         msg.state.manoeuvring.pose.mean.orientation.z = 0.0
         msg.state.manoeuvring.velocity.mean.linear.x = 0.0
         msg.state.manoeuvring.velocity.mean.linear.y = 0.0

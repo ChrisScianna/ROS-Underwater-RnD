@@ -45,18 +45,17 @@ namespace mission_control
 namespace
 {
 
-class SimpleIntrospectableActionNode :
-    public IntrospectableNode<BT::ActionNodeBase>
+class SimpleActionNode : public BT::ActionNodeBase
 {
 public:
   using TickFunction =
       std::function<BT::NodeStatus(BT::TreeNode&)>;
 
-  SimpleIntrospectableActionNode(
+  SimpleActionNode(
       const std::string& name,
       const TickFunction& tick_function,
       const BT::NodeConfiguration& config)
-    : IntrospectableNode<BT::ActionNodeBase>(name, config),
+    : BT::ActionNodeBase(name, config),
       tick_function_(tick_function)
   {
   }
@@ -75,6 +74,8 @@ protected:
 private:
   TickFunction tick_function_;
 };
+
+using SimpleIntrospectableActionNode = IntrospectableNode<SimpleActionNode>;
 
 TEST(TestIntrospectableActionNode, nominal)
 {

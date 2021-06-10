@@ -119,11 +119,11 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
     def test_jaus_ros_bridge_interface(self):
         # Test if the mission control reports FAILED if cannot load a mission
-        self.assertEqual(self.mission.load_mission("NO_MISSION"), ReportLoadMissionState.FAILED)
+        self.assertEqual(self.mission.load_mission('NO_MISSION'), ReportLoadMissionState.FAILED)
 
         # A valid mission is sent to the mission control
         # Execute Mission and check if the mission control reports status
-        self.mission.load_mission("mission.xml")
+        self.mission.load_mission('waypoint_mission_test.xml')
         self.mission.execute_mission()
 
         # Wait for the mission to report EXECUTING
@@ -151,7 +151,7 @@ class TestJausRosBridgeInterface(unittest.TestCase):
             return len(self.report_mission.missions) > 0
         self.assertTrue(wait_for(query_mission))
         self.assertEqual(
-            self.report_mission.missions[0].mission_description, "Mission Test")
+            self.report_mission.missions[0].mission_description, 'Test Mission')
 
         # Remove all missions and test if they have been removed.
         self.report_mission = ReportMissions()

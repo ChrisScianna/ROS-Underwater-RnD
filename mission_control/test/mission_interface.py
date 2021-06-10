@@ -104,7 +104,7 @@ class MissionInterface:
         # response that the mission was loaded correctly
         self.full_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            'test_files/test_missions', mission_name)
+            'test_files', 'test_missions', mission_name)
         self.mission_load_state_flag = False
         mission_to_load = LoadMission()
         mission_to_load.mission_file_full_path = self.full_path

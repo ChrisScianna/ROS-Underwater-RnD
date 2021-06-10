@@ -1,9 +1,9 @@
 <!-- This file is used for testing  -->
- 
-<root main_tree_to_execute = "MainTree" >
-  <BehaviorTree ID="MainTree">
-    <Sequence name="mission test">
-      <Timeout msec="5000">
+
+<root main_tree_to_execute="main">
+  <BehaviorTree ID="main">
+    <Sequence name="Test Mission">
+      <Timeout msec="2000">
         <AttitudeServo
             roll="1.0"
             pitch="10.0"
