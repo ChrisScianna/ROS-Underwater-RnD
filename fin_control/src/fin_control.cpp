@@ -244,13 +244,14 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
   float angle_plus_offset;
 
   // check for max angle the fins can mechanically handle
-  if ((fabs(msg->f1_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f2_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f3_angle_in_radians) > maxCtrlFinAngle) ||
-      (fabs(msg->f4_angle_in_radians) > maxCtrlFinAngle))
+  for (uint8_t i = 0; i < 4; i++)
   {
-    ROS_ERROR("Angles set are out of range");
-    return;
+    if (fabs(msg->fin_angle_in_radians[i]) > maxCtrlFinAngle)
+    {
+      ROS_ERROR_STREAM("The Angle " << i << "to be set is out of range - value: "
+                                    << msg->fin_angle_in_radians[i]);
+      return;
+    }
   }
 
   boost::mutex::scoped_lock lock(m_mutex);
@@ -261,111 +262,80 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
     return;
   }
 
-  // fin1
-  angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f1_angle_in_radians + ctrlFinOffset);
-
-  if (!(myWorkBench.addBulkWriteParam(1, "Goal_Position",
-                                      myWorkBench.convertRadian2Value(1, angle_plus_offset), &log)))
+  // check for max angle the fins can mechanically handle
+  for (uint8_t i = 0; i < 4; i++)
   {
-    ROS_ERROR("Could not add bulk write param 1 %s", log);
-    return;
-  }
+    angle_plus_offset = ctrlFinScaleFactor * (msg->fin_angle_in_radians[i] + ctrlFinOffset);
 
-  // fin2
-  angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f2_angle_in_radians + ctrlFinOffset);
-
-  if (!(myWorkBench.addBulkWriteParam(2, "Goal_Position",
-                                      myWorkBench.convertRadian2Value(2, angle_plus_offset), &log)))
-  {
-    ROS_ERROR("Could not add bulk write param 2 %s", log);
-    return;
-  }
-
-  // fin3
-  angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f3_angle_in_radians + ctrlFinOffset);
-
-  if (!(myWorkBench.addBulkWriteParam(3, "Goal_Position",
-                                      myWorkBench.convertRadian2Value(3, angle_plus_offset), &log)))
-  {
-    ROS_ERROR("Could not add bulk write param 3 %s", log);
-    return;
-  }
-
-  // fin4
-  angle_plus_offset =
-      ctrlFinScaleFactor * (msg->f4_angle_in_radians + ctrlFinOffset);
-
-  if (!(myWorkBench.addBulkWriteParam(4, "Goal_Position",
-                                      myWorkBench.convertRadian2Value(4, angle_plus_offset), &log)))
-  {
-    ROS_ERROR("Could not add bulk write param 4 %s", log);
-    return;
-  }
-
-  if (!myWorkBench.bulkWrite(&log))
-  {
-    ROS_ERROR("Could not bulk write %s", log);
-  }
-
-  if (currentLoggingEnabled)
-  {
-    int32_t cdata1, cdata2, cdata3, cdata4;
-    cdata1 = cdata2 = cdata3 = cdata4 = 0;
-
-    if (!myWorkBench.itemRead(1, "Present_Current", &cdata1, &log))
+    if (!(myWorkBench.addBulkWriteParam(i + 1, "Goal_Position",
+                                        myWorkBench.convertRadian2Value(i + 1, angle_plus_offset),
+                                        &log)))
     {
-      ROS_ERROR("Could Read F1 Current %s", log);
+      ROS_ERROR_STREAM("Could not add bulk write param " << i + 1 << " " << log);
+      return;
     }
-    else if (!myWorkBench.itemRead(2, "Present_Current", &cdata2, &log))
+
+    if (!myWorkBench.bulkWrite(&log))
     {
-      ROS_ERROR("Could Read F2 Current %s", log);
+      ROS_ERROR("Could not bulk write %s", log);
     }
-    else if (!myWorkBench.itemRead(3, "Present_Current", &cdata3, &log))
+
+    if (currentLoggingEnabled)
     {
-      ROS_ERROR("Could Read F3 Current %s", log);
-    }
-    else if (!myWorkBench.itemRead(4, "Present_Current", &cdata4, &log))
-    {
-      ROS_ERROR("Could Read F4 Current %s", log);
-    }
-    else
-    {
-      ROS_INFO("Current for fin 1-4 %f,%f,%f,%f", myWorkBench.convertValue2Current((int16_t)cdata1),
-               myWorkBench.convertValue2Current((int16_t)cdata2),
-               myWorkBench.convertValue2Current((int16_t)cdata3),
-               myWorkBench.convertValue2Current((int16_t)cdata4));
+      int32_t cdata1, cdata2, cdata3, cdata4;
+      cdata1 = cdata2 = cdata3 = cdata4 = 0;
+
+      if (!myWorkBench.itemRead(1, "Present_Current", &cdata1, &log))
+      {
+        ROS_ERROR("Could Read F1 Current %s", log);
+      }
+      else if (!myWorkBench.itemRead(2, "Present_Current", &cdata2, &log))
+      {
+        ROS_ERROR("Could Read F2 Current %s", log);
+      }
+      else if (!myWorkBench.itemRead(3, "Present_Current", &cdata3, &log))
+      {
+        ROS_ERROR("Could Read F3 Current %s", log);
+      }
+      else if (!myWorkBench.itemRead(4, "Present_Current", &cdata4, &log))
+      {
+        ROS_ERROR("Could Read F4 Current %s", log);
+      }
+      else
+      {
+        ROS_INFO("Current for fin 1-4 %f,%f,%f,%f",
+                 myWorkBench.convertValue2Current((int16_t)cdata1),
+                 myWorkBench.convertValue2Current((int16_t)cdata2),
+                 myWorkBench.convertValue2Current((int16_t)cdata3),
+                 myWorkBench.convertValue2Current((int16_t)cdata4));
+      }
     }
   }
 }
-
-void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
-{
-// check for max angle the fins can mechanically handle
-  if (fabs(msg->angle_in_radians) > maxCtrlFinAngle)
+  void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
   {
-    ROS_ERROR("Angle set is out of range: %f rad", msg->angle_in_radians);
-    return;
+    // check for max angle the fins can mechanically handle
+    if (fabs(msg->angle_in_radians) > maxCtrlFinAngle)
+    {
+      ROS_ERROR("Angle set is out of range: %f rad", msg->angle_in_radians);
+      return;
+    }
+
+    float angle_plus_offet = ctrlFinScaleFactor * (msg->angle_in_radians + ctrlFinOffset);
+
+    // Call dynamixel service
+    boost::mutex::scoped_lock lock(m_mutex);
+
+    const char *log;
+    if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
+      ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
   }
 
-  float angle_plus_offet =
-      ctrlFinScaleFactor * (msg->angle_in_radians + ctrlFinOffset);
-
-  // Call dynamixel service
-  boost::mutex::scoped_lock lock(m_mutex);
-
-  const char *log;
-  if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
-    ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
-}
-
-void FinControl::reportAngleSendTimeout(const ros::TimerEvent& ev)
-{
-  reportAngles();
-  diagnosticsUpdater.update();
-}
+  void FinControl::reportAngleSendTimeout(const ros::TimerEvent &ev)
+  {
+    reportAngles();
+    diagnosticsUpdater.update();
+  }
 
 }  // namespace robot
 }  // namespace qna

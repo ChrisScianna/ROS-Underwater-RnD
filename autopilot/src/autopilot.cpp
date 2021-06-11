@@ -324,21 +324,25 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
                              pitch * sin(current_roll_in_radians);
   const double rotated_pitch = yaw * sin(current_roll_in_radians) +
                                pitch * cos(current_roll_in_radians);
-  double d1 = degreesToRadians(rotated_pitch - rotated_yaw + roll);   // Fin 1 bottom stbd
-  double d2 = degreesToRadians(rotated_pitch + rotated_yaw + roll);   // Fin 2 top stb
-  double d3 = degreesToRadians(-rotated_pitch - rotated_yaw + roll);  // Fin 3 bottom port
-  double d4 = degreesToRadians(-rotated_pitch + rotated_yaw + roll);  // Fin 4 top port
-
+  const double fin_angles[] = {                               //  NOLINT
+      degreesToRadians(rotated_pitch - rotated_yaw + roll),   //  Fin 1 bottom stbd
+      degreesToRadians(rotated_pitch + rotated_yaw + roll),   //  Fin 2 top stb
+      degreesToRadians(-rotated_pitch - rotated_yaw + roll),  //  Fin 3 bottom port
+      degreesToRadians(-rotated_pitch + rotated_yaw + roll),  //  Fin 4 top port
+  };
   // Scale down and saturate fin angles if necessary
-  const double angles[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), max_ctrl_fin_angle_in_radians_};
+  const double angles[] = {fabs(fin_angles[0]), fabs(fin_angles[1]), fabs(fin_angles[2]), //  NOLINT
+                           fabs(fin_angles[3]), max_ctrl_fin_angle_in_radians_};          //NOLINT
   const double max_angle_in_radians = *std::max_element(std::begin(angles), std::end(angles));
   const double scale = max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
 
   fin_control::SetAngles fin_control_message;
-  fin_control_message.f1_angle_in_radians = saturate(scale * d1, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f2_angle_in_radians = saturate(scale * d2, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f3_angle_in_radians = saturate(scale * d3, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f4_angle_in_radians = saturate(scale * d4, max_ctrl_fin_angle_in_radians_);
+  for (int i = 0; i < 4; i++)
+  {
+    fin_control_message.fin_angle_in_radians[i] = saturate(scale * fin_angles[i],
+                                                         max_ctrl_fin_angle_in_radians_);
+  }
+
   fin_control_pub_.publish(fin_control_message);
 
   if (thruster_enabled_)
