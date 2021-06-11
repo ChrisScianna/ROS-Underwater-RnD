@@ -47,13 +47,15 @@
 #include <ros/ros.h>
 #include <stdint.h>
 #include "JausMessageIn.h"
+#include <fin_control/SetAngles.h>
 
 class SetFinDeflection : public JausMessageIn {
  private:
   int8_t _finId;              // 1 byte
   int8_t _deflectionAngle;    // 1 byte
   int8_t _deflectionRateCmd;  // 1 byte but not used
-  ros::Publisher _publisher_setAngle;
+  ros::Publisher _publisher_setAngles;
+  std::vector<float> _finAngles;
 
  public:
   void init(ros::NodeHandle* nodeHandle);

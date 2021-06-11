@@ -42,16 +42,18 @@
  */
 
 #include "SetFinDeflection.h"
-#include <fin_control/SetAngle.h>
+
 #include "JausDataManager.h"
 
-void SetFinDeflection::init(ros::NodeHandle* nodeHandle) {
+void SetFinDeflection::init(ros::NodeHandle* nodeHandle)
+{
   _nodeHandle = nodeHandle;
-  _publisher_setAngle =
-      _nodeHandle->advertise<fin_control::SetAngle>("/fin_control/set_angle", 1, true);
+  _publisher_setAngles =
+      _nodeHandle->advertise<fin_control::SetAngles>("/fin_control/set_angles", 1, true);
 }
 
-void SetFinDeflection::ProcessData(char* message) {
+void SetFinDeflection::ProcessData(char* message)
+{
   if (message == nullptr) return;
 
   // build new header every time a new message is received
@@ -60,37 +62,36 @@ void SetFinDeflection::ProcessData(char* message) {
   int index = 6;                             // read data starts from index 6
   if (_PresenceVector != nullptr) delete _PresenceVector;
   int16_t pv = buildPresenceVector(message, index);
-  // printf("Presence vector is: %d \n", pv);
 
-  _finId = (int8_t)message[index++];  // 1 byte
-  printf("FinID is: %d \n", _finId);
-
+  _finId = (int8_t)message[index++];            // 1 byte
   _deflectionAngle = (int8_t)message[index++];  // 1 byte
-  printf("_deflectionAngle in degree is: %d \n", _deflectionAngle);
 
-  fin_control::SetAngle msg;
-  msg.ID = _finId;
-  msg.angle_in_radians = JausDataManager::degreesToRadians(_deflectionAngle);
-  // int count = 0;
-  // while(count<5)
-  //{
-  _publisher_setAngle.publish(msg);
-  //    count++;
+  _finAngles.push_back(JausDataManager::degreesToRadians(_deflectionAngle));
 
-  //    sleep(0.05);
-  //    printf("sleeping for 50ms. count= %d \n", count);
-  //}
+  // Check that all angles were set
+  if (_finAngles.size() == 4)
+  {
+    fin_control::SetAngles msg;
+    for (int i = 0; i < 4; i++)
+    {
+      msg.fin_angle_in_radians[i] = _finAngles[i];
+      ROS_INFO_STREAM("Fin Id:" << i << " - Angle: " << msg.fin_angle_in_radians[i]);
+    }
 
-  if (_PresenceVector->IsBitSet((int)0)) {
+    _publisher_setAngles.publish(msg);
+    _finAngles.clear();
+  }
+  if (_PresenceVector->IsBitSet((int)0))
+  {
     _deflectionRateCmd = (int8_t)message[index++];  // 1 byte
   }
 }
-
 int8_t SetFinDeflection::GetFinID() { return _finId; }
 
 int8_t SetFinDeflection::GetDeflectionAngle() { return _deflectionAngle; }
 
-int8_t SetFinDeflection::GetDeflectionRateCmd() {
+int8_t SetFinDeflection::GetDeflectionRateCmd()
+{
   if (_PresenceVector->IsBitSet(0)) return _deflectionRateCmd;
 
   return 0;
