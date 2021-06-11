@@ -101,8 +101,6 @@ FinControl::FinControl(ros::NodeHandle &nodeHandle)
 
   ROS_INFO("fin control constructor enter");
 
-  subscriber_setAngle =
-      nodeHandle.subscribe("/fin_control/set_angle", 10, &FinControl::handleSetAngle, this);
   subscriber_setAngles =
       nodeHandle.subscribe("/fin_control/set_angles", 10, &FinControl::handleSetAngles, this);
 
@@ -312,30 +310,12 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
     }
   }
 }
-  void FinControl::handleSetAngle(const fin_control::SetAngle::ConstPtr &msg)
-  {
-    // check for max angle the fins can mechanically handle
-    if (fabs(msg->angle_in_radians) > maxCtrlFinAngle)
-    {
-      ROS_ERROR("Angle set is out of range: %f rad", msg->angle_in_radians);
-      return;
-    }
 
-    float angle_plus_offet = ctrlFinScaleFactor * (msg->angle_in_radians + ctrlFinOffset);
-
-    // Call dynamixel service
-    boost::mutex::scoped_lock lock(m_mutex);
-
-    const char *log;
-    if (!(myWorkBench.goalPosition(msg->ID, angle_plus_offet, &log)))
-      ROS_ERROR("Could not set servo angle for ID %d %s", msg->ID, log);
-  }
-
-  void FinControl::reportAngleSendTimeout(const ros::TimerEvent &ev)
-  {
-    reportAngles();
-    diagnosticsUpdater.update();
-  }
+void FinControl::reportAngleSendTimeout(const ros::TimerEvent &ev)
+{
+  reportAngles();
+  diagnosticsUpdater.update();
+}
 
 }  // namespace robot
 }  // namespace qna
