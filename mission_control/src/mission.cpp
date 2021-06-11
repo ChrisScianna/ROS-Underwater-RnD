@@ -43,6 +43,7 @@
 #include "mission_control/behaviors/delay.h"
 #include "mission_control/behaviors/fix_rudder.h"
 #include "mission_control/behaviors/go_to_waypoint.h"
+#include "mission_control/behaviors/log_to_bagfile.h"
 #include "mission_control/behaviors/payload_command.h"
 #include "mission_control/behaviors/set_altitude_heading.h"
 #include "mission_control/behaviors/set_depth_heading.h"
@@ -75,6 +76,7 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
     this->registerNodeType<IntrospectableNode<DelayNode>>("Delay");
     this->registerNodeType<IntrospectableNode<FixRudderNode>>("FixRudder");
     this->registerNodeType<IntrospectableNode<GoToWaypointNode>>("GoToWaypoint");
+    this->registerNodeType<IntrospectableNode<LogToBagfileNode>>("LogToBagfile");
     this->registerNodeType<IntrospectableNode<PayloadCommandNode>>("PayloadCommand");
     this->registerNodeType<IntrospectableNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
     this->registerNodeType<IntrospectableNode<SetDepthHeadingNode>>("SetDepthHeading");
