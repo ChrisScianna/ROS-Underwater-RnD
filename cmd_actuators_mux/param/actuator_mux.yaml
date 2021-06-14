@@ -29,7 +29,7 @@ set_rpm_subscribers:
     priority:    0
     short_desc:  ""
   - name:        "Jaus Ros Bridge"
-    topic:       "input/jausRosBridge/set_rpm"
+    topic:       "input/jaus_ros_bridge/set_rpm"
     timeout:     0.5
     priority:    1
     short_desc:  ""

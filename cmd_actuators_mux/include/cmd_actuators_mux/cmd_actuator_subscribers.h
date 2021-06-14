@@ -72,7 +72,7 @@ class CmdActuatorSubscribers
     explicit CmdActuatorSubs(unsigned int idx) : idx(idx), active(false) {}
     ~CmdActuatorSubs() {}
 
-    /** Fill attributes with a YAML node content */
+    /* Fill attributes with a YAML node content */
     void operator<<(const YAML::Node& node);
   };
 

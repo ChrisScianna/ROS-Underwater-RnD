@@ -103,7 +103,7 @@ void CmdActuatorMuxNodelet::finAnglesTimerCallback(const ros::TimerEvent& event,
   timerCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber);
 }
 
-void CmdActuatorMuxNodelet::setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx)
+void CmdActuatorMuxNodelet::setRPMTimerCallback(const ros::TimerEvent& event, unsigned int idx)
 {
   timerCallbackProcess(cmd_set_rpm_subs, idx, set_rpm_active_subscriber);
 }

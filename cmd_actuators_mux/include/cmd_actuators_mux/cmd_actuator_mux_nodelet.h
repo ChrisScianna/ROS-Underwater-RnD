@@ -76,34 +76,34 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   ros::NodeHandle nh;
   ros::NodeHandle pnh;
 
-  /**< Pool of topics subscribers */
+  /* Pool of topics subscribers */
   CmdActuatorSubscribers cmd_fin_angles_subs;
   CmdActuatorSubscribers cmd_set_rpm_subs;
 
-  /**< Multiplexed command Fin Angle topic */
+  /* Multiplexed command Fin Angle topic */
   ros::Publisher fin_angles_output_topic_pub;
   ros::Publisher set_rpm_output_topic_pub;
 
-  /**< Multiplexed command Fin Angle topic name */
+  /* Multiplexed command Fin Angle topic name */
   std::string fin_angles_output_topic_name;
   std::string set_rpm_output_topic_name;
 
-  /**< Currently allowed subscriber */
+  /* Currently allowed subscriber */
   ros::Publisher fin_angles_active_subscriber;
   ros::Publisher set_rpm_active_subscriber;
 
-  /**< No messages from any subscriber timeout */
+  /* No messages from any subscriber timeout */
   ros::Timer fin_angles_common_timer;
   ros::Timer set_rpm_common_timer;
 
-  /**< No messages from any subscriber timeout period */
+  /* No messages from any subscriber timeout period */
   double fin_angles_common_timer_period;
   double set_rpm_common_timer_period;
 
   YAML::Node doc;
 
   void finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx);
-  void setRPMtimerCallback(const ros::TimerEvent& event, unsigned int idx);
+  void setRPMTimerCallback(const ros::TimerEvent& event, unsigned int idx);
   void timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs, const unsigned int& idx,
                             const ros::Publisher& active_subscriber);
 
@@ -178,7 +178,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
    public:
     SetRPMTimerFunctor(unsigned int idx, CmdActuatorMuxNodelet* node) : idx(idx), node(node) {}
 
-    void operator()(const ros::TimerEvent& event) { node->setRPMtimerCallback(event, idx); }
+    void operator()(const ros::TimerEvent& event) { node->setRPMTimerCallback(event, idx); }
   };
 };
 
