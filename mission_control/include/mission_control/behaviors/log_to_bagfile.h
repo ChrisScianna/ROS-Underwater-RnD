@@ -59,12 +59,16 @@ class LogToBagfileNode : public BT::DecoratorNode
       static const Options options;
       return {
         BT::InputPort<std::string>(
-          "prefix", options.prefix, "Prefix for bag filename"),
+          "prefix", options.prefix,
+          "Prefix for bag filename. If relative, it is resolved against the ROS log directory. "
+          "If it lacks the '.bag' extension, a '{timestamp}.bag' suffix is appended."),
         BT::InputPort<std::string>(
-          "topics", "all", "Topics to log, 'all' by default"),
+          "topics", "all",
+          "Topic names to be logged as a comma-separated list. If the 'all' value is given, "
+          "all topics are logged by periodically looking up the ROS graph."),
         BT::InputPort<rosbag::CompressionType>(
           "compression", options.writer_options.compression,
-          "Compression type for bag")};
+          "Compression type to be used. Supported types are 'none', 'bz2', and 'lz4'.")};
     }
 
     static Options populateFromPorts(BT::TreeNode * node);
