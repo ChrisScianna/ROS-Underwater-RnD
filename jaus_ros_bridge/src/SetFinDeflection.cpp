@@ -67,6 +67,9 @@ void SetFinDeflection::ProcessData(char* message)
   _deflectionAngle = (int8_t)message[index++];  // 1 byte
 
   _finAngles.push_back(JausDataManager::degreesToRadians(_deflectionAngle));
+  // Check that the incoming fin ID is the one we expect it to be
+  ROS_ASSERT_MSG(_finAngles.size() == _finId, "Error incoming ID: %d isn't the expected: %ld",
+                 _finId, _finAngles.size());
 
   // Check that all angles were set
   if (_finAngles.size() == 4)
