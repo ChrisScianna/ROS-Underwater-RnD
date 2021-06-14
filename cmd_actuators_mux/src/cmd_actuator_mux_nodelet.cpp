@@ -56,8 +56,19 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
   fin_angles_common_timer.stop();
   fin_angles_common_timer.start();
 
-  if (cmdActuatorCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber))
-    fin_angles_output_topic_pub.publish(msg);
+  if (cmdActuatorCallbackProcess(cmd_fin_angles_subs, idx))
+  {
+    fin_angles_acv_msg.data = cmd_fin_angles_subs[idx]->name;
+    fin_angles_active_subscriber.publish(set_rpm_acv_msg);
+
+    // waint until both, RPM and Fin commands come from the same source
+    if (set_rpm_acv_msg.data == cmd_set_rpm_subs[idx]->name)
+      fin_angles_output_topic_pub.publish(msg);
+    else
+      ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
+                       << " - set RPM source: " << cmd_set_rpm_subs[idx]->name
+                       << " - set Fin Angles source: " << cmd_fin_angles_subs[idx]->name);
+  }
 }
 
 void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg,
@@ -66,13 +77,23 @@ void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::Co
   set_rpm_common_timer.stop();
   set_rpm_common_timer.start();
 
-  if (cmdActuatorCallbackProcess(cmd_set_rpm_subs, idx, set_rpm_active_subscriber))
-    set_rpm_output_topic_pub.publish(msg);
+  if (cmdActuatorCallbackProcess(cmd_set_rpm_subs, idx))
+  {
+    set_rpm_acv_msg.data = cmd_set_rpm_subs[idx]->name;
+    set_rpm_active_subscriber.publish(set_rpm_acv_msg);
+
+    // waint until both, RPM and Fin commands come from the same source
+    if (fin_angles_acv_msg.data == cmd_fin_angles_subs[idx]->name)
+      set_rpm_output_topic_pub.publish(msg);
+    else
+      ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
+                       << " - set RPM source: " << cmd_set_rpm_subs[idx]->name
+                       << " - set Fin Angles source: " << cmd_fin_angles_subs[idx]->name);
+  }
 }
 
 bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
-                                                       const unsigned int& idx,
-                                                       ros::Publisher& active_subscriber)
+                                                       const unsigned int& idx)
 {
   // Reset timer for this source
   cmd_actuator_subs[idx]->timer.stop();
@@ -87,11 +108,6 @@ bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& c
     if (cmd_actuator_subs.allowed != idx)
     {
       cmd_actuator_subs.allowed = idx;
-
-      // Notify the world that a new cmd_actuator source took the control
-      std_msgs::StringPtr acv_msg(new std_msgs::String);
-      acv_msg->data = cmd_actuator_subs[idx]->name;
-      active_subscriber.publish(acv_msg);
     }
     return true;
   }

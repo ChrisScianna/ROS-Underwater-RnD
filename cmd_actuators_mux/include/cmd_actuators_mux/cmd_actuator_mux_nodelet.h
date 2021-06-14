@@ -46,6 +46,7 @@
 #include "cmd_actuators_mux/reloadConfig.h"
 #include "fin_control/SetAngles.h"
 #include "thruster_control/SetRPM.h"
+#include "std_msgs/String.h"
 
 namespace cmd_actuator_mux
 {
@@ -91,6 +92,8 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   /* Currently allowed subscriber */
   ros::Publisher fin_angles_active_subscriber;
   ros::Publisher set_rpm_active_subscriber;
+  std_msgs::String fin_angles_acv_msg;
+  std_msgs::String set_rpm_acv_msg;
 
   /* No messages from any subscriber timeout */
   ros::Timer fin_angles_common_timer;
@@ -110,7 +113,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   void cmdFinAngleCallback(const fin_control::SetAngles::ConstPtr& msg, unsigned int idx);
   void cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg, unsigned int idx);
   bool cmdActuatorCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
-                                  const unsigned int& idx, ros::Publisher& active_subscriber);
+                                  const unsigned int& idx);
 
   std::string getOutputTopicName(const std::string& label);
   /*********************
