@@ -97,7 +97,7 @@ class MissionInterface:
         self.execute_mission_state.append(msg.execute_mission_state)
 
     def callback_mission_load_state(self, msg):
-        self.mission_load_state = msg.load_state
+        self.mission_load_state = msg
 
     def load_mission(self, mission_name):
         # Simulate Jaus Ros Bridge sending a Load Command and wait for

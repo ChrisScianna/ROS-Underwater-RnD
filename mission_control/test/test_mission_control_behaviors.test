@@ -9,6 +9,7 @@
         -   AttitudeServo
         -   SetAltitudeHeading
         -   GoToWaypoint
+        -   LogToBagfile
   -->
 
   <test test-name="test_fix_rudder_action" pkg="mission_control" type="test_fix_rudder_action.py" time-limit="10.0" />
@@ -16,6 +17,7 @@
   <test test-name="test_set_depth_heading_action" pkg="mission_control" type="test_set_depth_heading_action.py" time-limit="10.0" />
   <test test-name="test_set_altitude_heading_action" pkg="mission_control" type="test_set_altitude_heading_action.py" time-limit="10.0" />
   <test test-name="test_go_to_waypoint_action" pkg="mission_control" type="test_go_to_waypoint_action.py" time-limit="10.0" />
+  <test test-name="test_log_to_bagfile_action" pkg="mission_control" type="test_log_to_bagfile_action.py" time-limit="20.0" />
 
   <!--
       Test if behaviors return Failure state after time out.
