@@ -331,16 +331,18 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
       degreesToRadians(-rotated_pitch + rotated_yaw + roll),  //  Fin 4 top port
   };
   // Scale down and saturate fin angles if necessary
-  const double angles[] = {fabs(fin_angles[0]), fabs(fin_angles[1]), fabs(fin_angles[2]), //  NOLINT
-                           fabs(fin_angles[3]), max_ctrl_fin_angle_in_radians_};          //NOLINT
-  const double max_angle_in_radians = *std::max_element(std::begin(angles), std::end(angles));
+  const double absolute_fin_angles[] = {
+      fabs(fin_angles[0]), fabs(fin_angles[1]), fabs(fin_angles[2]),  //  NOLINT
+      fabs(fin_angles[3]), max_ctrl_fin_angle_in_radians_};           // NOLINT
+  const double max_angle_in_radians =
+      *std::max_element(std::begin(absolute_fin_angles), std::end(absolute_fin_angles));
   const double scale = max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
 
   fin_control::SetAngles fin_control_message;
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; ++i)
   {
-    fin_control_message.fin_angle_in_radians[i] = saturate(scale * fin_angles[i],
-                                                         max_ctrl_fin_angle_in_radians_);
+    fin_control_message.fin_angle_in_radians[i] =
+        saturate(scale * fin_angles[i], max_ctrl_fin_angle_in_radians_);
   }
 
   fin_control_pub_.publish(fin_control_message);

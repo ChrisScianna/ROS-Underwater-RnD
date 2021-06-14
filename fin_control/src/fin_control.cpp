@@ -260,52 +260,36 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
     return;
   }
 
-  // check for max angle the fins can mechanically handle
-  for (uint8_t i = 0; i < 4; i++)
+  int32_t current_data = 0;
+  for (int i = 0; i < 4; ++i)
   {
     angle_plus_offset = ctrlFinScaleFactor * (msg->fin_angle_in_radians[i] + ctrlFinOffset);
 
-    if (!(myWorkBench.addBulkWriteParam(i + 1, "Goal_Position",
-                                        myWorkBench.convertRadian2Value(i + 1, angle_plus_offset),
-                                        &log)))
+    const int id = i + 1;
+    if (!(myWorkBench.addBulkWriteParam(
+            id, "Goal_Position", myWorkBench.convertRadian2Value(id, angle_plus_offset), &log)))
     {
-      ROS_ERROR_STREAM("Could not add bulk write param " << i + 1 << " " << log);
+      ROS_ERROR_STREAM("Could not add bulk write param " << id << " " << log);
       return;
     }
 
     if (!myWorkBench.bulkWrite(&log))
     {
-      ROS_ERROR("Could not bulk write %s", log);
+      ROS_ERROR_STREAM("Could not bulk write " << log);
     }
 
+    // Reading Current
     if (currentLoggingEnabled)
     {
-      int32_t cdata1, cdata2, cdata3, cdata4;
-      cdata1 = cdata2 = cdata3 = cdata4 = 0;
-
-      if (!myWorkBench.itemRead(1, "Present_Current", &cdata1, &log))
+      if (!myWorkBench.itemRead(id, "Present_Current", &current_data, &log))
       {
-        ROS_ERROR("Could Read F1 Current %s", log);
-      }
-      else if (!myWorkBench.itemRead(2, "Present_Current", &cdata2, &log))
-      {
-        ROS_ERROR("Could Read F2 Current %s", log);
-      }
-      else if (!myWorkBench.itemRead(3, "Present_Current", &cdata3, &log))
-      {
-        ROS_ERROR("Could Read F3 Current %s", log);
-      }
-      else if (!myWorkBench.itemRead(4, "Present_Current", &cdata4, &log))
-      {
-        ROS_ERROR("Could Read F4 Current %s", log);
+        ROS_ERROR_STREAM("Could not read current from finID: " << id << " log: " << log);
       }
       else
       {
-        ROS_INFO("Current for fin 1-4 %f,%f,%f,%f",
-                 myWorkBench.convertValue2Current((int16_t)cdata1),
-                 myWorkBench.convertValue2Current((int16_t)cdata2),
-                 myWorkBench.convertValue2Current((int16_t)cdata3),
-                 myWorkBench.convertValue2Current((int16_t)cdata4));
+        ROS_DEBUG_STREAM("Current for Fin: "
+                         << id << " = "
+                         << myWorkBench.convertValue2Current(static_cast<int16_t>(current_data)));
       }
     }
   }
