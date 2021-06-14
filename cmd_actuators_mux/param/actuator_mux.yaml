@@ -12,12 +12,12 @@ fin_angles_subscribers:
     topic:       "input/autopilot/set_angles"
     timeout:     0.1
     priority:    0
-    short_desc:  ""
+    short_desc:  "Command sent by the Autopilot controller to the fin controller"
   - name:        "Jaus Ros Bridge"
     topic:       "input/jausRosBridge/set_angles"
     timeout:     0.5
     priority:    1
-    short_desc:  ""
+    short_desc:  "Commands sent by the Jaus ROS Bridge to the fin controller"
 fin_angles_publisher:       "fin_control/set_angles"
 
 
@@ -27,10 +27,10 @@ set_rpm_subscribers:
     topic:       "input/autopilot/set_rpm"
     timeout:     0.1
     priority:    0
-    short_desc:  ""
+    short_desc:  "Command sent by the Autopilot controller to the Thruster Controller"
   - name:        "Jaus Ros Bridge"
     topic:       "input/jaus_ros_bridge/set_rpm"
     timeout:     0.5
     priority:    1
-    short_desc:  ""
+    short_desc:  "Command sent by the Jaus ROS Bridge to the Thruster Controller"
 set_rpm_publisher:       "thruster_control/set_rpm"
