@@ -1,5 +1,8 @@
 <root>
     <TreeNodesModel>
+        <Decorator ID="Delay">
+            <input_port name="delay_msec">Time to delay child ticking, in milliseconds</input_port>
+        </Decorator>
         <Action ID="AttitudeServo">
             <input_port name="pitch" default="NaN">Pitch angle to reach</input_port>
             <input_port name="pitch-tolerance" default="0.0">Tolerance for pitch</input_port>

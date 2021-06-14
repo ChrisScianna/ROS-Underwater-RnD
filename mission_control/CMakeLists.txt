@@ -67,6 +67,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/set_altitude_heading.cpp
   src/behaviors/payload_command.cpp
   src/behaviors/abort.cpp
+  src/behaviors/delay.cpp
 )
 
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -110,6 +111,8 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_reactive_action ${PROJECT_NAME} ${catkin_LIBRARIES})
   catkin_add_gtest(test_introspectable_node test/test_introspectable_node.cpp)
   target_link_libraries(test_introspectable_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+  catkin_add_gtest(test_delay_action test/test_delay_action.cpp)
+  target_link_libraries(test_delay_action ${PROJECT_NAME} ${catkin_LIBRARIES})
 
   find_package(rostest REQUIRED)
   add_rostest(test/test_if_mission_control_aborts_when_health_monitor_reports_fault.test)
