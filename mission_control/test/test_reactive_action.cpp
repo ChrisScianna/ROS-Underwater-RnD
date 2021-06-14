@@ -45,7 +45,7 @@ class ReactiveCountDownNode : public ReactiveActionNode
 {
 public:
   explicit ReactiveCountDownNode(size_t start_count)
-    : ReactiveActionNode("countdown", {}), // NOLINT
+    : ReactiveActionNode("countdown", {}),
       start_count_(start_count)
   {
   }
