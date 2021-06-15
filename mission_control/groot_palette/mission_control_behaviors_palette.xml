@@ -1,5 +1,18 @@
 <root>
     <TreeNodesModel>
+        <Decorator ID="LogToBagfile">
+            <input_port name="prefix" default="mission_bag_">
+                Prefix for bag filename. If relative, it is resolved against the ROS log directory.
+                If it lacks the '.bag' extension, a '{timestamp}.bag' suffix is appended.
+            </input_port>
+            <input_port name="topics" default="all">
+                Topic names to be logged as a comma-separated list. If the 'all' value is given, all
+                topics are logged by periodically looking up the ROS graph.
+            </input_port>
+            <input_port name="compression" default="none">
+                Compression type to be used. Supported types are 'none', 'bz2', and 'lz4'.
+            </input_port>
+        </Decorator>
         <Decorator ID="Delay">
             <input_port name="delay_msec">Time to delay child ticking, in milliseconds</input_port>
         </Decorator>
