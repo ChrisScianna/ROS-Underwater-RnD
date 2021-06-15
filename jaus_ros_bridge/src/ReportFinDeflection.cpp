@@ -93,9 +93,9 @@ void ReportFinDeflection::handleReportAngle(const fin_control::ReportAngle::Cons
 
   if (!TimeToSend(_beginTime, clock())) return;
 
-  if (_finId >= msg->angles_in_radians.size()) return;  // Id out of scope.
+  if (_finId > msg->angles_in_radians.size()) return;  // Id out of scope.
 
-  float f_angle = JausDataManager::radiansToDegrees(msg->angles_in_radians[_finId]);
+  float f_angle = JausDataManager::radiansToDegrees(msg->angles_in_radians[_finId - 1]);
   if (f_angle < 0)
     f_angle -= .5;
   else
