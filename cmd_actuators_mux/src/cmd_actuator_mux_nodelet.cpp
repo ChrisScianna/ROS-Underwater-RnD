@@ -59,11 +59,12 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
   if (cmdActuatorCallbackProcess(cmd_fin_angles_subs, idx))
   {
     fin_angles_acv_msg.data = cmd_fin_angles_subs[idx]->name;
-    fin_angles_active_subscriber.publish(set_rpm_acv_msg);
 
     // waint until both, RPM and Fin commands come from the same source
-    if (set_rpm_acv_msg.data == cmd_set_rpm_subs[idx]->name)
+    if (set_rpm_acv_msg.data == cmd_set_rpm_subs[idx]->name){
+      fin_angles_active_subscriber.publish(set_rpm_acv_msg);
       fin_angles_output_topic_pub.publish(msg);
+    }
     else
       ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
                        << " - set RPM source: " << cmd_set_rpm_subs[idx]->name
@@ -80,11 +81,12 @@ void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::Co
   if (cmdActuatorCallbackProcess(cmd_set_rpm_subs, idx))
   {
     set_rpm_acv_msg.data = cmd_set_rpm_subs[idx]->name;
-    set_rpm_active_subscriber.publish(set_rpm_acv_msg);
 
     // waint until both, RPM and Fin commands come from the same source
-    if (fin_angles_acv_msg.data == cmd_fin_angles_subs[idx]->name)
+    if (fin_angles_acv_msg.data == cmd_fin_angles_subs[idx]->name){
       set_rpm_output_topic_pub.publish(msg);
+      set_rpm_active_subscriber.publish(set_rpm_acv_msg);
+    }
     else
       ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
                        << " - set RPM source: " << cmd_set_rpm_subs[idx]->name
@@ -382,6 +384,15 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
     // Longest timeout changed; just update existing timer period
     set_rpm_common_timer_period = longest_timeout * 2.0;
     set_rpm_common_timer.setPeriod(ros::Duration(set_rpm_common_timer_period));
+  }
+
+  // check that the subscribers input have the same name in YAML
+  for (int i = 0; i < cmd_set_rpm_subs.size(); i++)
+  {
+    ROS_ASSERT_MSG(!cmd_set_rpm_subs[i]->name.compare(cmd_fin_angles_subs[i]->name),
+                   "Subscribers from same input must have equal names in YAML file:"
+                   "\nID: %d - Subscriber 1 name: %s - Subscriber 2 name: %s",
+                   i, cmd_set_rpm_subs[i]->name.c_str(), cmd_fin_angles_subs[i]->name.c_str());
   }
 }
 
