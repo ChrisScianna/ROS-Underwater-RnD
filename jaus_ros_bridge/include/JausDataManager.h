@@ -112,18 +112,11 @@ class JausDataManager {
 
   ros::NodeHandle& _nodeHandle;
   udpserver* _udp;
-  ros::Publisher _publisher_ActivateManualControl;
   ros::Publisher _publisher_EnableLogging;
   ros::Publisher _publisher_StartMission;
   ros::Publisher _publisher_AbortMission;
   ros::Publisher _publisher_ClearFault;
 
-  bool _activateManualControlEnabled;
-  bool _deactivateFromOCU;
-
-  ros::Timer ActivateManualControl_timer;
-
-  void ActivateManualControlTimeout(const ros::TimerEvent& timer);
   void ResetAll();
 
   // bool _needTimerUpdate;
