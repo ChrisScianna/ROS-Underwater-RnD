@@ -19,20 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   mission_control
 )
 
-add_message_files(
-  FILES
-  AutoPilotInControl.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  fin_control
-  thruster_control
-  jaus_ros_bridge
-  sensor_msgs
-  std_msgs
-)
-
 catkin_package(
  INCLUDE_DIRS include
  CATKIN_DEPENDS auv_interfaces fin_control roscpp rospy std_msgs thruster_control jaus_ros_bridge mission_control
