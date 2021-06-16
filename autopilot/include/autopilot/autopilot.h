@@ -41,7 +41,6 @@
 #ifndef AUTOPILOT_AUTOPILOT_H
 #define AUTOPILOT_AUTOPILOT_H
 
-#include <autopilot/AutoPilotInControl.h>
 #include <math.h>
 #include <ros/ros.h>
 #include <stdint.h>
@@ -59,7 +58,6 @@
 #include "fin_control/ReportAngle.h"
 #include "fin_control/SetAngles.h"
 #include "geodesy/utm.h"
-#include "jaus_ros_bridge/ActivateManualControl.h"
 #include "mission_control/AttitudeServo.h"
 #include "mission_control/DepthHeading.h"
 #include "mission_control/AltitudeHeading.h"
@@ -92,8 +90,6 @@ private:
   void missionHeartbeatCallback(const mission_control::ReportHeartbeat& msg);
   void missionStatusCallback(const mission_control::ReportExecuteMissionState& data);
 
-  void handleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& data);
-
   void mixActuators(double roll, double pitch, double yaw, double thrust);
 
   ros::NodeHandle nh_;
@@ -101,8 +97,6 @@ private:
   ros::Publisher thruster_control_pub_;
   ros::Publisher fin_control_pub_;
   ros::Subscriber state_sub_;
-
-  ros::Subscriber manual_control_sub_;
 
   ros::Subscriber mission_status_sub_;
   ros::Timer mission_heartbeat_timer_;
@@ -120,9 +114,6 @@ private:
   control_toolbox::Pid yaw_pid_controller_;
   control_toolbox::Pid depth_pid_controller_;
   control_toolbox::Pid altitude_pid_controller_;
-
-  ros::Publisher auto_pilot_in_control_pub_;
-  bool auto_pilot_in_control_;
 
   bool state_up_to_date_;
 

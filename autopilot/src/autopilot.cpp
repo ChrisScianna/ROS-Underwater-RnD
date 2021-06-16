@@ -134,9 +134,6 @@ AutoPilotNode::AutoPilotNode() : pnh_("~")
 {
   thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
   fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
-  auto_pilot_in_control_pub_ =
-      nh_.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
-  auto_pilot_in_control_ = true;
 
   control_loop_rate_ = pnh_.param<double>("control_loop_rate", 25.);  // Hz
   minimal_speed_ = pnh_.param<double>("minimal_vehicle_speed", 2.0);  // knots
@@ -207,10 +204,6 @@ AutoPilotNode::AutoPilotNode() : pnh_("~")
       pnh_.param<bool>("allow_reverse_thruster_autopilot", false);
   thruster_enabled_ = pnh_.param<bool>("thruster_enabled", false);
 
-  manual_control_sub_ = nh_.subscribe(
-      "/jaus_ros_bridge/activate_manual_control", 1,
-      &AutoPilotNode::handleActivateManualControl, this);
-
   state_up_to_date_ = false;
   state_sub_ = nh_.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
 
@@ -272,28 +265,6 @@ void AutoPilotNode::missionStatusCallback(const mission_control::ReportExecuteMi
   {
     active_setpoints_ = Setpoint::Pitch;
     desired_pitch_ = -radiansToDegrees(max_ctrl_fin_angle_in_radians_);
-  }
-}
-
-void AutoPilotNode::handleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& msg)
-{
-  if (msg.activate_manual_control)
-  {
-    if (auto_pilot_in_control_)
-    {
-      ROS_INFO("Manual control activated!");
-      // clear the following so we do not take off after manual control is released.
-      active_setpoints_ = {};
-      auto_pilot_in_control_ = false;
-    }
-  }
-  else
-  {
-    if (!auto_pilot_in_control_)
-    {
-      ROS_INFO("Manual control deactivated!");
-      auto_pilot_in_control_ = true;
-    }
   }
 }
 
@@ -525,12 +496,7 @@ void AutoPilotNode::spin()
   ros::Rate r(control_loop_rate_);
   while (ros::ok())
   {
-    autopilot::AutoPilotInControl message;
-    message.auto_pilot_in_control = auto_pilot_in_control_;
-    auto_pilot_in_control_pub_.publish(message);
 
-    if (auto_pilot_in_control_)
-    {
       double roll_command = 0.;  // straight
       double pitch_command = 0.;  // straight
       double yaw_command = 0.;  // straight
@@ -615,7 +581,6 @@ void AutoPilotNode::spin()
       }
 
       mixActuators(roll_command, pitch_command, yaw_command, thrust_command);
-    }
 
     ros::spinOnce();
     r.sleep();
