@@ -82,7 +82,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   CmdActuatorSubscribers cmd_set_rpm_subs;
 
   /* Multiplexed command topics */
-  ros::Publisher fin_angles_output_topic_pub;
+    ros::Publisher fin_angles_output_topic_pub;
   ros::Publisher set_rpm_output_topic_pub;
 
   /* Multiplexed command topics names */
@@ -90,10 +90,10 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   std::string set_rpm_output_topic_name;
 
   /* Currently allowed subscriber */
-  ros::Publisher fin_angles_active_subscriber;
-  ros::Publisher set_rpm_active_subscriber;
+  ros::Publisher active_subscriber_pub;
   std_msgs::String fin_angles_acv_msg;
   std_msgs::String set_rpm_acv_msg;
+  bool publish_new_subscriber{false};
 
   /* No messages from any subscriber timeout */
   ros::Timer fin_angles_common_timer;
@@ -107,8 +107,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
 
   void finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx);
   void setRPMTimerCallback(const ros::TimerEvent& event, unsigned int idx);
-  void timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs, const unsigned int& idx,
-                            const ros::Publisher& active_subscriber);
+  void timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs, const unsigned int& idx);
 
   void cmdFinAngleCallback(const fin_control::SetAngles::ConstPtr& msg, unsigned int idx);
   void cmdSetRPMCallback(const thruster_control::SetRPM::ConstPtr& msg, unsigned int idx);

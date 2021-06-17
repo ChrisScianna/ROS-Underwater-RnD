@@ -58,11 +58,17 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
 
   if (cmdActuatorCallbackProcess(cmd_fin_angles_subs, idx))
   {
+    // The fin angle input has changed from an input to another
     fin_angles_acv_msg.data = cmd_fin_angles_subs[idx]->name;
 
-    // waint until both, RPM and Fin commands come from the same source
-    if (set_rpm_acv_msg.data == cmd_set_rpm_subs[idx]->name){
-      fin_angles_active_subscriber.publish(set_rpm_acv_msg);
+    // Wait until both RPM and Fin commands come from the same source
+    if (set_rpm_acv_msg.data == fin_angles_acv_msg.data)
+    {
+      if (publish_new_subscriber)
+      {
+        active_subscriber_pub.publish(fin_angles_acv_msg);
+        publish_new_subscriber = false;
+      }
       fin_angles_output_topic_pub.publish(msg);
     }
     else
@@ -83,9 +89,14 @@ void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::Co
     set_rpm_acv_msg.data = cmd_set_rpm_subs[idx]->name;
 
     // waint until both, RPM and Fin commands come from the same source
-    if (fin_angles_acv_msg.data == cmd_fin_angles_subs[idx]->name){
+    if (set_rpm_acv_msg.data == fin_angles_acv_msg.data)
+    {
+      if (publish_new_subscriber)
+      {
+        active_subscriber_pub.publish(set_rpm_acv_msg);
+        publish_new_subscriber = false;
+      }
       set_rpm_output_topic_pub.publish(msg);
-      set_rpm_active_subscriber.publish(set_rpm_acv_msg);
     }
     else
       ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
@@ -110,6 +121,7 @@ bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& c
     if (cmd_actuator_subs.allowed != idx)
     {
       cmd_actuator_subs.allowed = idx;
+      publish_new_subscriber = true;
     }
     return true;
   }
@@ -118,17 +130,16 @@ bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& c
 
 void CmdActuatorMuxNodelet::finAnglesTimerCallback(const ros::TimerEvent& event, unsigned int idx)
 {
-  timerCallbackProcess(cmd_fin_angles_subs, idx, fin_angles_active_subscriber);
+  timerCallbackProcess(cmd_fin_angles_subs, idx);
 }
 
 void CmdActuatorMuxNodelet::setRPMTimerCallback(const ros::TimerEvent& event, unsigned int idx)
 {
-  timerCallbackProcess(cmd_set_rpm_subs, idx, set_rpm_active_subscriber);
+  timerCallbackProcess(cmd_set_rpm_subs, idx);
 }
 
 void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers& cmd_actuator_subs,
-                                                 const unsigned int& idx,
-                                                 const ros::Publisher& active_subscriber)
+                                                 const unsigned int& idx)
 {
   if (cmd_actuator_subs.allowed == idx ||
       (idx == GLOBAL_TIMER && cmd_actuator_subs.allowed != VACANT))
@@ -149,7 +160,7 @@ void CmdActuatorMuxNodelet::timerCallbackProcess(CmdActuatorSubscribers& cmd_act
     // ...notify the world that nobody is publishing; its vacant
     std_msgs::StringPtr acv_msg(new std_msgs::String);
     acv_msg->data = "idle";
-    active_subscriber.publish(acv_msg);
+    active_subscriber_pub.publish(acv_msg);
   }
 
   if (idx != GLOBAL_TIMER) cmd_actuator_subs[idx]->active = false;
@@ -168,14 +179,12 @@ void CmdActuatorMuxNodelet::onInit()
       new dynamic_reconfigure::Server<cmd_actuators_mux::reloadConfig>(pnh);
   dynamic_reconfigure_server->setCallback(dynamic_reconfigure_cb);
 
-  fin_angles_active_subscriber = pnh.advertise<std_msgs::String>("fin_angle_active", 1, true);
-  set_rpm_active_subscriber = pnh.advertise<std_msgs::String>("set_rpm_active", 1, true);
+  active_subscriber_pub = pnh.advertise<std_msgs::String>("active_subscriber", 1, true);
 
   // Notify the world that by now nobody is publishing on yet
   std_msgs::StringPtr active_msg(new std_msgs::String);
   active_msg->data = "idle";
-  fin_angles_active_subscriber.publish(active_msg);
-  set_rpm_active_subscriber.publish(active_msg);
+  active_subscriber_pub.publish(active_msg);
 
   // could use a call to reloadConfiguration here, but it seems to automatically call it once with
   // defaults anyway.
