@@ -386,6 +386,12 @@ void CmdActuatorMuxNodelet::reloadConfiguration(cmd_actuators_mux::reloadConfig&
     set_rpm_common_timer.setPeriod(ros::Duration(set_rpm_common_timer_period));
   }
 
+  // check that the both arrays have the same length 
+  ROS_ASSERT_MSG(cmd_set_rpm_subs.size()==(cmd_fin_angles_subs.size()),
+                   "Different amount of inputs between SetRPM Subscriber (%ld) and "
+                   "Fin_Angles Subscribers (%ld) in YAML file:",
+                   cmd_set_rpm_subs.size(), cmd_fin_angles_subs.size());
+
   // check that the subscribers input have the same name in YAML
   for (int i = 0; i < cmd_set_rpm_subs.size(); i++)
   {
