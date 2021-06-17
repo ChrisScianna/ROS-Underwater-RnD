@@ -87,6 +87,21 @@ convertFromString<rosbag::CompressionType>(StringView str)
 namespace mission_control
 {
 
+namespace {
+
+BT::StringView
+strip(const BT::StringView& str)
+{
+  auto start = str.begin();
+  while (std::isspace(*start)) ++start;
+  auto end = str.rbegin();
+  while (std::isspace(*end)) ++end;
+  return BT::StringView(
+    start, std::distance(start, end.base()));
+}
+
+}  // namespace
+
 LogToBagfileNode::Options
 LogToBagfileNode::Options::populateFromPorts(BT::TreeNode * node)
 {
@@ -108,9 +123,9 @@ LogToBagfileNode::Options::populateFromPorts(BT::TreeNode * node)
   {
     if (topics != "all")
     {
-      for (const auto& topic : BT::splitString(topics, ';'))
+      for (const auto& topic : BT::splitString(topics, ','))
       {
-        options.topics.push_back(topic.to_string());
+        options.topics.push_back(strip(topic).to_string());
       }
     }
   }
