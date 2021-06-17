@@ -116,6 +116,7 @@ class TrackingImpl : public GenericSubscriptionImpl
     timer_ = nh.createTimer(
       ros::Duration(1.0),
       boost::bind(&TrackingImpl::trackTopics, this));
+    trackTopics();
   }
 
   void shutdown() override
