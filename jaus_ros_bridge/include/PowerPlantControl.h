@@ -54,7 +54,7 @@ class PowerPlantControl : public JausMessageIn {
  public:
   // PowerPlantControl();
   void init(ros::NodeHandle* nodeHandle);
-
+  void PublishRPM(const bool enable);
   void ProcessData(char* message);
 
   enum PresenceBits { RPMBit = 0, ThrottleBit = 1, GlowPlugStateBit = 2 };
@@ -69,11 +69,14 @@ class PowerPlantControl : public JausMessageIn {
   void StopThruster();
 
  private:
+  void commandRPM(const ros::TimerEvent& ev);
+
   int8_t _powerPlantId;  // 1 byte
   int8_t _powerCmd;      // 1 byte
   int8_t _engineId;      // 1 byte
-  int _rpm;              // 4 bytes - optional
+  int _rpm{0};              // 4 bytes - optional
   ros::Publisher _publisher_setRPM;
+  ros::Timer _commandRPMTimer;
   int _maxRPM;
 
   bool _isSetToZero;
