@@ -49,7 +49,7 @@ void SetFinDeflection::init(ros::NodeHandle* nodeHandle)
 {
   _nodeHandle = nodeHandle;
   _publisher_setAngles =
-      _nodeHandle->advertise<fin_control::SetAngles>("/fin_control/set_angles", 1, true);
+      _nodeHandle->advertise<fin_control::SetAngles>("input/jausRosBridge/set_angles", 1, true);
 }
 
 void SetFinDeflection::ProcessData(char* message)
