@@ -91,9 +91,6 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
 
   _subscriber_reportRPM = _nodeHandle.subscribe("/thruster_control/report_rpm", 1,
                                                 &JausDataManager::handleReportRPM, this);
-  _publisher_setRPM =
-      _nodeHandle.advertise<thruster_control::SetRPM>("input/jaus_ros_bridge/set_rpm", 1, true);
-
   _currentRpm = 0;
 }
 
@@ -137,6 +134,7 @@ void JausDataManager::ProcessReceivedData(char* buffer)
   }
   else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
       ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
+      //  TODO  (aschapiro) OCU Should send a DEACTIVATE command when mission command is selected
       _finControl.PublishFinAngles(false);
       _thrusterControl.PublishRPM(false);
     }
@@ -168,6 +166,9 @@ void JausDataManager::ProcessReceivedData(char* buffer)
     } else if (commandID == JAUS_COMMAND_ExecuteMission || commandID == JAUS_COMMAND_AbortMission ||
                commandID == JAUS_COMMAND_LoadMission || commandID == JAUS_COMMAND_QueryMissions ||
                commandID == JAUS_COMMAND_RemoveMissions) {
+      //  TODO  (aschapiro) OCU Should send a DEACTIVATE command to shutdown the timers.
+      _finControl.PublishFinAngles(false);
+      _thrusterControl.PublishRPM(false);
       _missionCommands.ProcessData(buffer, commandID);
     } else if (commandID == JAUS_COMMAND_PayloadCMD) {
       _payloadCommands.ProcessData(buffer, commandID);

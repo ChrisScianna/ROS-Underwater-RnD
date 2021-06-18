@@ -16,7 +16,7 @@ if __name__ == '__main__':
     rpmMsg = SetRPM()
 
     simulated_jausRosBridge_angles = rospy.Publisher(
-        '/input/jausRosBridge/set_angles',
+        '/input/jaus_ros_bridge/set_angles',
         SetAngles,
         queue_size=1)
     simulated_jausRosBridge_RPM = rospy.Publisher(

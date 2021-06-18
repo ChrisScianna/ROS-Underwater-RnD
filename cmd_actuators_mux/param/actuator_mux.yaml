@@ -14,7 +14,7 @@ fin_angles_subscribers:
     priority:    0
     short_desc:  "Command sent by the Autopilot controller to the fin controller"
   - name:        "Jaus Ros Bridge"
-    topic:       "input/jausRosBridge/set_angles"
+    topic:       "input/jaus_ros_bridge/set_angles"
     timeout:     0.5
     priority:    1
     short_desc:  "Commands sent by the Jaus ROS Bridge to the fin controller"

@@ -49,7 +49,7 @@ void SetFinDeflection::init(ros::NodeHandle* nodeHandle)
 {
   _nodeHandle = nodeHandle;
   _publisher_setAngles =
-      _nodeHandle->advertise<fin_control::SetAngles>("input/jausRosBridge/set_angles", 1, true);
+      _nodeHandle->advertise<fin_control::SetAngles>("input/jaus_ros_bridge/set_angles", 1, true);
 
   double finAnglesPublishingRate;
   _nodeHandle->param("fin_angles_publishing_rate", finAnglesPublishingRate, 15.0);
@@ -73,7 +73,7 @@ void SetFinDeflection::ProcessData(char* message)
 
   //  The OCU sends _finID  from 1 to 4
   if(_finId < 5)
-    _finAngles[_finId-1] = _deflectionAngle;
+    _finAngles[_finId-1] = JausDataManager::degreesToRadians(_deflectionAngle);
   else
     ROS_ERROR_STREAM("fin ID out of range - finID: " << _finId);
 
