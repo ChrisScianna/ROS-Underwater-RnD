@@ -91,9 +91,6 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
 
   _subscriber_reportRPM = _nodeHandle.subscribe("/thruster_control/report_rpm", 1,
                                                 &JausDataManager::handleReportRPM, this);
-  _publisher_setRPM =
-      _nodeHandle.advertise<thruster_control::SetRPM>("/thruster_control/set_rpm", 1, true);
-
   _currentRpm = 0;
 }
 
@@ -131,7 +128,6 @@ void JausDataManager::ProcessReceivedData(char* buffer)
   }
   else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
       ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
-
   }
   else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
       ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);

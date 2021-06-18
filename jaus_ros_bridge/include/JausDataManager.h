@@ -113,15 +113,10 @@ class JausDataManager {
   ros::NodeHandle& _nodeHandle;
   udpserver* _udp;
   ros::Publisher _publisher_EnableLogging;
-  ros::Publisher _publisher_StartMission;
-  ros::Publisher _publisher_AbortMission;
   ros::Publisher _publisher_ClearFault;
 
   void ResetAll();
 
-  // bool _needTimerUpdate;
-
-  ros::Publisher _publisher_setRPM;
   ros::Subscriber _subscriber_reportRPM;
   int16_t _currentRpm;
 };
