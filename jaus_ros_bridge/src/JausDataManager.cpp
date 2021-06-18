@@ -129,9 +129,11 @@ void JausDataManager::ProcessReceivedData(char* buffer)
   else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
       _missionCommands.StopMission();
       ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
+      _finControl.PublishFinAngles(true);
   }
   else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
       ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
+      _finControl.PublishFinAngles(false);
     }
   else if (strcmp(buffer, ENABLE_LOGGING) == 0) {
     jaus_ros_bridge::EnableLogging msg;

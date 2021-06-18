@@ -51,14 +51,18 @@
 
 class SetFinDeflection : public JausMessageIn {
  private:
+  void commandFinAngles(const ros::TimerEvent& ev);
+
   int8_t _finId;              // 1 byte
   int8_t _deflectionAngle;    // 1 byte
   int8_t _deflectionRateCmd;  // 1 byte but not used
   ros::Publisher _publisher_setAngles;
-  std::vector<float> _finAngles;
+  ros::Timer _commandFinAnglesTimer;
+  std::vector<float> _finAngles{0.,0.,0.,0.};
 
  public:
   void init(ros::NodeHandle* nodeHandle);
+  void PublishFinAngles(const bool enable);
 
   void ProcessData(char* message);
 

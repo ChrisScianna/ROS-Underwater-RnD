@@ -50,6 +50,11 @@ void SetFinDeflection::init(ros::NodeHandle* nodeHandle)
   _nodeHandle = nodeHandle;
   _publisher_setAngles =
       _nodeHandle->advertise<fin_control::SetAngles>("input/jausRosBridge/set_angles", 1, true);
+
+  double finAnglesPublishingRate;
+  _nodeHandle->param("fin_angles_publishing_rate", finAnglesPublishingRate, 15.0);
+  _commandFinAnglesTimer = _nodeHandle->createTimer(ros::Duration(1.0 / finAnglesPublishingRate),
+                                                   &SetFinDeflection::commandFinAngles, this);
 }
 
 void SetFinDeflection::ProcessData(char* message)
@@ -66,24 +71,12 @@ void SetFinDeflection::ProcessData(char* message)
   _finId = (int8_t)message[index++];            // 1 byte
   _deflectionAngle = (int8_t)message[index++];  // 1 byte
 
-  _finAngles.push_back(JausDataManager::degreesToRadians(_deflectionAngle));
-  // Check that the incoming fin ID is the one we expect it to be
-  ROS_ASSERT_MSG(_finAngles.size() == _finId, "Error incoming ID: %d isn't the expected: %ld",
-                 _finId, _finAngles.size());
+  //  The OCU sends _finID  from 1 to 4
+  if(_finId < 5)
+    _finAngles[_finId-1] = _deflectionAngle;
+  else
+    ROS_ERROR_STREAM("fin ID out of range - finID: " << _finId);
 
-  // Check that all angles were set
-  if (_finAngles.size() == 4)
-  {
-    fin_control::SetAngles msg;
-    for (int i = 0; i < 4; i++)
-    {
-      msg.fin_angle_in_radians[i] = _finAngles[i];
-      ROS_INFO_STREAM("Fin Id:" << i << " - Angle: " << msg.fin_angle_in_radians[i]);
-    }
-
-    _publisher_setAngles.publish(msg);
-    _finAngles.clear();
-  }
   if (_PresenceVector->IsBitSet((int)0))
   {
     _deflectionRateCmd = (int8_t)message[index++];  // 1 byte
@@ -98,4 +91,22 @@ int8_t SetFinDeflection::GetDeflectionRateCmd()
   if (_PresenceVector->IsBitSet(0)) return _deflectionRateCmd;
 
   return 0;
+}
+
+void SetFinDeflection::commandFinAngles(const ros::TimerEvent& ev)
+{
+  fin_control::SetAngles msg;
+    for (int i = 0; i < 4; i++)
+    {
+      msg.fin_angle_in_radians[i] = _finAngles[i];
+    }
+    _publisher_setAngles.publish(msg);
+}
+
+void SetFinDeflection::PublishFinAngles(const bool enable)
+{
+  if (enable)
+    _commandFinAnglesTimer.start();
+  else
+    _commandFinAnglesTimer.stop();
 }
