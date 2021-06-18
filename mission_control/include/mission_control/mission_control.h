@@ -59,6 +59,7 @@
 #include "mission_control/ReportHeartbeat.h"
 #include "mission_control/ReportLoadMissionState.h"
 #include "mission_control/ReportMissions.h"
+#include "std_msgs/Bool.h"
 #include "mission_control/mission.h"
 
 #define NODE_VERSION "1.0x"
@@ -82,6 +83,7 @@ private:
 
   void loadMissionCallback(const LoadMission& msg);
   void executeMissionCallback(const ExecuteMission& msg);
+  void stopMissionCallback(const std_msgs::Bool& msg);
   void abortMissionCallback(const AbortMission& msg);
   void queryMissionsCallback(const QueryMissions& msg);
   void removeMissionsCallback(const RemoveMissions& msg);
@@ -95,6 +97,7 @@ private:
 
   ros::Subscriber load_mission_sub_;
   ros::Subscriber execute_mission_sub_;
+  ros::Subscriber stop_mission_sub_;
   ros::Subscriber abort_mission_sub_;
   ros::Subscriber query_mission_sub_;
   ros::Subscriber remove_mission_sub_;

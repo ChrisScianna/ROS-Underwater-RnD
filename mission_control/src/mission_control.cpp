@@ -62,6 +62,8 @@ MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
       pnh_.subscribe("load_mission", 1, &MissionControlNode::loadMissionCallback, this);
   execute_mission_sub_ =
       pnh_.subscribe("execute_mission", 1, &MissionControlNode::executeMissionCallback, this);
+  stop_mission_sub_ =
+      pnh_.subscribe("stop_mission", 1, &MissionControlNode::stopMissionCallback, this);
   abort_mission_sub_ =
       pnh_.subscribe("abort_mission", 1, &MissionControlNode::abortMissionCallback, this);
   query_mission_sub_ =
@@ -278,7 +280,14 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
 
   report_missions_pub_.publish(msg);
 }
-
+void MissionControlNode::stopMissionCallback(const std_msgs::Bool& msg)
+{
+  if (current_mission_ && msg.data)
+  {
+    reportOn(current_mission_->preempt());
+    ROS_DEBUG_STREAM("stopMissionsCallback - Stopping mission");
+  }
+}
 void MissionControlNode::removeMissionsCallback(const mission_control::RemoveMissions&)
 {
   ROS_DEBUG_STREAM("removeMissionsCallback - Removing missions");
