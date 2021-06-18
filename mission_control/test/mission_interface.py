@@ -45,6 +45,7 @@ from mission_control.msg import ExecuteMission
 from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import ReportLoadMissionState
 from mission_control.msg import ReportMissions
+from std_msgs.msg import Bool
 
 
 def wait_for(predicate, period=1):
@@ -92,6 +93,12 @@ class MissionInterface:
 
         self.simulated_mission_control_execute_mission_pub = rospy.Publisher(
             '/mission_control_node/execute_mission', ExecuteMission, latch=True, queue_size=1)
+        
+        self.simulated_stop_mission_msg_pub = rospy.Publisher(
+            '/mission_control_node/stop_mission',
+            Bool,
+            latch=True,
+            queue_size=1)
 
     def callback_mission_execute_state(self, msg):
         self.execute_mission_state.append(msg.execute_mission_state)
@@ -120,6 +127,12 @@ class MissionInterface:
         mission_to_execute = ExecuteMission()
         mission_to_execute.mission_id = mission_id
         self.simulated_mission_control_execute_mission_pub.publish(mission_to_execute)
+
+    def stop_mission(self):
+        # Simulate Jaus Ros Bridge sending an Stop Command
+        stop_msgs = Bool()
+        stop_msgs.data = True
+        self.simulated_stop_mission_msg_pub.publish(stop_msgs)
 
     def read_behavior_parameters(self, mission_behavior):
         # Look for the mission behavior in the xml mission file

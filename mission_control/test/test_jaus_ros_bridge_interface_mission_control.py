@@ -119,7 +119,8 @@ class TestJausRosBridgeInterface(unittest.TestCase):
 
     def test_jaus_ros_bridge_interface(self):
         # Test if the mission control reports FAILED if cannot load a mission
-        self.assertEqual(self.mission.load_mission('NO_MISSION'), ReportLoadMissionState.FAILED)
+        self.assertEqual(self.mission.load_mission(
+            'NO_MISSION'), ReportLoadMissionState.FAILED)
 
         # A valid mission is sent to the mission control
         # Execute Mission and check if the mission control reports status
@@ -131,6 +132,24 @@ class TestJausRosBridgeInterface(unittest.TestCase):
             return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
         self.assertTrue(
             wait_for(executing_mission_status_is_reported),
+            msg='Mission control must report EXECUTING')
+
+        # Stop mission
+        self.mission.stop_mission()
+
+        def paused_mission_status_is_reported():
+            return ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state
+        self.assertTrue(
+            wait_for(paused_mission_status_is_reported),
+            msg='Mission control must report COMPLETE')
+
+        self.mission.execute_mission()
+        # Wait for the mission to report EXECUTING
+
+        def executing_mission_after_stop_status_is_reported():
+            return ReportExecuteMissionState.EXECUTING in self.mission.execute_mission_state
+        self.assertTrue(
+            wait_for(executing_mission_after_stop_status_is_reported),
             msg='Mission control must report EXECUTING')
 
         # Abort mission and wait for it to wrap up
