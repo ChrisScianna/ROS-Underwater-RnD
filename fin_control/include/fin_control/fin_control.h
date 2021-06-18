@@ -58,7 +58,6 @@
 #include <diagnostic_tools/health_check.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <fin_control/ReportAngle.h>
-#include <fin_control/SetAngle.h>
 #include <fin_control/SetAngles.h>
 #include <health_monitor/ReportFault.h>
 
@@ -87,7 +86,6 @@ class FinControl
   float degreesToRadians(float degrees);
 
   void reportAngleSendTimeout(const ros::TimerEvent& ev);
-  void handleSetAngle(const fin_control::SetAngle::ConstPtr& msg);
   void handleSetAngles(const fin_control::SetAngles::ConstPtr& msg);
 
   double maxCtrlFinAngle;
@@ -99,7 +97,6 @@ class FinControl
   double maxReportAngleRate;
 
   ros::NodeHandle& nodeHandle;
-  ros::Subscriber subscriber_setAngle;
   ros::Subscriber subscriber_setAngles;
   ros::Subscriber subscriber_enableReportAngles;
   diagnostic_tools::DiagnosedPublisher<
