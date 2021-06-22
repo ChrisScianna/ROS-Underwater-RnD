@@ -82,7 +82,7 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   CmdActuatorSubscribers cmd_set_rpm_subs;
 
   /* Multiplexed command topics */
-    ros::Publisher fin_angles_output_topic_pub;
+  ros::Publisher fin_angles_output_topic_pub;
   ros::Publisher set_rpm_output_topic_pub;
 
   /* Multiplexed command topics names */

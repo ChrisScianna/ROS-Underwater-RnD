@@ -242,7 +242,7 @@ void FinControl::handleSetAngles(const fin_control::SetAngles::ConstPtr &msg)
   float angle_plus_offset;
 
   // check for max angle the fins can mechanically handle
-  for (uint8_t i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++)
   {
     if (fabs(msg->fin_angle_in_radians[i]) > maxCtrlFinAngle)
     {

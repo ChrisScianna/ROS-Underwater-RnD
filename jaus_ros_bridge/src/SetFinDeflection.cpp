@@ -72,7 +72,7 @@ void SetFinDeflection::ProcessData(char* message)
   _deflectionAngle = (int8_t)message[index++];  // 1 byte
 
   //  The OCU sends _finID  from 1 to 4
-  if(_finId < 5)
+  if(_finId <= 4)
     _finAngles[_finId-1] = JausDataManager::degreesToRadians(_deflectionAngle);
   else
     ROS_ERROR_STREAM("fin ID out of range - finID: " << _finId);
@@ -96,11 +96,11 @@ int8_t SetFinDeflection::GetDeflectionRateCmd()
 void SetFinDeflection::commandFinAngles(const ros::TimerEvent& ev)
 {
   fin_control::SetAngles msg;
-    for (int i = 0; i < 4; i++)
-    {
-      msg.fin_angle_in_radians[i] = _finAngles[i];
-    }
-    _publisher_setAngles.publish(msg);
+  for (int i = 0; i < 4; i++)
+  {
+    msg.fin_angle_in_radians[i] = _finAngles[i];
+  }
+  _publisher_setAngles.publish(msg);
 }
 
 void SetFinDeflection::PublishFinAngles(const bool enable)

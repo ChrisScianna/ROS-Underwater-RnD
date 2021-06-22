@@ -522,8 +522,8 @@ void AutoPilotNode::spin()
               ROS_INFO("Capping depth to %f m", desired_depth_);
             }
             // output of depth pid will be input to pitch pid
-            desired_pitch_ = depth_pid_controller_.updatePid(
-                current_depth_ - desired_depth_, r.expectedCycleTime());
+            desired_pitch_ = depth_pid_controller_.updatePid(current_depth_ - desired_depth_,
+                                                             r.expectedCycleTime());
           }
           else if (active_setpoints_ & Setpoint::Altitude)
           {

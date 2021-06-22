@@ -73,8 +73,8 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
     }
     else
       ROS_DEBUG_STREAM("RPM and fin angles values come from different source"
-                       << " - set RPM source: " << cmd_set_rpm_subs[idx]->name
-                       << " - set Fin Angles source: " << cmd_fin_angles_subs[idx]->name);
+                       << " - set RPM source: " << set_rpm_acv_msg.data
+                       << " - set Fin Angles source: " << fin_angles_acv_msg.data);
   }
 }
 
