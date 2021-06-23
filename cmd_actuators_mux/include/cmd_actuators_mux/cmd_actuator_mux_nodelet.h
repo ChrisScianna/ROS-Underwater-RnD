@@ -93,7 +93,6 @@ class CmdActuatorMuxNodelet : public nodelet::Nodelet
   ros::Publisher active_subscriber_pub;
   std_msgs::String fin_angles_acv_msg;
   std_msgs::String set_rpm_acv_msg;
-  bool publish_new_subscriber{false};
 
   /* No messages from any subscriber timeout */
   ros::Timer fin_angles_common_timer;

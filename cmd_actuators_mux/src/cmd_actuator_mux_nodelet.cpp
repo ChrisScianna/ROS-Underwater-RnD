@@ -64,11 +64,7 @@ void CmdActuatorMuxNodelet::cmdFinAngleCallback(const fin_control::SetAngles::Co
     // Wait until both RPM and Fin commands come from the same source
     if (set_rpm_acv_msg.data == fin_angles_acv_msg.data)
     {
-      if (publish_new_subscriber)
-      {
-        active_subscriber_pub.publish(fin_angles_acv_msg);
-        publish_new_subscriber = false;
-      }
+      active_subscriber_pub.publish(fin_angles_acv_msg);
       fin_angles_output_topic_pub.publish(msg);
     }
     else
@@ -91,11 +87,7 @@ void CmdActuatorMuxNodelet::cmdSetRPMCallback(const thruster_control::SetRPM::Co
     // waint until both, RPM and Fin commands come from the same source
     if (set_rpm_acv_msg.data == fin_angles_acv_msg.data)
     {
-      if (publish_new_subscriber)
-      {
-        active_subscriber_pub.publish(set_rpm_acv_msg);
-        publish_new_subscriber = false;
-      }
+      active_subscriber_pub.publish(set_rpm_acv_msg);
       set_rpm_output_topic_pub.publish(msg);
     }
     else
@@ -121,7 +113,6 @@ bool CmdActuatorMuxNodelet::cmdActuatorCallbackProcess(CmdActuatorSubscribers& c
     if (cmd_actuator_subs.allowed != idx)
     {
       cmd_actuator_subs.allowed = idx;
-      publish_new_subscriber = true;
     }
     return true;
   }
