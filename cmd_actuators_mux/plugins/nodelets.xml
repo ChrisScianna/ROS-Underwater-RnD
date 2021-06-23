@@ -1,0 +1,9 @@
+<library path="lib/libcmd_actuators_mux_nodelet">
+  <class name="cmd_actuators_mux/CmdActuatorMuxNodelet"
+         type="cmd_actuator_mux::CmdActuatorMuxNodelet"
+         base_class_type="nodelet::Nodelet">
+    <description>
+      Implementation for the command actuators multiplexer as a nodelet.
+    </description>
+  </class>
+</library>

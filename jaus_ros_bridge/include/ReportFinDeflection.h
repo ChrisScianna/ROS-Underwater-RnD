@@ -45,7 +45,6 @@
 #define REPORTFINDEFLECTION_H_
 
 #include <fin_control/ReportAngle.h>
-#include <fin_control/SetAngle.h>
 #include "JausMessageOut.h"
 
 // struct FinData{

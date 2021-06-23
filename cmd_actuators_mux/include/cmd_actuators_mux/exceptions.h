@@ -1,7 +1,8 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2020, QinetiQ, Inc.
+ *  Copyright (c) 2021, QinetiQ, Inc.
+ *  Copyright (c) 2012 Yujin Robot, Daniel Stonier, Jorge Santos
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,43 +33,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-// Original version: Jie Sun <Jie.Sun@us.QinetiQ.com>
 
-/*
- * SetFinDeflection.h
- *
- *  Created on: Jun 11, 2019
- *      Author: jsun
- */
+#ifndef CMD_ACTUATORS_MUX_EXCEPTIONS_H
+#define CMD_ACTUATORS_MUX_EXCEPTIONS_H
 
-#ifndef SETFINDEFLECTION_H_
-#define SETFINDEFLECTION_H_
+#include <exception>
+#include <string>
 
-#include <ros/ros.h>
-#include <stdint.h>
-#include "JausMessageIn.h"
-#include <fin_control/SetAngles.h>
-
-class SetFinDeflection : public JausMessageIn {
- private:
-  void commandFinAngles(const ros::TimerEvent& ev);
-
-  int8_t _finId;              // 1 byte
-  int8_t _deflectionAngle;    // 1 byte
-  int8_t _deflectionRateCmd;  // 1 byte but not used
-  ros::Publisher _publisher_setAngles;
-  ros::Timer _commandFinAnglesTimer;
-  std::vector<float> _finAngles{0.,0.,0.,0.};
-
+namespace cmd_actuator_mux
+{
+class FileNotFoundException : public std::runtime_error
+{
  public:
-  void init(ros::NodeHandle* nodeHandle);
-  void PublishFinAngles(const bool enable);
-
-  void ProcessData(char* message);
-
-  int8_t GetFinID();
-  int8_t GetDeflectionAngle();
-  int8_t GetDeflectionRateCmd();
+  explicit FileNotFoundException(const std::string& msg) : std::runtime_error(msg) {}
+  virtual ~FileNotFoundException() throw() {}
 };
 
-#endif /* SETFINDEFLECTION_H_ */
+class EmptyCfgException : public std::runtime_error
+{
+ public:
+  explicit EmptyCfgException(const std::string& msg) : std::runtime_error(msg) {}
+  virtual ~EmptyCfgException() throw() {}
+};
+
+class YamlException : public std::runtime_error
+{
+ public:
+  explicit YamlException(const std::string& msg) : std::runtime_error(msg) {}
+  virtual ~YamlException() throw() {}
+};
+
+}  // namespace cmd_actuator_mux
+
+#endif  //  CMD_ACTUATORS_MUX_EXCEPTIONS_H

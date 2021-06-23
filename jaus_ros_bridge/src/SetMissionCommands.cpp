@@ -42,12 +42,15 @@
 #include <mission_control/LoadMission.h>
 #include <mission_control/QueryMissions.h>
 #include <mission_control/RemoveMissions.h>
+#include "std_msgs/Bool.h"
 
 void SetMissionCommands::init(ros::NodeHandle* nodeHandle) {
   _nodeHandle = nodeHandle;
   // All Set command handlings should be moved to here!
   _publisher_Execute_mission =
       _nodeHandle->advertise<mission_control::ExecuteMission>("/mngr/execute_mission", 1, true);
+  _publisher_Stop_mission =
+      _nodeHandle->advertise<std_msgs::Bool>("/mngr/stop_mission", 1, true);
   _publisher_Abort_mission =
       _nodeHandle->advertise<mission_control::AbortMission>("/mngr/abort_mission", 1, true);
   _publisher_Load_mission =
@@ -108,4 +111,11 @@ void SetMissionCommands::ProcessData(char* message, JausCommandID cmdID) {
       break;
     }
   }
+}
+
+void SetMissionCommands::StopMission()
+{
+  std_msgs::Bool msg;
+  msg.data = true;
+  _publisher_Stop_mission.publish(msg);
 }

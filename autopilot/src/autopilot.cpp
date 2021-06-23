@@ -132,11 +132,8 @@ double relativeAngle(double xb, double yb, double xa, double ya)
 
 AutoPilotNode::AutoPilotNode() : pnh_("~")
 {
-  thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("thruster_control/set_rpm", 1);
-  fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("fin_control/set_angles", 1);
-  auto_pilot_in_control_pub_ =
-      nh_.advertise<autopilot::AutoPilotInControl>("autopilot/auto_pilot_in_control", 1);
-  auto_pilot_in_control_ = true;
+  thruster_control_pub_ = nh_.advertise<thruster_control::SetRPM>("input/autopilot/set_rpm", 1);
+  fin_control_pub_ = nh_.advertise<fin_control::SetAngles>("input/autopilot/set_angles", 1);
 
   control_loop_rate_ = pnh_.param<double>("control_loop_rate", 25.);  // Hz
   minimal_speed_ = pnh_.param<double>("minimal_vehicle_speed", 2.0);  // knots
@@ -207,10 +204,6 @@ AutoPilotNode::AutoPilotNode() : pnh_("~")
       pnh_.param<bool>("allow_reverse_thruster_autopilot", false);
   thruster_enabled_ = pnh_.param<bool>("thruster_enabled", false);
 
-  manual_control_sub_ = nh_.subscribe(
-      "/jaus_ros_bridge/activate_manual_control", 1,
-      &AutoPilotNode::handleActivateManualControl, this);
-
   state_up_to_date_ = false;
   state_sub_ = nh_.subscribe("state", 1, &AutoPilotNode::stateCallback, this);
 
@@ -275,28 +268,6 @@ void AutoPilotNode::missionStatusCallback(const mission_control::ReportExecuteMi
   }
 }
 
-void AutoPilotNode::handleActivateManualControl(const jaus_ros_bridge::ActivateManualControl& msg)
-{
-  if (msg.activate_manual_control)
-  {
-    if (auto_pilot_in_control_)
-    {
-      ROS_INFO("Manual control activated!");
-      // clear the following so we do not take off after manual control is released.
-      active_setpoints_ = {};
-      auto_pilot_in_control_ = false;
-    }
-  }
-  else
-  {
-    if (!auto_pilot_in_control_)
-    {
-      ROS_INFO("Manual control deactivated!");
-      auto_pilot_in_control_ = true;
-    }
-  }
-}
-
 void AutoPilotNode::stateCallback(const auv_interfaces::StateStamped& msg)
 {
   current_depth_ = msg.state.manoeuvring.pose.mean.position.z;
@@ -324,21 +295,27 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
                              pitch * sin(current_roll_in_radians);
   const double rotated_pitch = yaw * sin(current_roll_in_radians) +
                                pitch * cos(current_roll_in_radians);
-  double d1 = degreesToRadians(rotated_pitch - rotated_yaw + roll);   // Fin 1 bottom stbd
-  double d2 = degreesToRadians(rotated_pitch + rotated_yaw + roll);   // Fin 2 top stb
-  double d3 = degreesToRadians(-rotated_pitch - rotated_yaw + roll);  // Fin 3 bottom port
-  double d4 = degreesToRadians(-rotated_pitch + rotated_yaw + roll);  // Fin 4 top port
-
+  const double fin_angles[] = {                               //  NOLINT
+      degreesToRadians(rotated_pitch - rotated_yaw + roll),   //  Fin 1 bottom stbd
+      degreesToRadians(rotated_pitch + rotated_yaw + roll),   //  Fin 2 top stb
+      degreesToRadians(-rotated_pitch - rotated_yaw + roll),  //  Fin 3 bottom port
+      degreesToRadians(-rotated_pitch + rotated_yaw + roll),  //  Fin 4 top port
+  };
   // Scale down and saturate fin angles if necessary
-  const double angles[] = {fabs(d1), fabs(d2), fabs(d3), fabs(d4), max_ctrl_fin_angle_in_radians_};
-  const double max_angle_in_radians = *std::max_element(std::begin(angles), std::end(angles));
+  const double absolute_fin_angles[] = {
+      fabs(fin_angles[0]), fabs(fin_angles[1]), fabs(fin_angles[2]),  //  NOLINT
+      fabs(fin_angles[3]), max_ctrl_fin_angle_in_radians_};           // NOLINT
+  const double max_angle_in_radians =
+      *std::max_element(std::begin(absolute_fin_angles), std::end(absolute_fin_angles));
   const double scale = max_ctrl_fin_angle_in_radians_ / max_angle_in_radians;
 
   fin_control::SetAngles fin_control_message;
-  fin_control_message.f1_angle_in_radians = saturate(scale * d1, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f2_angle_in_radians = saturate(scale * d2, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f3_angle_in_radians = saturate(scale * d3, max_ctrl_fin_angle_in_radians_);
-  fin_control_message.f4_angle_in_radians = saturate(scale * d4, max_ctrl_fin_angle_in_radians_);
+  for (int i = 0; i < 4; ++i)
+  {
+    fin_control_message.fin_angle_in_radians[i] =
+        saturate(scale * fin_angles[i], max_ctrl_fin_angle_in_radians_);
+  }
+
   fin_control_pub_.publish(fin_control_message);
 
   if (thruster_enabled_)
@@ -519,12 +496,7 @@ void AutoPilotNode::spin()
   ros::Rate r(control_loop_rate_);
   while (ros::ok())
   {
-    autopilot::AutoPilotInControl message;
-    message.auto_pilot_in_control = auto_pilot_in_control_;
-    auto_pilot_in_control_pub_.publish(message);
 
-    if (auto_pilot_in_control_)
-    {
       double roll_command = 0.;  // straight
       double pitch_command = 0.;  // straight
       double yaw_command = 0.;  // straight
@@ -550,8 +522,8 @@ void AutoPilotNode::spin()
               ROS_INFO("Capping depth to %f m", desired_depth_);
             }
             // output of depth pid will be input to pitch pid
-            desired_pitch_ = depth_pid_controller_.updatePid(
-                current_depth_ - desired_depth_, r.expectedCycleTime());
+            desired_pitch_ = depth_pid_controller_.updatePid(current_depth_ - desired_depth_,
+                                                             r.expectedCycleTime());
           }
           else if (active_setpoints_ & Setpoint::Altitude)
           {
@@ -609,7 +581,6 @@ void AutoPilotNode::spin()
       }
 
       mixActuators(roll_command, pitch_command, yaw_command, thrust_command);
-    }
 
     ros::spinOnce();
     r.sleep();
