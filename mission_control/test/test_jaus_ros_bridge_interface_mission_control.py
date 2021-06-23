@@ -137,10 +137,10 @@ class TestJausRosBridgeInterface(unittest.TestCase):
         # Stop mission
         self.mission.stop_mission()
 
-        def paused_mission_status_is_reported():
+        def complete_mission_status_is_reported_after_stop_command():
             return ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state
         self.assertTrue(
-            wait_for(paused_mission_status_is_reported),
+            wait_for(complete_mission_status_is_reported_after_stop_command),
             msg='Mission control must report COMPLETE')
 
         self.mission.execute_mission()
