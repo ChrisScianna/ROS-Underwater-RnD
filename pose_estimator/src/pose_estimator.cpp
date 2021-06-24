@@ -244,7 +244,12 @@ void PoseEstimator::ahrsCallback(const sensor_msgs::Imu::ConstPtr& ahrs_msg)
     msg.state.geolocation.position.altitude = last_fix_msg_->altitude;
     msg.state.geolocation.covariance = last_fix_msg_->position_covariance;
   }
-
+  else
+  {
+    msg.state.geolocation.position.latitude = std::numeric_limits<double>::quiet_NaN();
+    msg.state.geolocation.position.longitude = std::numeric_limits<double>::quiet_NaN();
+    msg.state.geolocation.position.altitude = std::numeric_limits<double>::quiet_NaN();
+  }
   // Use orientation from AHRS in NED frame
   tf::Quaternion orientation(
       ahrs_msg->orientation.x, ahrs_msg->orientation.y,
