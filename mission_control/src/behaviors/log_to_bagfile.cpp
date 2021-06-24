@@ -179,8 +179,9 @@ generateBagfilePath(const std::string& prefix)
   {
     const boost::posix_time::ptime now =
       boost::posix_time::second_clock::local_time();
-    boost::posix_time::time_facet facet("%Y-%m-%d-%H-%M-%S");
-    path.imbue(std::locale(path.getloc(), &facet));
+    auto * const facet =
+      new boost::posix_time::time_facet("%Y-%m-%d-%H-%M-%S");
+    path.imbue(std::locale(path.getloc(), facet));
     path << now << ".bag";
   }
   return path.str();

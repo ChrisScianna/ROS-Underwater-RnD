@@ -32,6 +32,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
+import glob
 import os
 import tempfile
 import textwrap
@@ -108,7 +109,7 @@ class TestLogToBagfileAction(unittest.TestCase):
         self._log_some_topics_to_bagfile(compression_type='lz4')
 
     def test_log_all_to_bagfile(self):
-        bag_name = 'all_topics.bag'
+        bag_prefix = 'all_topics'
         with tempfile.NamedTemporaryFile() as f:
             f.write(textwrap.dedent('''
             <root main_tree_to_execute="main">
@@ -119,7 +120,7 @@ class TestLogToBagfileAction(unittest.TestCase):
                   </Delay>
                 </LogToBagfile>
               </BehaviorTree>
-            </root>'''.format(bag_name)))
+            </root>'''.format(bag_prefix)))
             f.flush()
 
             result = self.mission_interface.load_mission(f.name)
@@ -134,9 +135,12 @@ class TestLogToBagfileAction(unittest.TestCase):
         self.assertTrue(wait_for(mission_completed),
                         msg='Mission did not COMPLETE')
 
-        bag_path = os.path.join(
-            os.path.dirname(rospy.core._log_filename), bag_name)
-        self.assertTrue(os.path.isfile(bag_path), bag_path + ' is missing')
+        full_bag_prefix = os.path.join(
+            os.path.dirname(rospy.core._log_filename), bag_prefix)
+        candidates = glob.glob(full_bag_prefix + '*.bag')
+        self.assertEqual(len(candidates), 1)
+        bag_path = candidates[0]
+        self.assertTrue(os.path.isfile(bag_path))
         with rosbag.Bag(bag_path, 'r') as bag:
             topics = bag.get_type_and_topic_info().topics
             self.assertGreaterEqual(len(topics), 1)
