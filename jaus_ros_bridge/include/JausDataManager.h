@@ -95,6 +95,8 @@ class JausDataManager {
   void handleReportRPM(const thruster_control::ReportRPM::ConstPtr& msg);
 
  private:
+  void checkOCUConnection(const ros::TimerEvent& ev);
+
   PowerPlantControl _thrusterControl;
   SetFinDeflection _finControl;
   SetMissionCommands _missionCommands;
@@ -114,7 +116,9 @@ class JausDataManager {
   udpserver* _udp;
   ros::Publisher _publisher_EnableLogging;
   ros::Publisher _publisher_ClearFault;
+  ros::Timer _timer_checkOCUCommunication;
 
+  bool _manualControl{false};
   void ResetAll();
 
   ros::Subscriber _subscriber_reportRPM;

@@ -91,10 +91,31 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
 
   _subscriber_reportRPM = _nodeHandle.subscribe("/thruster_control/report_rpm", 1,
                                                 &JausDataManager::handleReportRPM, this);
+
+  double OCUCommunicationTimeOut;
+  _nodeHandle.param("OCU_timeout", OCUCommunicationTimeOut, 5.0);
+  _timer_checkOCUCommunication = _nodeHandle.createTimer(ros::Duration(OCUCommunicationTimeOut),
+                                                &JausDataManager::checkOCUConnection, this);
+
   _currentRpm = 0;
 }
 
 JausDataManager::~JausDataManager() {}
+
+void JausDataManager::checkOCUConnection(const ros::TimerEvent& ev)
+{
+  if(_manualControl)
+  {
+    _finControl.PublishFinAngles(true);
+    _thrusterControl.PublishRPM(true);
+    _manualControl = false;
+  }
+  else 
+  {
+    _finControl.PublishFinAngles(false);
+    _thrusterControl.PublishRPM(false);
+  }
+}
 
 void JausDataManager::ResetAll() {
   _reportFin1State.Reset();
@@ -129,14 +150,11 @@ void JausDataManager::ProcessReceivedData(char* buffer)
   else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
       _missionCommands.StopMission();
       ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
-      _finControl.PublishFinAngles(true);
-      _thrusterControl.PublishRPM(true);
+      _manualControl = true;
   }
   else if (strcmp(buffer, DEACTIVATE_MAUNAL_CONTROL) == 0) {
       ROS_INFO(DEACTIVATE_MAUNAL_CONTROL);
-      //  TODO  (aschapiro) OCU Should send a DEACTIVATE command when mission command is selected
-      _finControl.PublishFinAngles(false);
-      _thrusterControl.PublishRPM(false);
+      _manualControl = false;
     }
   else if (strcmp(buffer, ENABLE_LOGGING) == 0) {
     jaus_ros_bridge::EnableLogging msg;
@@ -167,8 +185,7 @@ void JausDataManager::ProcessReceivedData(char* buffer)
                commandID == JAUS_COMMAND_LoadMission || commandID == JAUS_COMMAND_QueryMissions ||
                commandID == JAUS_COMMAND_RemoveMissions) {
       //  TODO  (aschapiro) OCU Should send a DEACTIVATE command to shutdown the timers.
-      _finControl.PublishFinAngles(false);
-      _thrusterControl.PublishRPM(false);
+      _manualControl = false;
       _missionCommands.ProcessData(buffer, commandID);
     } else if (commandID == JAUS_COMMAND_PayloadCMD) {
       _payloadCommands.ProcessData(buffer, commandID);
