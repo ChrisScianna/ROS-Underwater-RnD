@@ -93,7 +93,7 @@ JausDataManager::JausDataManager(ros::NodeHandle* nodeHandle, udpserver* udp)
                                                 &JausDataManager::handleReportRPM, this);
 
   double OCUCommunicationTimeOut;
-  _nodeHandle.param("OCU_timeout", OCUCommunicationTimeOut, 5.0);
+  _nodeHandle.param("OCU_timeout", OCUCommunicationTimeOut, 3.0);
   _timer_checkOCUCommunication = _nodeHandle.createTimer(ros::Duration(OCUCommunicationTimeOut),
                                                 &JausDataManager::checkOCUConnection, this);
 
