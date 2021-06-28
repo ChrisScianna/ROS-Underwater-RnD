@@ -78,6 +78,7 @@ class PowerPlantControl : public JausMessageIn {
   ros::Publisher _publisher_setRPM;
   ros::Timer _commandRPMTimer;
   int _maxRPM;
+  bool _isSetToZero;
 
   ros::Timer ThrusterControl_timer;
 };

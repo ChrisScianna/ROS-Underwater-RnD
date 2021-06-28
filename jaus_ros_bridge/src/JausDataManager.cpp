@@ -110,7 +110,7 @@ void JausDataManager::checkOCUConnection(const ros::TimerEvent& ev)
     _thrusterControl.PublishRPM(true);
     _manualControl = false;
   }
-  else 
+  else
   {
     _finControl.PublishFinAngles(false);
     _thrusterControl.PublishRPM(false);
