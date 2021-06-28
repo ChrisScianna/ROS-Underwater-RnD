@@ -51,8 +51,6 @@ void PowerPlantControl::init(ros::NodeHandle* nodeHandle) {
   _publisher_setRPM =
       _nodeHandle->advertise<thruster_control::SetRPM>("input/jaus_ros_bridge/set_rpm", 1, true);
 
-  _isSetToZero = true;
-
   // Info
   // ROS_INFO("Specified max RPM is: +-%d", thruster_control::SetRPM::MAX_RPM);
 
@@ -98,10 +96,6 @@ void PowerPlantControl::ProcessData(char* message) {
       // if(debug_mode)
       ROS_ERROR("RPM exceeded -Max. Set at %d", (0 - thruster_control::SetRPM::MAX_RPM));
     }
-    _isSetToZero = false;
-    if (_rpm == 0) {
-      _isSetToZero = true;
-    }
   }
 }
 
@@ -117,10 +111,7 @@ int PowerPlantControl::GetRpm() {
 }
 
 void PowerPlantControl::StopThruster() {
-  if (_isSetToZero) return;
   _rpm = 0;
-  ROS_INFO("Set thruster rpm to 0 at connection lost!!!");
-  _isSetToZero = true;
 }
 
 void PowerPlantControl::PublishRPM(const bool enable)
@@ -129,6 +120,8 @@ void PowerPlantControl::PublishRPM(const bool enable)
     _commandRPMTimer.start();
   else
     _commandRPMTimer.stop();
+    _rpm = 0;
+
 }
 
 void PowerPlantControl::commandRPM(const ros::TimerEvent& ev)
