@@ -119,7 +119,6 @@ int PowerPlantControl::GetRpm() {
 void PowerPlantControl::StopThruster() {
   if (_isSetToZero) return;
   _rpm = 0;
-  ROS_INFO("Set thruster rpm to 0 at connection lost!!!");
   _isSetToZero = true;
 }
 
@@ -127,8 +126,11 @@ void PowerPlantControl::PublishRPM(const bool enable)
 {
   if (enable)
     _commandRPMTimer.start();
-  else
+  else{
     _commandRPMTimer.stop();
+    StopThruster();
+  }
+
 }
 
 void PowerPlantControl::commandRPM(const ros::TimerEvent& ev)
