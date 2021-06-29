@@ -52,6 +52,7 @@ void PowerPlantControl::init(ros::NodeHandle* nodeHandle) {
       _nodeHandle->advertise<thruster_control::SetRPM>("input/jaus_ros_bridge/set_rpm", 1, true);
 
   _isSetToZero = true;
+
   // Info
   // ROS_INFO("Specified max RPM is: +-%d", thruster_control::SetRPM::MAX_RPM);
 
