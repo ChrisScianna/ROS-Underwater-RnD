@@ -32,52 +32,28 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
-import unittest
 import math
-import rosnode
+import unittest
+
 import rospy
 import rostest
-from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import AttitudeServo
+
 from auv_interfaces.msg import StateStamped
-from mission_interface import MissionInterface
-from mission_interface import wait_for
+from mission_control.msg import AttitudeServo
 
-
-try:
-    from math import isclose
-except ImportError:
-    def isclose(a, b, rel_tol=1e-9):
-        return abs(a - b) < (rel_tol * max(abs(a), abs(b)))
+from test_utilities import MissionControlInterface
 
 
 class TestAttitudeServoAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_attitude_servo')
+        rospy.init_node('attitude_servo_test_node')
 
     def setUp(self):
-        self.attitude_servo_goal = AttitudeServo()
-        self.mission = MissionInterface()
+        self.mission_control = MissionControlInterface()
 
-        # Subscribers
-        self.attitude_servo_msg = rospy.Subscriber(
-            '/mngr/attitude_servo',
-            AttitudeServo,
-            self.attitude_servo_goal_callback)
-
-        self.simulated_auv_interface_data_pub = rospy.Publisher(
-            '/state',
-            StateStamped,
-            queue_size=1)
-
-    def attitude_servo_goal_callback(self, msg):
-        self.attitude_servo_goal = msg
-
-    def test_mission_with_attitude_servo_action(self):
+    def test_mission_that_sets_attitude(self):
         """
         This test:
         -  Loads a mission with a single AttitudeServo action.
@@ -86,51 +62,61 @@ class TestAttitudeServoAction(unittest.TestCase):
         -  Simulates state updates for the action to complete.
         -  Waits until the mission is COMPLETE.
         """
-        self.mission.load_mission('attitude_servo_mission_test.xml')
-        self.mission.execute_mission()
+        roll = 1.0
+        pitch = 2.0
+        yaw = 3.0
+        speed_knots = 4.0
+        ena_mask = AttitudeServo.ROLL_ENA
+        ena_mask |= AttitudeServo.PITCH_ENA
+        ena_mask |= AttitudeServo.YAW_ENA
+        ena_mask |= AttitudeServo.SPEED_KNOTS_ENA
 
-        self.mission.read_behavior_parameters('AttitudeServo')
-        roll = float(self.mission.get_behavior_parameter('roll'))
-        pitch = float(self.mission.get_behavior_parameter('pitch'))
-        pitch_units = self.mission.get_behavior_parameter('pitch-units')
-        self.assertEqual('degrees', pitch_units)
-        pitch = math.radians(float(pitch))
-        yaw = float(self.mission.get_behavior_parameter('yaw'))
-        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <Timeout msec="2000">
+                <AttitudeServo
+                    roll="{}"
+                    pitch="{}"
+                    pitch-units="degrees"
+                    yaw="{}"
+                    speed_knots="{}"
+                    roll-tolerance="1.0"
+                    pitch-tolerance="1.0"
+                    yaw-tolerance="1.0"/>
+              </Timeout>
+            </BehaviorTree>
+          </root>
+        '''.format(roll, math.degrees(pitch), yaw, speed_knots)
 
-        # Calculate the mask
-        enable_mask = 0
-        if roll is not None:
-            enable_mask |= AttitudeServo.ROLL_ENA
-        if pitch is not None:
-            enable_mask |= AttitudeServo.PITCH_ENA
-        if yaw is not None:
-            enable_mask |= AttitudeServo.YAW_ENA
-        if speed_knots is not None:
-            enable_mask |= AttitudeServo.SPEED_KNOTS_ENA
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        def attitude_servo_goals_are_set():
-            return (isclose(self.attitude_servo_goal.roll, roll) and
-                    isclose(self.attitude_servo_goal.pitch, pitch, rel_tol=1e-6) and
-                    isclose(self.attitude_servo_goal.yaw, yaw) and
-                    isclose(self.attitude_servo_goal.speed_knots, speed_knots) and
-                    self.attitude_servo_goal.ena_mask == enable_mask)
+        self.mission_control.execute_mission(mission_id)
 
-        self.assertTrue(wait_for(attitude_servo_goals_are_set),
-                        msg='Mission control must publish goals')
+        msg = rospy.wait_for_message(
+            '/mngr/attitude_servo', AttitudeServo)
+        self.assertAlmostEqual(msg.roll, roll)
+        self.assertAlmostEqual(msg.pitch, pitch)
+        self.assertAlmostEqual(msg.yaw, yaw)
+        self.assertAlmostEqual(msg.speed_knots, speed_knots)
+        self.assertAlmostEqual(msg.ena_mask, ena_mask)
 
-        # send data to finish the mission
         msg = StateStamped()
+        msg.header.stamp = rospy.Time.now()
         msg.state.manoeuvring.pose.mean.orientation.x = roll
         msg.state.manoeuvring.pose.mean.orientation.y = pitch
         msg.state.manoeuvring.pose.mean.orientation.z = yaw
-        self.simulated_auv_interface_data_pub.publish(msg)
+        rospy.Publisher(
+            '/state', StateStamped,
+            queue_size=1, latch=True
+        ).publish(msg)
 
-        def success_mission_status_is_reported():
-            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
-                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
-        self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report only COMPLETE')
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
+
 
 if __name__ == '__main__':
-    rostest.rosrun('mission_control', 'test_attitude_servo_action', TestAttitudeServoAction)
+    rostest.rosrun(
+        'mission_control',
+        'test_attitude_servo_action',
+        TestAttitudeServoAction)

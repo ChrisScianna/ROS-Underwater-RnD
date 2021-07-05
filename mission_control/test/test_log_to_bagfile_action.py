@@ -34,59 +34,49 @@
 """
 import glob
 import os
-import tempfile
-import textwrap
 import unittest
 
 import rosbag
 import rospy
 import rostest
 
-from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import ReportLoadMissionState
-from mission_interface import MissionInterface
-from mission_interface import wait_for
+from test_utilities import MissionControlInterface
 
 
 class TestLogToBagfileAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('node_to_test_log_to_bagfile')
+        rospy.init_node('log_to_bagfile_test_node')
 
     def setUp(self):
-        self.mission_interface = MissionInterface()
+        self.mission_control = MissionControlInterface()
 
     def _log_some_topics_to_bagfile(self, compression_type):
         bag_name = 'some_topics.{}.bag'.format(compression_type)
         topic_names = ['/mngr/fixed_rudder', '/rosout']
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(textwrap.dedent('''
-            <root main_tree_to_execute="main">
-              <BehaviorTree ID="main">
-                <LogToBagfile prefix="{}" topics="{}" compression="{}">
-                  <Sequence>
-                    <FixRudder depth="1.0" rudder="2.0" speed_knots="3.0"/>
-                    <Delay delay_msec="1000">
-                      <AlwaysSuccess/>
-                    </Delay>
-                  </Sequence>
-                </LogToBagfile>
-              </BehaviorTree>
-            </root>'''.format(bag_name, ', '.join(topic_names), compression_type)))
-            f.flush()
 
-            result = self.mission_interface.load_mission(f.name)
-            self.assertEqual(result.load_state, ReportLoadMissionState.SUCCESS)
-            mission_id = result.mission_id
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <LogToBagfile prefix="{}" topics="{}" compression="{}">
+                <Sequence>
+                  <FixRudder depth="1.0" rudder="2.0" speed_knots="3.0"/>
+                  <Delay delay_msec="1000">
+                    <AlwaysSuccess/>
+                  </Delay>
+                </Sequence>
+              </LogToBagfile>
+            </BehaviorTree>
+          </root>
+        '''.format(bag_name, ', '.join(topic_names), compression_type)
 
-        self.mission_interface.execute_mission(mission_id)
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        def mission_completed():
-            return ReportExecuteMissionState.COMPLETE in \
-                self.mission_interface.execute_mission_state
-        self.assertTrue(wait_for(mission_completed),
-                        msg='Mission did not COMPLETE')
+        self.mission_control.execute_mission(mission_id)
+
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
         bag_path = os.path.join(
             os.path.dirname(rospy.core._log_filename), bag_name)
@@ -110,30 +100,25 @@ class TestLogToBagfileAction(unittest.TestCase):
 
     def test_log_all_to_bagfile(self):
         bag_prefix = 'all_topics'
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(textwrap.dedent('''
-            <root main_tree_to_execute="main">
-              <BehaviorTree ID="main">
-                <LogToBagfile prefix="{}">
-                  <Delay delay_msec="1000">
-                    <AlwaysSuccess/>
-                  </Delay>
-                </LogToBagfile>
-              </BehaviorTree>
-            </root>'''.format(bag_prefix)))
-            f.flush()
 
-            result = self.mission_interface.load_mission(f.name)
-            self.assertEqual(result.load_state, ReportLoadMissionState.SUCCESS)
-            mission_id = result.mission_id
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <LogToBagfile prefix="{}">
+                <Delay delay_msec="1000">
+                  <AlwaysSuccess/>
+                </Delay>
+              </LogToBagfile>
+            </BehaviorTree>
+          </root>
+        '''.format(bag_prefix)
 
-        self.mission_interface.execute_mission(mission_id)
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        def mission_completed():
-            return ReportExecuteMissionState.COMPLETE in \
-                self.mission_interface.execute_mission_state
-        self.assertTrue(wait_for(mission_completed),
-                        msg='Mission did not COMPLETE')
+        self.mission_control.execute_mission(mission_id)
+
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
         full_bag_prefix = os.path.join(
             os.path.dirname(rospy.core._log_filename), bag_prefix)
@@ -148,4 +133,7 @@ class TestLogToBagfileAction(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rostest.rosrun('mission_control', 'test_log_to_bagfile_action', TestLogToBagfileAction)
+    rostest.rosrun(
+        'mission_control',
+        'test_log_to_bagfile_action',
+        TestLogToBagfileAction)
