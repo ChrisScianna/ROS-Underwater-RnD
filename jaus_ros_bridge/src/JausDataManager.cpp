@@ -148,7 +148,7 @@ void JausDataManager::ProcessReceivedData(char* buffer)
     ROS_INFO(DISCONNECT_COMMAND);
   }
   else if (strcmp(buffer, ACTIVATE_MAUNAL_CONTROL) == 0) {
-      _missionCommands.StopMission();
+      _missionCommands.StopMissions();
       ROS_INFO(ACTIVATE_MAUNAL_CONTROL);
       _manualControl = true;
   }
