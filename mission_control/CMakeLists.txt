@@ -89,6 +89,7 @@ set(ROSLINT_CPP_OPTS
   --filter=-whitespace/braces,-build/c++11,-runtime/references
 )
 roslint_cpp()
+roslint_python()
 
 #############
 ## Install ##
