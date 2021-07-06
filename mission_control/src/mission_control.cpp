@@ -180,35 +180,38 @@ void MissionControlNode::update(const ros::TimerEvent&)
   }
 }
 
+int MissionControlNode::loadMission(const std::string& path)
+{
+  std::unique_ptr<Mission> mission = Mission::fromFile(path);
+  int mission_id = mission->id();
+  mission_map_[mission_id] = std::move(mission);
+  return mission_id;
+}
+
 void MissionControlNode::loadMissionCallback(const mission_control::LoadMission& msg)
 {
   ROS_DEBUG_STREAM(
       "loadMissionCallback - just received mission file " <<
       msg.mission_file_full_path);
 
-  std::unique_ptr<Mission> mission =
-      Mission::fromFile(msg.mission_file_full_path);
-
   ReportLoadMissionState outmsg;
-  outmsg.header.stamp = ros::Time::now();
-  if (mission)
+  try
   {
-    ROS_DEBUG_STREAM(
-        "loadMissionCallback - SUCCESSFULLY parsed mission file " <<
-        msg.mission_file_full_path);
-    int mission_id = mission->id();
-    mission_map_[mission_id] = std::move(mission);
-
+    int mission_id = loadMission(msg.mission_file_full_path);
+    ROS_INFO_STREAM(
+        "Loaded mission " << mission_id <<
+        " from " << msg.mission_file_full_path);
     outmsg.mission_id = mission_id;
     outmsg.load_state = ReportLoadMissionState::SUCCESS;
   }
-  else
+  catch (const std::exception& e)
   {
-    ROS_DEBUG_STREAM(
-        "loadMissionCallback - FAILED to parse mission file " <<
-        msg.mission_file_full_path);
+    ROS_ERROR_STREAM(
+        "Failed to load mission from " << msg.mission_file_full_path <<
+        ": " << e.what());
     outmsg.load_state = ReportLoadMissionState::FAILED;
   }
+  outmsg.header.stamp = ros::Time::now();
   report_mission_load_state_pub_.publish(outmsg);
 }
 

@@ -76,6 +76,7 @@ public:
   void spin();
 
 private:
+  int loadMission(const std::string& path);
   void reportOn(const Mission& mission);
   void update(const ros::TimerEvent& ev);
 
