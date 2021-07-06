@@ -199,7 +199,7 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission&
   {
     int mission_id = loadMission(msg.mission_file_full_path);
     ROS_INFO_STREAM(
-        "Loaded mission " << mission_id <<
+        "Loaded mission [" << mission_id << "]" <<
         " from " << msg.mission_file_full_path);
     outmsg.mission_id = mission_id;
     outmsg.load_state = ReportLoadMissionState::SUCCESS;
@@ -207,7 +207,8 @@ void MissionControlNode::loadMissionCallback(const mission_control::LoadMission&
   catch (const std::exception& e)
   {
     ROS_ERROR_STREAM(
-        "Failed to load mission from " << msg.mission_file_full_path <<
+        "Failed to load mission from " <<
+        msg.mission_file_full_path <<
         ": " << e.what());
     outmsg.load_state = ReportLoadMissionState::FAILED;
   }
@@ -223,9 +224,10 @@ void MissionControlNode::executeMissionCallback(const mission_control::ExecuteMi
     return;
   }
 
-  if (mission_map_.count(msg.mission_id) == 0)
+  int mission_id = msg.mission_id;
+  if (mission_map_.count(mission_id) == 0)
   {
-    ROS_ERROR_STREAM("No mission [" << msg.mission_id << "] was found, ignoring execute request");
+    ROS_ERROR_STREAM("No mission [" << mission_id << "] was found, ignoring execute request");
     return;
   }
 
@@ -252,10 +254,10 @@ void MissionControlNode::abortMissionCallback(const mission_control::AbortMissio
     return;
   }
 
-  if (current_mission_->id() != msg.mission_id)
+  int mission_id = msg.mission_id;
+  if (current_mission_->id() != mission_id)
   {
-    ROS_WARN_STREAM(
-        "Mission [" << msg.mission_id << "] is not currently executing, ignoring request");
+    ROS_WARN_STREAM("Mission [" << mission_id << "] is not currently executing, ignoring request");
     return;
   }
 
