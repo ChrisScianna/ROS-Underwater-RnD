@@ -87,6 +87,14 @@ void ReportPoseEstimatorData::handleState(
   has_new_data |= (m_poseData.course != course);
   m_poseData.course = course;
 
+  float lat = (float)msg->state.geolocation.position.latitude;
+  has_new_data |= (m_poseData.latitude != lat);
+  m_poseData.latitude = lat;
+
+  float lon = (float)msg->state.geolocation.position.longitude;
+  has_new_data |= (m_poseData.longitude != lon);
+  m_poseData.longitude = lon;
+
   if (!has_new_data) return;
 
   if (debug_mode) ROS_INFO("handleReportPoseEstimatorData() is called with new update!");
@@ -104,8 +112,8 @@ DataInfo ReportPoseEstimatorData::GetPackedMessage(void* data) {
   // ROS_INFO("inside ReportPoseEstimatorData::GetPackedMessage() - depth is %f, altitude is %f,
   // speed is %f", poseData->depth, poseData->altitude, poseData->speed);
 
-  // here 4: 2 for presence vector + 5 fields x 4 bytes = 22 bytes
-  JausMessageHeader* header = new JausMessageHeader(JAUS_COMMAND_ReportPoseEstimetorData, 22);
+  // here 4: 2 for presence vector + 7 fields x 4 bytes = 30 bytes
+  JausMessageHeader* header = new JausMessageHeader(JAUS_COMMAND_ReportPoseEstimetorData, 30);
 
   char* newData = new char[header->GetHeadersize() + header->GetDatasize()];
   // start from header
@@ -154,6 +162,18 @@ DataInfo ReportPoseEstimatorData::GetPackedMessage(void* data) {
   newData[index++] = temp[3];
 
   temp = reinterpret_cast<char*>(&poseData->course);
+  newData[index++] = temp[0];
+  newData[index++] = temp[1];
+  newData[index++] = temp[2];
+  newData[index++] = temp[3];
+
+  temp = reinterpret_cast<char*>(&poseData->latitude);
+  newData[index++] = temp[0];
+  newData[index++] = temp[1];
+  newData[index++] = temp[2];
+  newData[index++] = temp[3];
+
+  temp = reinterpret_cast<char*>(&poseData->longitude);
   newData[index++] = temp[0];
   newData[index++] = temp[1];
   newData[index++] = temp[2];

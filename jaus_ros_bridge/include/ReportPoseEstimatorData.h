@@ -48,6 +48,8 @@ struct PoseEstimatorData {
   float roll;
   float pitch;
   float course;
+  float latitude;
+  float longitude;
 };
 
 class ReportPoseEstimatorData : public JausMessageOut {
