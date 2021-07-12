@@ -106,25 +106,8 @@ Mission::Mission(BT::Tree&& behavior_tree)  // NOLINT
   abort_behavior_tree_ = factory.createTreeFromText(text);
 }
 
-namespace filesystem
-{
-
-bool exists(const std::string& path)
-{
-  struct stat tmp;
-  return stat(path.c_str(), &tmp) == 0;
-}
-
-}  // namespace filesystem
-
 std::unique_ptr<Mission> Mission::fromFile(const std::string& path)
 {
-  if (!filesystem::exists(path))
-  {
-    ROS_ERROR_STREAM("Cannot read mission definition from " << path);
-    return nullptr;
-  }
-
   MissionBehaviorTreeFactory& factory = MissionBehaviorTreeFactory::instance();
   return std::unique_ptr<Mission>(new Mission(factory.createTreeFromFile(path)));
 }

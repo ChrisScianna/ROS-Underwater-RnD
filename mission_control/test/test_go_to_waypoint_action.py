@@ -33,73 +33,75 @@
  *  POSSIBILITY OF SUCH DAMAGE.
 """
 import unittest
+
 import rospy
 import rostest
 
 from auv_interfaces.msg import StateStamped
 
-from mission_control.msg import ReportExecuteMissionState
 from mission_control.msg import Waypoint
 
-from mission_interface import MissionInterface
-from mission_interface import wait_for
+from test_utilities import MissionControlInterface
 
 
 class TestGoToWaypointAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_go_to_waypoint')
+        rospy.init_node('go_to_waypoint_test_node')
 
     def setUp(self):
-        self.waypoint = None
-        self._waypoint_sub = rospy.Subscriber(
-            '/mngr/waypoint', Waypoint,
-            self._waypoint_callback)
-        self._state_pub = rospy.Publisher(
-            '/state', StateStamped, queue_size=1)
-        self.mission = MissionInterface()
-
-    def _waypoint_callback(self, msg):
-        self.waypoint = msg
+        self.mission_control = MissionControlInterface('/mngr')
 
     def test_mission_that_goes_to_waypoint(self):
-        self.assertTrue(self.mission.load_mission('waypoint_mission_test.xml'))
-
-        self.mission.execute_mission()
-
-        def waypoint_is_set():
-            return self.waypoint is not None
-        self.assertTrue(wait_for(waypoint_is_set), msg='No waypoint was set')
-
+        latitude = 3.0
+        longitude = 4.0
+        altitude = 2.0
+        speed_knots = 6.0
         ena_mask = Waypoint.LAT_ENA | Waypoint.LONG_ENA
         ena_mask |= Waypoint.ALTITUDE_ENA
         ena_mask |= Waypoint.SPEED_KNOTS_ENA
-        self.assertEqual(self.waypoint.ena_mask, ena_mask)
 
-        self.mission.read_behavior_parameters('GoToWaypoint')
-        latitude = float(self.mission.get_behavior_parameter('latitude'))
-        longitude = float(self.mission.get_behavior_parameter('longitude'))
-        altitude = float(self.mission.get_behavior_parameter('altitude'))
-        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <Timeout msec="2000">
+                <GoToWaypoint
+                    latitude="{}" longitude="{}"
+                    altitude="{}" speed_knots="{}"
+                    tolerance_radius="0.1"/>
+              </Timeout>
+            </BehaviorTree>
+          </root>
+        '''.format(latitude, longitude, altitude, speed_knots)
 
-        self.assertEqual(self.waypoint.latitude, latitude)
-        self.assertEqual(self.waypoint.longitude, longitude)
-        self.assertEqual(self.waypoint.altitude, altitude)
-        self.assertEqual(self.waypoint.speed_knots, speed_knots)
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
+
+        self.mission_control.execute_mission(mission_id)
+
+        msg = rospy.wait_for_message('/mngr/waypoint', Waypoint)
+        self.assertEqual(msg.latitude, latitude)
+        self.assertEqual(msg.longitude, longitude)
+        self.assertEqual(msg.altitude, altitude)
+        self.assertEqual(msg.speed_knots, speed_knots)
+        self.assertEqual(msg.ena_mask, ena_mask)
 
         msg = StateStamped()
         msg.header.stamp = rospy.Time.now()
         msg.state.geolocation.position.latitude = latitude
         msg.state.geolocation.position.longitude = longitude
         msg.state.geolocation.position.altitude = altitude
-        self._state_pub.publish(msg)
+        rospy.Publisher(
+            '/state', StateStamped,
+            queue_size=1, latch=True
+        ).publish(msg)
 
-        def mission_complete():
-            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
-                    ReportExecuteMissionState.COMPLETE == self.mission.execute_mission_state[-1])
-        self.assertTrue(wait_for(mission_complete), msg='Mission did not complete')
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
 
 if __name__ == '__main__':
-    rostest.rosrun('mission_control', 'test_go_to_waypoint_action', TestGoToWaypointAction)
+    rostest.rosrun(
+        'mission_control',
+        'test_go_to_waypoint_action',
+        TestGoToWaypointAction)

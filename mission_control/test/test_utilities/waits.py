@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
  * Software License Agreement (BSD License)
  *
@@ -32,50 +31,13 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
-import unittest
-import rosnode
 import rospy
-import rostest
-from mission_control.msg import ReportHeartbeat
 
 
-def wait_for(predicate, period=1):
+def wait_for(predicate, period=0.2):
     while not rospy.is_shutdown():
         result = predicate()
         if result:
             return result
         rospy.sleep(period)
     return predicate()
-
-
-class TestMissionControlPublishesHeartbeat(unittest.TestCase):
-    """
-        this test checks if mission control publishes heartbeats.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        rospy.init_node('heartbeat_mission_control')
-
-    def setUp(self):
-        self.mission_control_heart_beat_count = None
-        self.heart_beat_sub = rospy.Subscriber('/mission_control_node/report_heartbeat',
-                                               ReportHeartbeat, self.callback_mission_control_heart_beat)
-
-    def callback_mission_control_heart_beat(self, msg):
-        self.mission_control_heart_beat_count = msg.seq_id
-        rospy.loginfo(self.mission_control_heart_beat_count)
-
-    def test_mission_control_published_heartbeat(self):
-
-        def mission_control_publishes_heartbeat():
-            return self.mission_control_heart_beat_count > 0
-        self.assertTrue(wait_for(mission_control_publishes_heartbeat),
-                        msg='Mission control must report HeartBeat')
-
-
-if __name__ == "__main__":
-    rostest.rosrun('mission_control_node', 'mission_control_heartbeat',
-                   TestMissionControlPublishesHeartbeat)

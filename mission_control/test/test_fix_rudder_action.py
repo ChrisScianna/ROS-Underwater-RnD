@@ -32,82 +32,69 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
 import unittest
-import math
-import rosnode
+
 import rospy
 import rostest
-from xml.etree import ElementTree
-from mission_control.msg import ReportExecuteMissionState
+
 from mission_control.msg import FixedRudder
-from mission_interface import MissionInterface
-from mission_interface import wait_for
+
+from test_utilities import MissionControlInterface
 
 
 class TestFixRudderAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_fix_rudder')
+        rospy.init_node('fix_rudder_test_node')
 
     def setUp(self):
-        self.fixed_rudder_goal = None
-        self.mission = MissionInterface()
-        self.fixed_rudder_goal = FixedRudder()
+        self.mission_control = MissionControlInterface()
 
-        # Subscribers
-        self.fixed_rudder_msg = rospy.Subscriber(
-            '/mngr/fixed_rudder', FixedRudder, self.callback_publish_fixed_rudder_goal)
-
-    def callback_publish_fixed_rudder_goal(self, msg):
-        self.fixed_rudder_goal = msg
-
-    def test_mission_with_fix_rudder_action(self):
+    def test_mission_that_fixes_rudder(self):
         """
         This test:
         -   Loads a mission with a single FixRudder action.
         -   Executes the mission.
         -   Waits until the mission is COMPLETE.
         """
+        depth = 1.0
+        rudder = 2.0
+        speed_knots = 3.0
+        ena_mask = FixedRudder.DEPTH_ENA
+        ena_mask |= FixedRudder.RUDDER_ENA
+        ena_mask |= FixedRudder.SPEED_KNOTS_ENA
 
-        self.mission.load_mission("fixed_rudder_mission_test.xml")
-        self.mission.execute_mission()
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <Sequence name="Test Mission">
+                <FixRudder
+                    depth="{}"
+                    rudder="{}"
+                    speed_knots="{}"/>
+              </Sequence>
+            </BehaviorTree>
+          </root>
+        '''.format(depth, rudder, speed_knots)
 
-        self.mission.read_behavior_parameters('FixRudder')
-        depth = self.mission.get_behavior_parameter('depth')
-        rudder = self.mission.get_behavior_parameter('rudder')
-        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        # Calculate the mask
-        enable_mask = 0
-        if depth is not None:
-            enable_mask |= FixedRudder.DEPTH_ENA
+        self.mission_control.execute_mission(mission_id)
 
-        if rudder is not None:
-            enable_mask |= FixedRudder.RUDDER_ENA
+        msg = rospy.wait_for_message(
+            '/mngr/fixed_rudder', FixedRudder)
+        self.assertEqual(msg.depth, depth)
+        self.assertEqual(msg.rudder, rudder)
+        self.assertEqual(msg.speed_knots, speed_knots)
+        self.assertEqual(msg.ena_mask, ena_mask)
 
-        if speed_knots is not None:
-            enable_mask |= FixedRudder.SPEED_KNOTS_ENA
-
-        # Check if the behavior publishes the goal
-        def fixed_rudder_goals_are_set():
-            return ((depth is None or self.fixed_rudder_goal.depth == float(depth)) and
-                    (rudder is None or self.fixed_rudder_goal.rudder == float(rudder)) and
-                    (speed_knots is None or self.fixed_rudder_goal.speed_knots == float(speed_knots)) and
-                    self.fixed_rudder_goal.ena_mask == enable_mask)
-
-        self.assertTrue(wait_for(fixed_rudder_goals_are_set),
-                        msg='Mission control must publish goals')
-
-        # Wait for the mission to be complete
-        def success_mission_status_is_reported():
-            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
-                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
-        self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report only COMPLETE')
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
 
-if __name__ ==  '__main__':
-    rostest.rosrun('mission_control', 'test_fix_rudder_action', TestFixRudderAction)
+if __name__ == '__main__':
+    rostest.rosrun(
+        'mission_control',
+        'test_fix_rudder_action',
+        TestFixRudderAction)

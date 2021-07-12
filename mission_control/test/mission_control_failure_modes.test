@@ -1,0 +1,9 @@
+<launch>
+  <param name="/fin_control/max_ctrl_fin_angle" type="double" value="$(eval radians(20))" />
+
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+
+  <test test-name="test_mission_control_failure_modes"
+        pkg="mission_control" type="test_mission_control_failure_modes.py"
+        time-limit="10.0"/>
+</launch>

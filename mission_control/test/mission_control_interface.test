@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find mission_control)/launch/mission_control.launch" />
+
+  <test test-name="test_mission_control_interface" pkg="mission_control"
+        type="test_mission_control_interface.py" time-limit="20.0" />
+</launch>

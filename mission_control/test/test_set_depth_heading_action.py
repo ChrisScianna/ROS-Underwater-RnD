@@ -32,48 +32,26 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
-import unittest
 import math
-import rosnode
+import unittest
+
 import rospy
 import rostest
-from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import DepthHeading
-from auv_interfaces.msg import StateStamped
-from mission_interface import MissionInterface
-from mission_interface import wait_for
 
-try:
-    from math import isclose
-except ImportError:
-    def isclose(a, b, rel_tol=1e-9):
-        return abs(a - b) < (rel_tol * max(abs(a), abs(b)))
+from auv_interfaces.msg import StateStamped
+from mission_control.msg import DepthHeading
+
+from test_utilities import MissionControlInterface
 
 
 class TestSetDepthHeadingAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_set_depth_heading')
+        rospy.init_node('set_depth_heading_test_node')
 
     def setUp(self):
-        self.depth_heading_goal = DepthHeading()
-        self.mission = MissionInterface()
-
-        self.depth_heading_msg = rospy.Subscriber(
-            '/mngr/depth_heading',
-            DepthHeading,
-            self.depth_heading_goal_callback)
-
-        self.simulated_auv_interface_data_pub = rospy.Publisher(
-            '/state',
-            StateStamped,
-            queue_size=1)
-
-    def depth_heading_goal_callback(self, msg):
-        self.depth_heading_goal = msg
+        self.mission_control = MissionControlInterface()
 
     def test_mission_with_set_depth_heading_action(self):
         """
@@ -84,43 +62,57 @@ class TestSetDepthHeadingAction(unittest.TestCase):
         -  Simulates state updates for the action to complete.
         -  waits until the mission is COMPLETE.
         """
-        self.mission.load_mission('depth_heading_mission_test.xml')
-        self.mission.execute_mission()
+        depth = 1.0
+        heading = 0.5
+        speed_knots = 5.0
+        ena_mask = DepthHeading.DEPTH_ENA
+        ena_mask |= DepthHeading.HEADING_ENA
+        ena_mask |= DepthHeading.SPEED_KNOTS_ENA
 
-        self.mission.read_behavior_parameters('SetDepthHeading')
-        depth = float(self.mission.get_behavior_parameter('depth'))
-        heading = float(self.mission.get_behavior_parameter('heading'))
-        heading_units = self.mission.get_behavior_parameter('heading-units')
-        self.assertEqual('degrees', heading_units)
-        heading = math.radians(float(heading))
-        speed_knots = float(self.mission.get_behavior_parameter('speed_knots'))
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <Sequence name="Test Mission">
+                <Timeout msec="2000">
+                  <SetDepthHeading
+                      depth="{}"
+                      heading="{}"
+                      heading-units="degrees"
+                      speed_knots="{}"
+                      depth-tolerance="0.1"
+                      heading-tolerance="0.1"/>
+                </Timeout>
+              </Sequence>
+            </BehaviorTree>
+          </root>
+        '''.format(depth, math.degrees(heading), speed_knots)
 
-        # Calculate the mask
-        enable_mask = DepthHeading.DEPTH_ENA
-        enable_mask |= DepthHeading.HEADING_ENA
-        enable_mask |= DepthHeading.SPEED_KNOTS_ENA
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        def depth_heading_goals_are_set():
-            return (isclose(self.depth_heading_goal.depth, depth) and
-                    isclose(self.depth_heading_goal.heading, heading, rel_tol=1e-6) and
-                    isclose(self.depth_heading_goal.speed_knots, speed_knots) and
-                    self.depth_heading_goal.ena_mask == enable_mask)
+        self.mission_control.execute_mission(mission_id)
 
-        self.assertTrue(wait_for(depth_heading_goals_are_set),
-                        msg='Mission control must publish goals')
+        msg = rospy.wait_for_message(
+            '/mngr/depth_heading', DepthHeading)
+        self.assertEqual(msg.ena_mask, ena_mask)
+        self.assertEqual(msg.depth, depth)
+        self.assertAlmostEqual(msg.heading, heading)
+        self.assertEqual(msg.speed_knots, speed_knots)
 
-        # send data to finish the mission
-        auv_interface_data = StateStamped()
-        auv_interface_data.state.manoeuvring.pose.mean.position.z = depth
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = heading
-        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
+        msg = StateStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.state.manoeuvring.pose.mean.position.z = depth
+        msg.state.manoeuvring.pose.mean.orientation.z = heading
+        rospy.Publisher(
+            '/state', StateStamped,
+            queue_size=1, latch=True
+        ).publish(msg)
 
-        def success_mission_status_is_reported():
-            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
-                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
-        self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report only COMPLETE')
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
 
 if __name__ == '__main__':
-    rostest.rosrun('mission_control', 'test_set_depth_heading_action', TestSetDepthHeadingAction)
+    rostest.rosrun(
+        'mission_control',
+        'test_set_depth_heading_action',
+        TestSetDepthHeadingAction)

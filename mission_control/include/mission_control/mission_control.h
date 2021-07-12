@@ -49,6 +49,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include <std_msgs/Empty.h>
+
 #include "health_monitor/ReportFault.h"
 #include "mission_control/AbortMission.h"
 #include "mission_control/ExecuteMission.h"
@@ -59,7 +61,6 @@
 #include "mission_control/ReportHeartbeat.h"
 #include "mission_control/ReportLoadMissionState.h"
 #include "mission_control/ReportMissions.h"
-#include "std_msgs/Bool.h"
 #include "mission_control/mission.h"
 
 #define NODE_VERSION "1.0x"
@@ -76,6 +77,7 @@ public:
   void spin();
 
 private:
+  int loadMission(const std::string& path);
   void reportOn(const Mission& mission);
   void update(const ros::TimerEvent& ev);
 
@@ -83,10 +85,10 @@ private:
 
   void loadMissionCallback(const LoadMission& msg);
   void executeMissionCallback(const ExecuteMission& msg);
-  void stopMissionCallback(const std_msgs::Bool& msg);
   void abortMissionCallback(const AbortMission& msg);
   void queryMissionsCallback(const QueryMissions& msg);
   void removeMissionsCallback(const RemoveMissions& msg);
+  void stopMissionsCallback(const std_msgs::Empty&);
 
   void faultCallback(const health_monitor::ReportFault& msg);
 
@@ -97,10 +99,10 @@ private:
 
   ros::Subscriber load_mission_sub_;
   ros::Subscriber execute_mission_sub_;
-  ros::Subscriber stop_mission_sub_;
   ros::Subscriber abort_mission_sub_;
   ros::Subscriber query_mission_sub_;
   ros::Subscriber remove_mission_sub_;
+  ros::Subscriber stop_missions_sub_;
 
   ros::Publisher report_mission_load_state_pub_;
   ros::Publisher report_mission_execute_state_pub_;

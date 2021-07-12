@@ -44,7 +44,8 @@ class SetMissionCommands : public JausMessageIn {
   void init(ros::NodeHandle* nodeHandle);
 
   void ProcessData(char* message, JausCommandID cmdID);
-  void StopMission();
+
+  void StopMissions();
 
  private:
   ros::Publisher _publisher_Execute_mission;

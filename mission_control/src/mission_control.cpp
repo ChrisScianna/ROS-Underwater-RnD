@@ -62,8 +62,8 @@ MissionControlNode::MissionControlNode() : nh_(), pnh_("~")
       pnh_.subscribe("load_mission", 1, &MissionControlNode::loadMissionCallback, this);
   execute_mission_sub_ =
       pnh_.subscribe("execute_mission", 1, &MissionControlNode::executeMissionCallback, this);
-  stop_mission_sub_ =
-      pnh_.subscribe("stop_mission", 1, &MissionControlNode::stopMissionCallback, this);
+  stop_missions_sub_ =
+      pnh_.subscribe("stop_missions", 1, &MissionControlNode::stopMissionsCallback, this);
   abort_mission_sub_ =
       pnh_.subscribe("abort_mission", 1, &MissionControlNode::abortMissionCallback, this);
   query_mission_sub_ =
@@ -180,35 +180,39 @@ void MissionControlNode::update(const ros::TimerEvent&)
   }
 }
 
+int MissionControlNode::loadMission(const std::string& path)
+{
+  std::unique_ptr<Mission> mission = Mission::fromFile(path);
+  int mission_id = mission->id();
+  mission_map_[mission_id] = std::move(mission);
+  return mission_id;
+}
+
 void MissionControlNode::loadMissionCallback(const mission_control::LoadMission& msg)
 {
   ROS_DEBUG_STREAM(
       "loadMissionCallback - just received mission file " <<
       msg.mission_file_full_path);
 
-  std::unique_ptr<Mission> mission =
-      Mission::fromFile(msg.mission_file_full_path);
-
   ReportLoadMissionState outmsg;
-  outmsg.header.stamp = ros::Time::now();
-  if (mission)
+  try
   {
-    ROS_DEBUG_STREAM(
-        "loadMissionCallback - SUCCESSFULLY parsed mission file " <<
-        msg.mission_file_full_path);
-    int mission_id = mission->id();
-    mission_map_[mission_id] = std::move(mission);
-
+    int mission_id = loadMission(msg.mission_file_full_path);
+    ROS_INFO_STREAM(
+        "Loaded mission [" << mission_id << "]" <<
+        " from " << msg.mission_file_full_path);
     outmsg.mission_id = mission_id;
     outmsg.load_state = ReportLoadMissionState::SUCCESS;
   }
-  else
+  catch (const std::exception& e)
   {
-    ROS_DEBUG_STREAM(
-        "loadMissionCallback - FAILED to parse mission file " <<
-        msg.mission_file_full_path);
+    ROS_ERROR_STREAM(
+        "Failed to load mission from " <<
+        msg.mission_file_full_path <<
+        ": " << e.what());
     outmsg.load_state = ReportLoadMissionState::FAILED;
   }
+  outmsg.header.stamp = ros::Time::now();
   report_mission_load_state_pub_.publish(outmsg);
 }
 
@@ -220,9 +224,10 @@ void MissionControlNode::executeMissionCallback(const mission_control::ExecuteMi
     return;
   }
 
-  if (mission_map_.count(msg.mission_id) == 0)
+  int mission_id = msg.mission_id;
+  if (mission_map_.count(mission_id) == 0)
   {
-    ROS_ERROR_STREAM("No mission [" << msg.mission_id << "] was found, ignoring execute request");
+    ROS_ERROR_STREAM("No mission [" << mission_id << "] was found, ignoring execute request");
     return;
   }
 
@@ -249,10 +254,10 @@ void MissionControlNode::abortMissionCallback(const mission_control::AbortMissio
     return;
   }
 
-  if (current_mission_->id() != msg.mission_id)
+  int mission_id = msg.mission_id;
+  if (current_mission_->id() != mission_id)
   {
-    ROS_WARN_STREAM(
-        "Mission [" << msg.mission_id << "] is not currently executing, ignoring request");
+    ROS_WARN_STREAM("Mission [" << mission_id << "] is not currently executing, ignoring request");
     return;
   }
 
@@ -280,14 +285,24 @@ void MissionControlNode::queryMissionsCallback(const mission_control::QueryMissi
 
   report_missions_pub_.publish(msg);
 }
-void MissionControlNode::stopMissionCallback(const std_msgs::Bool& msg)
+
+void MissionControlNode::stopMissionsCallback(const std_msgs::Empty&)
 {
-  if (current_mission_ && msg.data)
+  if (!current_mission_)
   {
-    reportOn(current_mission_->preempt());
-    ROS_DEBUG_STREAM("stopMissionsCallback - Stopping mission");
+    ROS_DEBUG("No mission to stop, ignoring stop request");
+    return;
+  }
+
+  ROS_DEBUG_STREAM("stopMissionsCallback - Stopping mission");
+  reportOn(current_mission_->preempt());
+
+  if (!current_mission_->active())
+  {
+    current_mission_.reset();
   }
 }
+
 void MissionControlNode::removeMissionsCallback(const mission_control::RemoveMissions&)
 {
   ROS_DEBUG_STREAM("removeMissionsCallback - Removing missions");

@@ -32,44 +32,27 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
 """
-import sys
-import os
 import unittest
-import math
-import rosnode
+
 import rospy
 import rostest
-from mission_control.msg import ReportExecuteMissionState
-from mission_control.msg import AltitudeHeading
+
 from auv_interfaces.msg import StateStamped
-from mission_interface import MissionInterface
-from mission_interface import wait_for
+from mission_control.msg import AltitudeHeading
+
+from test_utilities import MissionControlInterface
 
 
 class TestSetAltitudeHeadingAction(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        rospy.init_node('test_set_altitude_heading')
+        rospy.init_node('altitude_heading_test_node')
 
     def setUp(self):
-        self.altitude_heading_goal = AltitudeHeading()
-        self.mission = MissionInterface()
+        self.mission_control = MissionControlInterface()
 
-        self.altitude_heading_msg = rospy.Subscriber(
-            '/mngr/altitude_heading',
-            AltitudeHeading,
-            self.altitude_heading_goal_callback)
-
-        self.simulated_auv_interface_data_pub = rospy.Publisher(
-            '/state',
-            StateStamped,
-            queue_size=1)
-
-    def altitude_heading_goal_callback(self, msg):
-        self.altitude_heading_goal = msg
-
-    def test_mission_with_set_altitude_heading_action(self):
+    def test_mission_that_sets_altitude_and_heading(self):
         """
         The test:
         -  Loads a mission with a single SetAltitudeHeading action.
@@ -78,46 +61,56 @@ class TestSetAltitudeHeadingAction(unittest.TestCase):
         -  Simulates state updates for the action to complete.
         -  Waits until the mission is COMPLETE.
         """
-        self.mission.load_mission('altitude_heading_mission_test.xml')
-        self.mission.execute_mission()
-        self.mission.read_behavior_parameters('SetAltitudeHeading')
-        altitude = self.mission.get_behavior_parameter('altitude')
-        heading = self.mission.get_behavior_parameter('heading')
-        speed_knots = self.mission.get_behavior_parameter('speed_knots')
+        altitude = 1.0
+        heading = 2.0
+        speed_knots = 3.0
+        ena_mask = AltitudeHeading.ALTITUDE_ENA
+        ena_mask |= AltitudeHeading.HEADING_ENA
+        ena_mask |= AltitudeHeading.SPEED_KNOTS_ENA
 
-        # Calculate the mask
-        enable_mask = 0
-        if altitude is not None:
-            enable_mask |= AltitudeHeading.ALTITUDE_ENA
+        mission_definition = '''
+          <root main_tree_to_execute="main">
+            <BehaviorTree ID="main">
+              <Sequence name="Test Mission">
+                <Timeout msec="2000">
+                  <SetAltitudeHeading
+                      altitude="{}"
+                      heading="{}"
+                      speed_knots="{}"
+                      altitude-tolerance="0.1"
+                      heading-tolerance="0.1"/>
+                </Timeout>
+              </Sequence>
+            </BehaviorTree>
+          </root>
+        '''.format(altitude, heading, speed_knots)
 
-        if heading is not None:
-            enable_mask |= AltitudeHeading.HEADING_ENA
+        mission_id = self.mission_control.load_mission(mission_definition)
+        self.assertIsNotNone(mission_id)
 
-        if speed_knots is not None:
-            enable_mask |= AltitudeHeading.SPEED_KNOTS_ENA
+        self.mission_control.execute_mission(mission_id)
 
-        def altitude_heading_goals_are_set():
-            return ((altitude is None or self.altitude_heading_goal.altitude == float(altitude)) and
-                    (heading is None or self.altitude_heading_goal.heading == float(heading)) and
-                    (speed_knots is None or self.altitude_heading_goal.speed_knots == float(speed_knots)) and
-                    self.altitude_heading_goal.ena_mask == enable_mask)
+        msg = rospy.wait_for_message(
+            '/mngr/altitude_heading', AltitudeHeading)
+        self.assertEqual(msg.ena_mask, ena_mask)
+        self.assertEqual(msg.altitude, altitude)
+        self.assertEqual(msg.heading, heading)
+        self.assertEqual(msg.speed_knots, speed_knots)
 
-        self.assertTrue(wait_for(altitude_heading_goals_are_set),
-                        msg='Mission control must publish goals')
+        msg = StateStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.state.geolocation.position.altitude = altitude
+        msg.state.manoeuvring.pose.mean.orientation.z = heading
+        rospy.Publisher(
+            '/state', StateStamped,
+            queue_size=1, latch=True
+        ).publish(msg)
 
-        # send data to finish the mission
-        auv_interface_data = StateStamped()
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.x = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.y = 0.0
-        auv_interface_data.state.manoeuvring.pose.mean.orientation.z = 2.0
-        self.simulated_auv_interface_data_pub.publish(auv_interface_data)
-
-        def success_mission_status_is_reported():
-            return (ReportExecuteMissionState.ABORTING not in self.mission.execute_mission_state and
-                    ReportExecuteMissionState.COMPLETE in self.mission.execute_mission_state)
-        self.assertTrue(wait_for(success_mission_status_is_reported),
-                        msg='Mission control must report only COMPLETE')
+        self.assertTrue(self.mission_control.wait_for_completion(mission_id))
 
 
 if __name__ == '__main__':
-    rostest.rosrun('mission_control', 'test_set_altitude_heading_action', TestSetAltitudeHeadingAction)
+    rostest.rosrun(
+        'mission_control',
+        'test_set_altitude_heading_action',
+        TestSetAltitudeHeadingAction)
