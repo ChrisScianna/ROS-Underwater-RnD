@@ -63,7 +63,6 @@
 #include "mission_control/AltitudeHeading.h"
 #include "mission_control/FixedRudder.h"
 #include "mission_control/ReportExecuteMissionState.h"
-#include "mission_control/ReportHeartbeat.h"
 #include "mission_control/Waypoint.h"
 #include "sensor_msgs/Imu.h"
 #include "thruster_control/ReportRPM.h"
@@ -86,8 +85,6 @@ private:
   void waypointCallback(const mission_control::Waypoint& msg);
   void stateCallback(const auv_interfaces::StateStamped& msg);
 
-  void missionHeartbeatTimeout(const ros::TimerEvent& ev);
-  void missionHeartbeatCallback(const mission_control::ReportHeartbeat& msg);
   void missionStatusCallback(const mission_control::ReportExecuteMissionState& data);
 
   void mixActuators(double roll, double pitch, double yaw, double thrust);
@@ -99,9 +96,6 @@ private:
   ros::Subscriber state_sub_;
 
   ros::Subscriber mission_status_sub_;
-  ros::Timer mission_heartbeat_timer_;
-  ros::Subscriber mission_heartbeat_sub_;
-  ros::Time last_heartbeat_stamp_;
 
   ros::Subscriber attitude_servo_sub_;
   ros::Subscriber depth_heading_sub_;

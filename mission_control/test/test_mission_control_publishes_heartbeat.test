@@ -1,9 +1,0 @@
-<launch>
-  <include file="$(find mission_control)/launch/mission_control.launch" />
-
-  <!--
-    This test checks if the heartbeat is published by the mission_control
-  -->
-  <test test-name="test_if_mission_control_publishes_heartbeat" pkg="mission_control" type="test_if_mission_control_publishes_heartbeat.py" time-limit="10.0" />
-
-</launch>
