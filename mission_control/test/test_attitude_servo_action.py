@@ -74,7 +74,7 @@ class TestAttitudeServoAction(unittest.TestCase):
         mission_definition = '''
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
-              <Timeout msec="2000">
+              <TimeoutAfter msec="2000">
                 <AttitudeServo
                     roll="{}"
                     pitch="{}"
@@ -84,7 +84,7 @@ class TestAttitudeServoAction(unittest.TestCase):
                     roll-tolerance="1.0"
                     pitch-tolerance="1.0"
                     yaw-tolerance="1.0"/>
-              </Timeout>
+              </TimeoutAfter>
             </BehaviorTree>
           </root>
         '''.format(roll, math.degrees(pitch), yaw, speed_knots)

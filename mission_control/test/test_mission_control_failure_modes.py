@@ -91,11 +91,11 @@ class TestMissionControlFailureModes(unittest.TestCase):
         mission_definition = '''
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
-              <Timeout msec="1000">
+              <TimeoutAfter msec="1000">
                 <Delay delay_msec="10000">
                   <AlwaysSuccess/>
                 </Delay>
-              </Timeout>
+              </TimeoutAfter>
             </BehaviorTree>
           </root>
         '''

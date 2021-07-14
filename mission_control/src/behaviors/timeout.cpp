@@ -46,7 +46,7 @@ TimeoutNode::TimeoutNode(const std::string& name, std::chrono::milliseconds time
       timeout_status_(Status::PENDING),
       read_parameter_from_ports_(false)
 {
-  setRegistrationID("Timeout");
+  setRegistrationID("TimeoutAfter");
 }
 
 TimeoutNode::TimeoutNode(const std::string& name, const BT::NodeConfiguration& config)

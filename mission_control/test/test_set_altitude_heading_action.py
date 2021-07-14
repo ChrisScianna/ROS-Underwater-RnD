@@ -72,14 +72,14 @@ class TestSetAltitudeHeadingAction(unittest.TestCase):
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
               <Sequence name="Test Mission">
-                <Timeout msec="2000">
+                <TimeoutAfter msec="2000">
                   <SetAltitudeHeading
                       altitude="{}"
                       heading="{}"
                       speed_knots="{}"
                       altitude-tolerance="0.1"
                       heading-tolerance="0.1"/>
-                </Timeout>
+                </TimeoutAfter>
               </Sequence>
             </BehaviorTree>
           </root>
