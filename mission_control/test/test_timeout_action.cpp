@@ -40,16 +40,19 @@
 #include <thread>
 
 #include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/timeout.h"
 
 namespace mission_control
 {
 namespace
 {
-TEST(TestDelayNode, nominal)
+TEST(TestTimeoutNode, nominal)
 {
-  DelayNode root("delay some time", std::chrono::milliseconds(500));
+  TimeoutNode root("timeout after some time", std::chrono::milliseconds(500));
+  DelayNode decorator("delay for longer", std::chrono::milliseconds(1000));
   BT::AlwaysSuccessNode child("just succeed");
-  root.setChild(&child);
+  decorator.setChild(&child);
+  root.setChild(&decorator);
 
   BT::NodeStatus status = root.executeTick();
   EXPECT_EQ(status, BT::NodeStatus::RUNNING);
@@ -58,13 +61,17 @@ TEST(TestDelayNode, nominal)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     status = root.executeTick();
   } while (BT::NodeStatus::RUNNING == status);
-  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+  EXPECT_EQ(status, BT::NodeStatus::FAILURE);
+}
 
-  status = root.executeTick();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  root.halt();
-  EXPECT_EQ(root.status(), BT::NodeStatus::IDLE);
+TEST(TestTimeoutNode, immediate_success)
+{
+  TimeoutNode root("timeout after some time", std::chrono::milliseconds(500));
+  BT::AlwaysSuccessNode child("just succeed");
+  root.setChild(&child);
+
+  BT::NodeStatus status = root.executeTick();
+  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
 }
 
 }  // namespace
@@ -72,7 +79,7 @@ TEST(TestDelayNode, nominal)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "test_delay_action");
+  ros::init(argc, argv, "test_timeout_action");
   ros::start();
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
