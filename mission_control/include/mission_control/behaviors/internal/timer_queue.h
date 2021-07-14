@@ -137,8 +137,8 @@ class TimerQueue
   {
     WorkItem item;
 
-    item.end =
-        ros::Time::now() + ros::Duration().fromNSec(static_cast<int64_t>(milliseconds.count()));
+    auto nanoseconds = static_cast<int64_t>(milliseconds.count() * 1e6);
+    item.end = ros::Time::now() + ros::Duration().fromNSec(nanoseconds);
     item.handler = std::move(handler);
 
     std::unique_lock<std::mutex> lk(m_mtx);
