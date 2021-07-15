@@ -32,48 +32,58 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <behaviortree_cpp_v3/actions/always_success_node.h>
-#include <gtest/gtest.h>
-#include <ros/ros.h>
+#ifndef MISSION_CONTROL_BEHAVIORS_TIMEOUT_H_
+#define MISSION_CONTROL_BEHAVIORS_TIMEOUT_H_
 
+#include <behaviortree_cpp_v3/decorator_node.h>
+
+#include <atomic>
 #include <chrono>
-#include <thread>
+#include <string>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/internal/timer_queue.h"
 
 namespace mission_control
 {
-namespace
+class TimeoutNode : public BT::DecoratorNode
 {
-TEST(TestDelayNode, nominal)
-{
-  DelayNode root("delay some time", std::chrono::milliseconds(500));
-  BT::AlwaysSuccessNode child("just succeed");
-  root.setChild(&child);
+ public:
+  TimeoutNode(const std::string& name, std::chrono::milliseconds timeout);
 
-  BT::NodeStatus status = root.executeTick();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  do
+  TimeoutNode(const std::string& name, const BT::NodeConfiguration& config);
+
+  ~TimeoutNode() override { halt(); }
+
+  static BT::PortsList providedPorts()
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    status = root.executeTick();
-  } while (BT::NodeStatus::RUNNING == status);
-  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+    return {
+        BT::InputPort<unsigned>("msec", "Timeout to halt child if still running, in milliseconds")};
+  }
 
-  status = root.executeTick();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  root.halt();
-  EXPECT_EQ(root.status(), BT::NodeStatus::IDLE);
-}
+  void halt() override
+  {
+    timer_.cancelAll();
+    DecoratorNode::halt();
+  }
 
-}  // namespace
+ private:
+  internal::TimerQueue timer_;
+
+  BT::NodeStatus tick() override;
+
+  std::chrono::milliseconds timeout_;
+
+  enum class Status
+  {
+    PENDING,
+    RUNNING,
+    EXPIRED
+  };
+  std::atomic<Status> timeout_status_;
+
+  bool read_parameter_from_ports_;
+};
+
 }  // namespace mission_control
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "test_delay_action");
-  ros::start();
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+#endif  // MISSION_CONTROL_BEHAVIORS_TIMEOUT_H_

@@ -73,7 +73,7 @@ class TestSetDepthHeadingAction(unittest.TestCase):
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
               <Sequence name="Test Mission">
-                <Timeout msec="2000">
+                <TimeoutAfter msec="2000">
                   <SetDepthHeading
                       depth="{}"
                       heading="{}"
@@ -81,7 +81,7 @@ class TestSetDepthHeadingAction(unittest.TestCase):
                       speed_knots="{}"
                       depth-tolerance="0.1"
                       heading-tolerance="0.1"/>
-                </Timeout>
+                </TimeoutAfter>
               </Sequence>
             </BehaviorTree>
           </root>

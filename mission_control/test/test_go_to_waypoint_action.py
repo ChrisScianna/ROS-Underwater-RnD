@@ -65,12 +65,12 @@ class TestGoToWaypointAction(unittest.TestCase):
         mission_definition = '''
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
-              <Timeout msec="2000">
+              <TimeoutAfter msec="2000">
                 <GoToWaypoint
                     latitude="{}" longitude="{}"
                     altitude="{}" speed_knots="{}"
                     tolerance_radius="0.1"/>
-              </Timeout>
+              </TimeoutAfter>
             </BehaviorTree>
           </root>
         '''.format(latitude, longitude, altitude, speed_knots)

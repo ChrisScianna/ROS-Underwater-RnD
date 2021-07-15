@@ -47,6 +47,7 @@
 #include "mission_control/behaviors/payload_command.h"
 #include "mission_control/behaviors/set_altitude_heading.h"
 #include "mission_control/behaviors/set_depth_heading.h"
+#include "mission_control/behaviors/timeout.h"
 
 #include "mission_control/behaviors/introspectable_node.h"
 
@@ -80,6 +81,7 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
     this->registerNodeType<IntrospectableNode<PayloadCommandNode>>("PayloadCommand");
     this->registerNodeType<IntrospectableNode<SetAltitudeHeadingNode>>("SetAltitudeHeading");
     this->registerNodeType<IntrospectableNode<SetDepthHeadingNode>>("SetDepthHeading");
+    this->registerNodeType<IntrospectableNode<TimeoutNode>>("TimeoutAfter");
   }
 };
 

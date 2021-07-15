@@ -71,6 +71,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/abort.cpp
   src/behaviors/delay.cpp
   src/behaviors/log_to_bagfile.cpp
+  src/behaviors/timeout.cpp
   src/behaviors/internal/async_bag_writer.cpp
   src/behaviors/internal/generic_subscription.cpp
 )
@@ -117,8 +118,6 @@ if(CATKIN_ENABLE_TESTING)
   target_link_libraries(test_reactive_action ${PROJECT_NAME} ${catkin_LIBRARIES})
   catkin_add_gtest(test_introspectable_node test/test_introspectable_node.cpp)
   target_link_libraries(test_introspectable_node ${PROJECT_NAME} ${catkin_LIBRARIES})
-  catkin_add_gtest(test_delay_action test/test_delay_action.cpp)
-  target_link_libraries(test_delay_action ${PROJECT_NAME} ${catkin_LIBRARIES})
 
   find_package(rostest REQUIRED)
   add_rostest(test/mission_control_interface.test)
@@ -128,4 +127,12 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/go_to_waypoint_action.test)
   add_rostest(test/set_altitude_heading_action.test)
   add_rostest(test/set_depth_heading_action.test)
+
+  catkin_add_executable_with_gtest(test_delay_action test/test_delay_action.cpp)
+  target_link_libraries(test_delay_action ${PROJECT_NAME} ${catkin_LIBRARIES})
+  add_rostest(test/delay_action.test DEPENDENCIES test_delay_action)
+
+  catkin_add_executable_with_gtest(test_timeout_action test/test_timeout_action.cpp)
+  target_link_libraries(test_timeout_action ${PROJECT_NAME} ${catkin_LIBRARIES})
+  add_rostest(test/timeout_action.test DEPENDENCIES test_timeout_action)
 endif()

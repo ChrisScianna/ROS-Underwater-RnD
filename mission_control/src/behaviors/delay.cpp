@@ -32,30 +32,28 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "mission_control/behaviors/delay.h"
-
 #include <ros/ros.h>
 
 #include <string>
 
+#include "mission_control/behaviors/delay.h"
 
 namespace mission_control
 {
-
-DelayNode::DelayNode(const std::string& name,  std::chrono::milliseconds delay)
-  : DecoratorNode(name, {}),
-    delay_(delay),
-    delay_status_(Status::PENDING),
-    read_parameter_from_ports_(false)
+DelayNode::DelayNode(const std::string& name, std::chrono::milliseconds delay)
+    : DecoratorNode(name, {}),
+      delay_(delay),
+      delay_status_(Status::PENDING),
+      read_parameter_from_ports_(false)
 {
-    setRegistrationID("Delay");
+  setRegistrationID("Delay");
 }
 
 DelayNode::DelayNode(const std::string& name, const BT::NodeConfiguration& config)
-  : DecoratorNode(name, config),
-    delay_(0u),
-    delay_status_(Status::PENDING),
-    read_parameter_from_ports_(true)
+    : DecoratorNode(name, config),
+      delay_(0u),
+      delay_status_(Status::PENDING),
+      read_parameter_from_ports_(true)
 {
 }
 
@@ -76,19 +74,16 @@ BT::NodeStatus DelayNode::tick()
     }
     delay_status_ = Status::RUNNING;
 
-    timer_id_ = timer_.add(
-      delay_,
-      [this](bool aborted)
+    timer_.add(delay_, [this](bool aborted) {
+      if (!aborted)
       {
-        if (!aborted)
-        {
-          delay_status_ = Status::COMPLETE;
-        }
-        else
-        {
-          delay_status_ = Status::PENDING;
-        }
-      });
+        delay_status_ = Status::COMPLETE;
+      }
+      else
+      {
+        delay_status_ = Status::PENDING;
+      }
+    });
   }
 
   if (Status::COMPLETE != delay_status_)
@@ -104,4 +99,4 @@ BT::NodeStatus DelayNode::tick()
   return child_status;
 }
 
-}   // namespace mission_control
+}  // namespace mission_control

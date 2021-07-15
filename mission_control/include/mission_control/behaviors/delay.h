@@ -35,16 +35,15 @@
 #define MISSION_CONTROL_BEHAVIORS_DELAY_H
 
 #include <behaviortree_cpp_v3/decorator_node.h>
-#include <behaviortree_cpp_v3/decorators/timer_queue.h>
 
 #include <atomic>
 #include <chrono>
 #include <string>
 
+#include "mission_control/behaviors/internal/timer_queue.h"
 
 namespace mission_control
 {
-
 class DelayNode : public BT::DecoratorNode
 {
  public:
@@ -52,10 +51,7 @@ class DelayNode : public BT::DecoratorNode
 
   DelayNode(const std::string& name, const BT::NodeConfiguration& config);
 
-  ~DelayNode() override
-  {
-    halt();
-  }
+  ~DelayNode() override { halt(); }
 
   static BT::PortsList providedPorts()
   {
@@ -69,8 +65,7 @@ class DelayNode : public BT::DecoratorNode
   }
 
  private:
-  BT::TimerQueue timer_;
-  uint64_t timer_id_;
+  internal::TimerQueue timer_;
 
   BT::NodeStatus tick() override;
 
@@ -87,6 +82,6 @@ class DelayNode : public BT::DecoratorNode
   bool read_parameter_from_ports_;
 };
 
-}   // namespace mission_control
+}  // namespace mission_control
 
-#endif   // MISSION_CONTROL_BEHAVIORS_DELAY_H
+#endif  // MISSION_CONTROL_BEHAVIORS_DELAY_H

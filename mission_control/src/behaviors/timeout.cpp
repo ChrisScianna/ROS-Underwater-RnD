@@ -32,48 +32,74 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <behaviortree_cpp_v3/actions/always_success_node.h>
-#include <gtest/gtest.h>
 #include <ros/ros.h>
 
-#include <chrono>
-#include <thread>
+#include <string>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/timeout.h"
 
 namespace mission_control
 {
-namespace
+TimeoutNode::TimeoutNode(const std::string& name, std::chrono::milliseconds timeout)
+    : DecoratorNode(name, {}),
+      timeout_(timeout),
+      timeout_status_(Status::PENDING),
+      read_parameter_from_ports_(false)
 {
-TEST(TestDelayNode, nominal)
-{
-  DelayNode root("delay some time", std::chrono::milliseconds(500));
-  BT::AlwaysSuccessNode child("just succeed");
-  root.setChild(&child);
+  setRegistrationID("TimeoutAfter");
+}
 
-  BT::NodeStatus status = root.executeTick();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  do
+TimeoutNode::TimeoutNode(const std::string& name, const BT::NodeConfiguration& config)
+    : DecoratorNode(name, config),
+      timeout_(0u),
+      timeout_status_(Status::PENDING),
+      read_parameter_from_ports_(true)
+{
+}
+
+BT::NodeStatus TimeoutNode::tick()
+{
+  if (Status::PENDING == timeout_status_)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    status = root.executeTick();
-  } while (BT::NodeStatus::RUNNING == status);
-  EXPECT_EQ(status, BT::NodeStatus::SUCCESS);
+    if (read_parameter_from_ports_)
+    {
+      unsigned msec_;
+      auto result = getInput("msec", msec_);
+      if (!result)
+      {
+        ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
+        return BT::NodeStatus::FAILURE;
+      }
+      timeout_ = std::chrono::milliseconds(msec_);
+    }
+    timeout_status_ = Status::RUNNING;
 
-  status = root.executeTick();
-  EXPECT_EQ(status, BT::NodeStatus::RUNNING);
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  root.halt();
-  EXPECT_EQ(root.status(), BT::NodeStatus::IDLE);
+    timer_.add(timeout_, [this](bool aborted) {
+      if (!aborted)
+      {
+        timeout_status_ = Status::EXPIRED;
+        haltChild();
+      }
+      else
+      {
+        timeout_status_ = Status::PENDING;
+      }
+    });
+  }
+
+  if (Status::EXPIRED == timeout_status_)
+  {
+    timeout_status_ = Status::PENDING;
+    return BT::NodeStatus::FAILURE;
+  }
+
+  BT::NodeStatus child_status = child()->executeTick();
+  if (BT::NodeStatus::RUNNING != child_status)
+  {
+    timer_.cancelAll();
+    timeout_status_ = Status::PENDING;
+  }
+  return child_status;
 }
 
-}  // namespace
 }  // namespace mission_control
-
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "test_delay_action");
-  ros::start();
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
