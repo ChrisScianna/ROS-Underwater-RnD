@@ -31,72 +31,57 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+#ifndef MISSION_CONTROL_BEHAVIORS_DELAY_FOR_H
+#define MISSION_CONTROL_BEHAVIORS_DELAY_FOR_H
 
-#include <ros/ros.h>
+#include <behaviortree_cpp_v3/decorator_node.h>
 
+#include <atomic>
+#include <chrono>
 #include <string>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/internal/timer_queue.h"
 
 namespace mission_control
 {
-DelayNode::DelayNode(const std::string& name, std::chrono::milliseconds delay)
-    : DecoratorNode(name, {}),
-      delay_(delay),
-      delay_status_(Status::PENDING),
-      read_parameter_from_ports_(false)
+class DelayForNode : public BT::DecoratorNode
 {
-  setRegistrationID("Delay");
-}
+ public:
+  DelayForNode(const std::string& name, std::chrono::milliseconds delay);
 
-DelayNode::DelayNode(const std::string& name, const BT::NodeConfiguration& config)
-    : DecoratorNode(name, config),
-      delay_(0u),
-      delay_status_(Status::PENDING),
-      read_parameter_from_ports_(true)
-{
-}
+  DelayForNode(const std::string& name, const BT::NodeConfiguration& config);
 
-BT::NodeStatus DelayNode::tick()
-{
-  if (Status::PENDING == delay_status_)
+  ~DelayForNode() override { halt(); }
+
+  static BT::PortsList providedPorts()
   {
-    if (read_parameter_from_ports_)
-    {
-      unsigned msec_;
-      auto result = getInput("delay_msec", msec_);
-      if (!result)
-      {
-        ROS_ERROR_STREAM("Cannot '" << name() << "': " << result.error());
-        return BT::NodeStatus::FAILURE;
-      }
-      delay_ = std::chrono::milliseconds(msec_);
-    }
-    delay_status_ = Status::RUNNING;
-
-    timer_.add(delay_, [this](bool aborted) {
-      if (!aborted)
-      {
-        delay_status_ = Status::COMPLETE;
-      }
-      else
-      {
-        delay_status_ = Status::PENDING;
-      }
-    });
+    return {BT::InputPort<unsigned>("delay_msec", "Time to delay child ticking, in milliseconds")};
   }
 
-  if (Status::COMPLETE != delay_status_)
+  void halt() override
   {
-    return BT::NodeStatus::RUNNING;
+    timer_.cancelAll();
+    DecoratorNode::halt();
   }
 
-  BT::NodeStatus child_status = child()->executeTick();
-  if (BT::NodeStatus::RUNNING != child_status)
+ private:
+  internal::TimerQueue timer_;
+
+  BT::NodeStatus tick() override;
+
+  std::chrono::milliseconds delay_;
+
+  enum class Status
   {
-    delay_status_ = Status::PENDING;
-  }
-  return child_status;
-}
+    PENDING,
+    RUNNING,
+    COMPLETE
+  };
+  std::atomic<Status> delay_status_;
+
+  bool read_parameter_from_ports_;
+};
 
 }  // namespace mission_control
+
+#endif  //  MISSION_CONTROL_BEHAVIORS_DELAY_FOR_H

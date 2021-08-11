@@ -69,7 +69,7 @@ add_library(${PROJECT_NAME} SHARED
   src/behaviors/set_altitude_heading.cpp
   src/behaviors/payload_command.cpp
   src/behaviors/abort.cpp
-  src/behaviors/delay.cpp
+  src/behaviors/delay_for.cpp
   src/behaviors/log_to_bagfile.cpp
   src/behaviors/timeout.cpp
   src/behaviors/internal/async_bag_writer.cpp
