@@ -128,9 +128,9 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/set_altitude_heading_action.test)
   add_rostest(test/set_depth_heading_action.test)
 
-  catkin_add_executable_with_gtest(test_delay_action test/test_delay_action.cpp)
-  target_link_libraries(test_delay_action ${PROJECT_NAME} ${catkin_LIBRARIES})
-  add_rostest(test/delay_action.test DEPENDENCIES test_delay_action)
+  catkin_add_executable_with_gtest(test_delay_for_action test/test_delay_for_action.cpp)
+  target_link_libraries(test_delay_for_action ${PROJECT_NAME} ${catkin_LIBRARIES})
+  add_rostest(test/delay_for_action.test DEPENDENCIES test_delay_for_action)
 
   catkin_add_executable_with_gtest(test_timeout_action test/test_timeout_action.cpp)
   target_link_libraries(test_timeout_action ${PROJECT_NAME} ${catkin_LIBRARIES})

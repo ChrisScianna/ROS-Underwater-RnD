@@ -88,9 +88,9 @@ class TestMissionControlInterface(unittest.TestCase):
         mission_definition = '''
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
-              <Delay delay_msec="1000">
+              <DelayFor delay_msec="1000">
                 <AlwaysSuccess/>
-              </Delay>
+              </DelayFor>
             </BehaviorTree>
           </root>
         '''
@@ -106,9 +106,9 @@ class TestMissionControlInterface(unittest.TestCase):
         mission_definition = '''
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
-              <Delay delay_msec="2000">
+              <DelayFor delay_msec="2000">
                 <AlwaysSuccess/>
-              </Delay>
+              </DelayFor>
             </BehaviorTree>
           </root>
         '''

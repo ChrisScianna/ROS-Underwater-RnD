@@ -3,9 +3,9 @@
     <BehaviorTree ID="main">
         <Sequence>
           <FixRudder depth="1.0" rudder="2.0" speed_knots="3.0"/>
-          <Delay delay_msec="1000">
+          <DelayFor delay_msec="1000">
             <AlwaysSuccess/>
-          </Delay>
+          </DelayFor>
         </Sequence>
     </BehaviorTree>
   </root>

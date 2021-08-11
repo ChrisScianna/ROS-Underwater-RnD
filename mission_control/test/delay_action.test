@@ -1,3 +1,0 @@
-<launch>
-  <test test-name="test_delay_action" pkg="mission_control" type="test_delay_action" time-limit="10.0" />
-</launch>

@@ -62,9 +62,9 @@ class TestLogToBagfileAction(unittest.TestCase):
               <LogToBagfile prefix="{}" topics="{}" compression="{}">
                 <Sequence>
                   <FixRudder depth="1.0" rudder="2.0" speed_knots="3.0"/>
-                  <Delay delay_msec="1000">
+                  <DelayFor delay_msec="1000">
                     <AlwaysSuccess/>
-                  </Delay>
+                  </DelayFor>
                 </Sequence>
               </LogToBagfile>
             </BehaviorTree>
@@ -105,9 +105,9 @@ class TestLogToBagfileAction(unittest.TestCase):
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
               <LogToBagfile prefix="{}">
-                <Delay delay_msec="1000">
+                <DelayFor delay_msec="1000">
                   <AlwaysSuccess/>
-                </Delay>
+                </DelayFor>
               </LogToBagfile>
             </BehaviorTree>
           </root>

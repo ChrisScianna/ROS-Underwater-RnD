@@ -39,15 +39,15 @@
 #include <chrono>
 #include <thread>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/delay_for.h"
 
 namespace mission_control
 {
 namespace
 {
-TEST(TestDelayNode, nominal)
+TEST(TestDelayForNode, nominal)
 {
-  DelayNode root("delay some time", std::chrono::milliseconds(500));
+  DelayForNode root("delay some time", std::chrono::milliseconds(500));
   BT::AlwaysSuccessNode child("just succeed");
   root.setChild(&child);
 
@@ -72,7 +72,7 @@ TEST(TestDelayNode, nominal)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "test_delay_action");
+  ros::init(argc, argv, "test_delay_for_action");
   ros::start();
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
