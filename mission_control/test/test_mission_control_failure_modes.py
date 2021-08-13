@@ -92,9 +92,9 @@ class TestMissionControlFailureModes(unittest.TestCase):
           <root main_tree_to_execute="main">
             <BehaviorTree ID="main">
               <TimeoutAfter msec="1000">
-                <Delay delay_msec="10000">
+                <DelayFor delay_msec="10000">
                   <AlwaysSuccess/>
-                </Delay>
+                </DelayFor>
               </TimeoutAfter>
             </BehaviorTree>
           </root>

@@ -39,7 +39,7 @@
 #include <chrono>
 #include <thread>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/delay_for.h"
 #include "mission_control/behaviors/timeout.h"
 
 namespace mission_control
@@ -49,7 +49,7 @@ namespace
 TEST(TestTimeoutNode, nominal)
 {
   TimeoutNode root("timeout after some time", std::chrono::milliseconds(500));
-  DelayNode decorator("delay for longer", std::chrono::milliseconds(1000));
+  DelayForNode decorator("delay for longer", std::chrono::milliseconds(1000));
   BT::AlwaysSuccessNode child("just succeed");
   decorator.setChild(&child);
   root.setChild(&decorator);

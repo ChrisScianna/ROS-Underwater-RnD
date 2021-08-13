@@ -40,7 +40,7 @@
 
 #include "mission_control/behaviors/abort.h"
 #include "mission_control/behaviors/attitude_servo.h"
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/delay_for.h"
 #include "mission_control/behaviors/fix_rudder.h"
 #include "mission_control/behaviors/go_to_waypoint.h"
 #include "mission_control/behaviors/log_to_bagfile.h"
@@ -74,7 +74,7 @@ class MissionBehaviorTreeFactory : public BT::BehaviorTreeFactory
     // TODO(hidmic): load behavior classes from ROS plugins
     this->registerNodeType<IntrospectableNode<AbortNode>>("Abort");
     this->registerNodeType<IntrospectableNode<AttitudeServoNode>>("AttitudeServo");
-    this->registerNodeType<IntrospectableNode<DelayNode>>("Delay");
+    this->registerNodeType<IntrospectableNode<DelayForNode>>("DelayFor");
     this->registerNodeType<IntrospectableNode<FixRudderNode>>("FixRudder");
     this->registerNodeType<IntrospectableNode<GoToWaypointNode>>("GoToWaypoint");
     this->registerNodeType<IntrospectableNode<LogToBagfileNode>>("LogToBagfile");

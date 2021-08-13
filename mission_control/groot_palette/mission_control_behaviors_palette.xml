@@ -13,7 +13,7 @@
                 Compression type to be used. Supported types are 'none', 'bz2', and 'lz4'.
             </input_port>
         </Decorator>
-        <Decorator ID="Delay">
+        <Decorator ID="DelayFor">
             <input_port name="delay_msec">Time to delay child ticking, in milliseconds</input_port>
         </Decorator>
         <Action ID="AttitudeServo">
@@ -63,4 +63,3 @@
         </Action>
     </TreeNodesModel>
 </root>
-

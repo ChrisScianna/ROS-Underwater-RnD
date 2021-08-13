@@ -36,20 +36,20 @@
 
 #include <string>
 
-#include "mission_control/behaviors/delay.h"
+#include "mission_control/behaviors/delay_for.h"
 
 namespace mission_control
 {
-DelayNode::DelayNode(const std::string& name, std::chrono::milliseconds delay)
+DelayForNode::DelayForNode(const std::string& name, std::chrono::milliseconds delay)
     : DecoratorNode(name, {}),
       delay_(delay),
       delay_status_(Status::PENDING),
       read_parameter_from_ports_(false)
 {
-  setRegistrationID("Delay");
+  setRegistrationID("DelayFor");
 }
 
-DelayNode::DelayNode(const std::string& name, const BT::NodeConfiguration& config)
+DelayForNode::DelayForNode(const std::string& name, const BT::NodeConfiguration& config)
     : DecoratorNode(name, config),
       delay_(0u),
       delay_status_(Status::PENDING),
@@ -57,7 +57,7 @@ DelayNode::DelayNode(const std::string& name, const BT::NodeConfiguration& confi
 {
 }
 
-BT::NodeStatus DelayNode::tick()
+BT::NodeStatus DelayForNode::tick()
 {
   if (Status::PENDING == delay_status_)
   {
