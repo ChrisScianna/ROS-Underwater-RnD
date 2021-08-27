@@ -302,7 +302,7 @@ void AutoPilotNode::mixActuators(double roll, double pitch, double yaw, double t
       degreesToRadians(-rotated_pitch + rotated_yaw + roll),  //  Fin 4 top port
   };
   // Scale down and saturate fin angles if necessary
-  const double absolute_fin_angles[] = {
+  const double absolute_fin_angles[] = {                              //  NOLINT
       fabs(fin_angles[0]), fabs(fin_angles[1]), fabs(fin_angles[2]),  //  NOLINT
       fabs(fin_angles[3]), max_ctrl_fin_angle_in_radians_};           // NOLINT
   const double max_angle_in_radians =
@@ -496,7 +496,6 @@ void AutoPilotNode::spin()
   ros::Rate r(control_loop_rate_);
   while (ros::ok())
   {
-
       double roll_command = 0.;  // straight
       double pitch_command = 0.;  // straight
       double yaw_command = 0.;  // straight
