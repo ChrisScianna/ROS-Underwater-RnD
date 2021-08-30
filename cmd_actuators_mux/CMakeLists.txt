@@ -38,8 +38,8 @@ catkin_package(
 roslint_cpp(
         src/cmd_actuator_mux_nodelet.cpp
         src/cmd_actuator_subscribers.cpp
-        include/cmd_actuators_mux/cmd_actuator_mux_nodelet.cpp
-        include/cmd_actuators_mux/cmd_actuator_subscribers.cpp
+        include/cmd_actuators_mux/cmd_actuator_mux_nodelet.h
+        include/cmd_actuators_mux/cmd_actuator_subscribers.h
         include/cmd_actuators_mux/exceptions.h
 )
 
