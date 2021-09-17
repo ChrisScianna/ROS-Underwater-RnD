@@ -1,10 +1,11 @@
-# Thruster control.
-The thruster control manages the velocity of the thruster. It also reports:
+## `Thruster control` node
+The `thruster control` node manages the velocity of the thruster. It also reports:
 - Thruster velocity.
 - Motor temperature.
 - Battery state.
 
-The thruster control node diagnoses:
+### Diagnostics
+The `thruster control` node performs these diagnostics:
   - The thruster temperature threshold has been reached. (Error)
   - The thruster motor rpm report has stalled. (Warning)
   - The thruster temperature report has stalled. (Warning)

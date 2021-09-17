@@ -1,4 +1,4 @@
-# Command Actuator Multiplexer.
+## `Command Actuator Multiplexer` node
 A multiplexer for command thruster velocity and fins inputs. It arbitrates incoming messages from the Jaus ROS bridge and autopilot, allowing one node at a time to command the actuator, based on priorities.
 It also deactivate the current allowed topic if no messages are received after a configured timeout. All topics, together with their priority and timeout are configured through a YAML file.
 

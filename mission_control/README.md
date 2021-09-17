@@ -1,6 +1,6 @@
-# Mission Control
-The mission control package provides an implementation of missions using behavior trees
-Mission control uses the [BehaviorTree.CPP](https://www.behaviortree.dev/) library for mission definition. A Behavior Tree (BT) __is a way to structure the switching between different tasks__. This is nothing more than a mechanism to invoke callbacks at the right time under the right conditions.
+## `Mission control` node
+The `mission control` node provides an implementation of missions using behavior trees
+`Mission control` uses the [BehaviorTree.CPP](https://www.behaviortree.dev/) library for mission definition. A Behavior Tree (BT) __is a way to structure the switching between different tasks__. This is nothing more than a mechanism to invoke callbacks at the right time under the right conditions.
 
 ## Features
 - Topic interface for:
