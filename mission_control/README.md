@@ -1,19 +1,28 @@
-# Mission Control
-The mission control package provides an implementation of missions using behavior trees
-It is compliant with the the [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP) library.  
+## `Mission control` node
+The `mission control` node provides an implementation of missions using behavior trees
+`Mission control` uses the [BehaviorTree.CPP](https://www.behaviortree.dev/) library for mission definition. A Behavior Tree (BT) __is a way to structure the switching between different tasks__. This is nothing more than a mechanism to invoke callbacks at the right time under the right conditions.
 
 ## Features
-
-- Topic interface for mission loading, execution, abortion, and monitoring, compliant with that of its predecessor (`mission_manager`)
+- Topic interface for:
+    - Abort Mission.
+    - Execute Mission.
+    - Load Mission.
+    - Query Missions.
+    - Remove Missions.
+    - Report Execute Mission State.
+    - Report Load Mission State.
+    - Report Missions.
 
 - Actions supported are:
-&nbsp; - **Abort**. Set the fins to surface and Thruster Velocity to 0 RPM.  
-&nbsp; - **Attitude Servo**. It sends the command to actuator setting the roll, pitch, yaw and speed parameters.  
-&nbsp; - **Fix Rudder**. It sends the command to actuators setting the rudder, depth and speed.  
-&nbsp; - **Go To Waypoint**. It sends command to autopilot to go to altitude, latitude, longitude and speed.  
-&nbsp; - **Payload Command**. It sends a string command to Payload  
-&nbsp; - **Set Altitude Heading**. It sends command to actuator setting the altitude, heading and speed.  
-&nbsp; - **Set Depth Heading**. It sends command to actuator setting the depth, heading and speed.  
+    - [Attitude servo.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/attitude_servo.h)
+    - [Altitude heading.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/set_altitude_heading.h)
+    - [Depth heading.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/set_depth_heading.h)
+    - [Fixed rudder.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/fix_rudder.h)
+    - [Go to waypoint.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/go_to_waypoint.h)
+    - [Payload command.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/payload_command.h)
+    - [Abort.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/abort.h)
+    - [Log to bagfile.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/log_to_bagfile.h) (Decorator)
+    - [Delay.](../catkin_ws/src/public/mission_control/include/mission_control/behaviors/delay_for.h) (Decorator)
 
 - The missions can be designed using Groot
 - Missions are described as behavior trees in XML

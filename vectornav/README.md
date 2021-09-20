@@ -1,4 +1,4 @@
-Vectornav ROS Driver
+## `Vectornav ROS Driver`
 ====================
 
 A ROS node for VectorNav INS & GPS devices.
@@ -6,8 +6,6 @@ A ROS node for VectorNav INS & GPS devices.
 This package provides a sensor_msg interface for the VN100, 200, & 300 
 devices. Simply configure your launch files to point to the serial port
 of the deice and you can use rostopic to quickly get running.   
-
-
 
 The MIT License (MIT)
 ----------------------
@@ -34,8 +32,7 @@ THE SOFTWARE.
 
 
 
-QuickStart Guide
-----------------
+### QuickStart Guide
 
 This assumes that you have a VectorNav device connected to your computer 
 via a USB cable and that you have already created a [catkin workspace][2]
@@ -58,8 +55,7 @@ Run:
 
 
 
-Overview 
---------
+### Overview
 
 #### vnpub node
 
@@ -72,13 +68,10 @@ via ROS parameters and publishes sensor data via ROS topics.
 This launch file contains the default parameters for connecting a device to ROS.
 You will problaby want to copy it into your own project and modify as required. 
 
+#### Diagnostics
+The `vectorornav` node diagnoses if the IMU data has stalled. (Warning)
 
-References 
-----------
+### References
 
 [1]: http://www.vectornav.com/ "VectorNav"
 [2]: http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment "ROS Workspace Tutorial"
-
-
-
-
