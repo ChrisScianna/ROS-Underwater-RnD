@@ -2,5 +2,4 @@
 
 ### Subscribed Topics
 
-*/payload_manager/command ([payload_manager/PayloadCommand](msg/PayloadCommand.msg))  
-Receives the payload command.
+*/payload_manager/command ([payload_manager/PayloadCommand](msg/PayloadCommand.msg): Receives the payload command.

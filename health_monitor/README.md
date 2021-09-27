@@ -6,16 +6,12 @@ The error/warning codes are defined in the [ReportFault message definition](msg/
 
 ### Subscribed Topics
 
-*/health_monitor/clear_fault* ([health_monitor/ClearFault](msg/ClearFault.msg))  
-Clears the faults.
+*/health_monitor/clear_fault* ([health_monitor/ClearFault](msg/ClearFault.msg): Clears the faults.
 
-*/diagnostics* ([diagnostic_msgs/DiagnosticArray](http://docs.ros.org/en/api/diagnostic_msgs/html/msg/DiagnosticArray.html))  
-subscribe to the diagnostic information sent by nodes
+*/diagnostics* ([diagnostic_msgs/DiagnosticArray](http://docs.ros.org/en/api/diagnostic_msgs/html/msg/DiagnosticArray.html): subscribe to the diagnostic information sent by nodes
 
-*/rosmon/state* ([rosmon/State](https://github.com/xqms/rosmon/blob/master/rosmon_msgs/msg/State.msg))  
-Current state of all controlled nodes.
+*/rosmon/state* ([rosmon/State](https://github.com/xqms/rosmon/blob/master/rosmon_msgs/msg/State.msg): Current state of all controlled nodes.
 
 ### Published Topics
 
-*/health_monitor/report_fault*([health_monitor/ReportFault](msg/ReportFault.msg))  
-Publishes the error codes.
+*/health_monitor/report_fault* ([health_monitor/ReportFault](msg/ReportFault.msg): Error codes, subscribed by the [jaus_ros_bridge](../jaus_ros_bridge/README.md) node.

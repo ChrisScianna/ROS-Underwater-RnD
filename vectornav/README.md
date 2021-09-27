@@ -71,26 +71,19 @@ You will problaby want to copy it into your own project and modify as required.
 ### Published Topics
 
 
-*/vectornav/IMU* ([sensor_msgs/Imu](http://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html))  
-Publishes the IMU data.
+*/vectornav/IMU* ([sensor_msgs/Imu](http://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html): IMU data.
 
-*vectornav/Mag* ([sensor_msgs/MagneticField](https://docs.ros.org/en/api/sensor_msgs/html/msg/MagneticField.html))  
-Publishes the magnetic field data.
+*vectornav/Mag* ([sensor_msgs/MagneticField](https://docs.ros.org/en/api/sensor_msgs/html/msg/MagneticField.html): Magnetic field data.
 
-*vectornav/GPS* ([sensor_msgs/NavSatFix](https://docs.ros.org/en/api/sensor_msgs/html/msg/NavSatFix.html))  
-Publishes the GPS data.
+*vectornav/GPS* ([sensor_msgs/NavSatFix](https://docs.ros.org/en/api/sensor_msgs/html/msg/NavSatFix.html): GPS data.
 
-*vectornav/Odom* ([nav_msgs/Odometry](https://docs.ros.org/en/api/nav_msgs/html/msg/Odometry.html))  
-Publishes the odometry data.
+*vectornav/Odom* ([nav_msgs/Odometry](https://docs.ros.org/en/api/nav_msgs/html/msg/Odometry.html): Odometry data.
 
-*vectornav/Temp* ([sensor_msgs::Temperature](https://docs.ros.org/en/api/sensor_msgs/html/msg/Temperature.html))  
-Publishes the temperature data.
+*vectornav/Temp* ([sensor_msgs::Temperature](https://docs.ros.org/en/api/sensor_msgs/html/msg/Temperature.html): Temperature data.
 
-*vectornav/Pres* ([sensor_msgs/FluidPressure](http://docs.ros.org/en/api/sensor_msgs/html/msg/FluidPressure.html))  
-Publishes the fluid pressure data.
+*vectornav/Pres* ([sensor_msgs/FluidPressure](http://docs.ros.org/en/api/sensor_msgs/html/msg/FluidPressure.html): Fluid pressure data.
 
-*/diagnostics* ([diagnostic_msgs/DiagnosticArray](http://docs.ros.org/en/api/diagnostic_msgs/html/msg/DiagnosticArray.html))  
-Publishes the `vectornav` node diagnostics:
+*/diagnostics* ([diagnostic_msgs/DiagnosticArray](http://docs.ros.org/en/api/diagnostic_msgs/html/msg/DiagnosticArray.html): `vectornav` node diagnostics
  - Check if the IMU data has stalled. (Warning)
  - Check if the IMU data readings have stagnated. (Error)
 
