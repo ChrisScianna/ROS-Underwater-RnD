@@ -68,10 +68,26 @@ via ROS parameters and publishes sensor data via ROS topics.
 This launch file contains the default parameters for connecting a device to ROS.
 You will problaby want to copy it into your own project and modify as required. 
 
-#### Diagnostics
-The `vectorornav` node diagnoses if the IMU data has stalled. (Warning)
+### Published Topics
+
+
+*/vectornav/IMU* ([sensor_msgs/Imu](http://docs.ros.org/en/api/sensor_msgs/html/msg/Imu.html)): IMU data.
+
+*vectornav/Mag* ([sensor_msgs/MagneticField](https://docs.ros.org/en/api/sensor_msgs/html/msg/MagneticField.html)): Magnetic field data.
+
+*vectornav/GPS* ([sensor_msgs/NavSatFix](https://docs.ros.org/en/api/sensor_msgs/html/msg/NavSatFix.html)): GPS data.
+
+*vectornav/Odom* ([nav_msgs/Odometry](https://docs.ros.org/en/api/nav_msgs/html/msg/Odometry.html)): Odometry data.
+
+*vectornav/Temp* ([sensor_msgs::Temperature](https://docs.ros.org/en/api/sensor_msgs/html/msg/Temperature.html)): Temperature data.
+
+*vectornav/Pres* ([sensor_msgs/FluidPressure](http://docs.ros.org/en/api/sensor_msgs/html/msg/FluidPressure.html)): Fluid pressure data.
+
+*/diagnostics* ([diagnostic_msgs/DiagnosticArray](http://docs.ros.org/en/api/diagnostic_msgs/html/msg/DiagnosticArray.html)): `vectornav` node diagnostics
+ - Check if the IMU data has stalled. (Warning)
+ - Check if the IMU data readings have stagnated. (Error)
 
 ### References
 
-[1]: http://www.vectornav.com/ "VectorNav"
-[2]: http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment "ROS Workspace Tutorial"
+- [VectorNav](http://www.vectornav.com/)
+- [ROS Workspace Tutorial](http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment)
